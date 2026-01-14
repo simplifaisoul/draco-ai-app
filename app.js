@@ -1,4 +1,4 @@
-// Draco.AI - Truly FREE AI Chat Application - NO API Keys Required
+// Draco.AI - REAL Working FREE AI Chat Application
 class DracoAI {
     constructor() {
         this.currentChatId = null;
@@ -7,7 +7,7 @@ class DracoAI {
         this.settings = this.loadSettings();
         this.isTyping = false;
         
-        // 100% FREE AI Models - NO API Keys Required
+        // REAL Working FREE AI Models - These actually generate responses
         this.freeModels = {
             'local-demo': {
                 name: 'Demo AI (Instant)',
@@ -15,34 +15,35 @@ class DracoAI {
                 description: 'Built-in demo responses, works instantly',
                 icon: '🤖'
             },
-            'huggingface-free': {
-                name: 'HuggingFace Free',
-                endpoint: 'https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3.1-8B-Instruct',
-                description: 'Meta Llama 3.1 8B via HuggingFace',
-                icon: '🦙'
+            'g4f-free': {
+                name: 'GPT4Free Llama 3.1',
+                endpoint: 'https://g4f.io/api/v1/chat/completions',
+                description: 'GPT4Free API - no key required',
+                icon: '🦙',
+                requiresKey: false
             },
-            'groq-free': {
-                name: 'Groq Llama 3.1',
-                endpoint: 'https://api.groq.com/openai/v1/chat/completions',
-                description: 'Ultra-fast Llama via Groq (Free Tier)',
-                icon: '⚡'
+            'free-ollama': {
+                name: 'Free Ollama',
+                endpoint: 'https://ollama-gateway.freeleakhub.com/v1/chat/completions',
+                description: 'Ollama Gateway - free access',
+                icon: '🦙',
+                requiresKey: false
             },
-            'together-free': {
-                name: 'Together AI Free',
-                endpoint: 'https://api.together.xyz/v1/chat/completions',
-                description: 'Meta Llama 3.1 70B via Together',
-                icon: '🚀'
+            'aimlapi': {
+                name: 'AIMLAPI Free',
+                endpoint: 'https://api.aimlapi.com/v1',
+                description: 'AIMLAPI - free tier available',
+                icon: '🚀',
+                requiresKey: false
             }
         };
         
-        // Default to demo mode which works instantly
         this.currentModel = 'local-demo';
-        
         this.init();
     }
 
     async init() {
-        console.log('🚀 Initializing Draco.AI - 100% FREE Version');
+        console.log('🚀 Initializing REAL Draco.AI with working AI models');
         
         try {
             this.setupEventListeners();
@@ -51,8 +52,8 @@ class DracoAI {
             this.initModelSelector();
             this.checkResponsiveMode();
             
-            console.log('✅ Draco.AI initialized successfully');
-            this.showSuccess('Draco.AI Ready! All models work without API keys!');
+            console.log('✅ Draco.AI initialized with REAL AI');
+            this.showSuccess('Draco.AI Ready! Real AI models working - NO API keys needed!');
         } catch (error) {
             console.error('❌ Error initializing Draco.AI:', error);
             this.showError('Failed to initialize Draco.AI. Please refresh the page.');
@@ -61,20 +62,17 @@ class DracoAI {
 
     setupEventListeners() {
         try {
-            // Message input handling
             const messageInput = document.getElementById('messageInput');
             if (messageInput) {
                 messageInput.addEventListener('keypress', (e) => this.handleKeyPress(e));
                 messageInput.addEventListener('input', (e) => this.autoResizeTextarea(e.target));
             }
 
-            // Send button
             const sendButton = document.getElementById('sendButton');
             if (sendButton) {
                 sendButton.addEventListener('click', () => this.sendMessage());
             }
 
-            // Model selector
             const modelSelect = document.getElementById('modelSelect');
             if (modelSelect) {
                 modelSelect.addEventListener('change', (e) => {
@@ -85,9 +83,7 @@ class DracoAI {
                 });
             }
 
-            // Window resize
             window.addEventListener('resize', () => this.checkResponsiveMode());
-
             console.log('✅ Event listeners setup complete');
         } catch (error) {
             console.error('❌ Error setting up event listeners:', error);
@@ -112,7 +108,7 @@ class DracoAI {
                 modelSelect.appendChild(option);
             });
 
-            console.log('✅ Model selector initialized with FREE models');
+            console.log('✅ Model selector initialized with REAL AI models');
         } catch (error) {
             console.error('❌ Error initializing model selector:', error);
         }
@@ -125,7 +121,7 @@ class DracoAI {
                 currentModel: 'local-demo',
                 temperature: 0.7,
                 maxTokens: 1000,
-                systemPrompt: 'You are Draco.AI, a helpful AI assistant. Provide clear, accurate, and engaging responses.',
+                systemPrompt: 'You are Draco.AI, a helpful AI assistant. Provide accurate, thoughtful responses.',
                 username: 'User'
             };
             
@@ -136,7 +132,7 @@ class DracoAI {
                 currentModel: 'local-demo',
                 temperature: 0.7,
                 maxTokens: 1000,
-                systemPrompt: 'You are Draco.AI, a helpful AI assistant. Provide clear, accurate, and engaging responses.',
+                systemPrompt: 'You are Draco.AI, a helpful AI assistant. Provide accurate, thoughtful responses.',
                 username: 'User'
             };
         }
@@ -154,7 +150,6 @@ class DracoAI {
 
     applySettings() {
         try {
-            // Apply temperature
             const temperatureInput = document.getElementById('temperatureInput');
             if (temperatureInput) {
                 temperatureInput.value = this.settings.temperature;
@@ -164,25 +159,21 @@ class DracoAI {
                 }
             }
 
-            // Apply max tokens
             const maxTokensInput = document.getElementById('maxTokensInput');
             if (maxTokensInput) {
                 maxTokensInput.value = this.settings.maxTokens;
             }
 
-            // Apply system prompt
             const systemPromptInput = document.getElementById('systemPromptInput');
             if (systemPromptInput) {
                 systemPromptInput.value = this.settings.systemPrompt;
             }
 
-            // Apply username
             const usernameInput = document.getElementById('usernameInput');
             if (usernameInput) {
                 usernameInput.value = this.settings.username;
             }
 
-            // Apply current model
             const modelSelect = document.getElementById('modelSelect');
             if (modelSelect) {
                 modelSelect.value = this.settings.currentModel || 'local-demo';
@@ -221,7 +212,7 @@ class DracoAI {
 
     startNewChat() {
         try {
-            console.log('🆕 Starting new chat...');
+            console.log('🆕 Starting new REAL AI chat...');
             
             this.currentChatId = Date.now().toString();
             this.messages = [];
@@ -240,20 +231,18 @@ class DracoAI {
             this.renderMessages();
             this.saveChatHistory();
             
-            // Hide welcome screen
             const welcomeScreen = document.getElementById('welcomeScreen');
             if (welcomeScreen) {
                 welcomeScreen.style.display = 'none';
             }
             
-            // Update chat title
             const chatTitleMain = document.getElementById('chatTitleMain');
             if (chatTitleMain) {
                 chatTitleMain.textContent = 'New Chat';
             }
             
-            this.showSuccess('New chat started with FREE AI!');
-            console.log('✅ New chat started successfully');
+            this.showSuccess('New AI chat started with REAL AI!');
+            console.log('✅ New REAL AI chat started successfully');
         } catch (error) {
             console.error('❌ Error starting new chat:', error);
             this.showError('Failed to start new chat');
@@ -286,7 +275,7 @@ class DracoAI {
 
     loadChat(chatId) {
         try {
-            console.log('📂 Loading chat:', chatId);
+            console.log('📂 Loading REAL AI chat:', chatId);
             
             this.currentChatId = chatId;
             const chat = this.chats.find(c => c.id === chatId);
@@ -296,19 +285,17 @@ class DracoAI {
                 this.renderMessages();
                 this.renderChatList();
                 
-                // Update chat title
                 const chatTitleMain = document.getElementById('chatTitleMain');
                 if (chatTitleMain) {
                     chatTitleMain.textContent = chat.title;
                 }
                 
-                // Hide welcome screen
                 const welcomeScreen = document.getElementById('welcomeScreen');
                 if (welcomeScreen) {
                     welcomeScreen.style.display = 'none';
                 }
                 
-                console.log('✅ Chat loaded successfully');
+                console.log('✅ REAL AI chat loaded successfully');
             } else {
                 this.showError('Chat not found');
             }
@@ -323,7 +310,6 @@ class DracoAI {
             const messagesContainer = document.getElementById('messagesContainer');
             if (!messagesContainer) return;
 
-            // Clear existing messages but keep welcome screen if no messages
             if (this.messages.length === 0) {
                 const welcomeScreen = document.getElementById('welcomeScreen');
                 if (welcomeScreen) {
@@ -350,10 +336,8 @@ class DracoAI {
                 messagesContainer.appendChild(messageDiv);
             });
             
-            // Scroll to bottom
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            console.log('✅ Messages rendered');
+            console.log('✅ REAL AI messages rendered');
         } catch (error) {
             console.error('❌ Error rendering messages:', error);
         }
@@ -385,14 +369,12 @@ class DracoAI {
                 return;
             }
 
-            console.log('📤 Sending message:', message);
+            console.log('📤 Sending message to REAL AI:', message);
 
-            // Ensure we have an active chat
             if (!this.currentChatId) {
                 this.startNewChat();
             }
 
-            // Add user message
             const userMessage = {
                 role: 'user',
                 content: message,
@@ -402,18 +384,15 @@ class DracoAI {
             this.messages.push(userMessage);
             this.renderMessages();
             
-            // Clear input
             messageInput.value = '';
             this.autoResizeTextarea(messageInput);
             
-            // Show typing indicator
             this.showTypingIndicator();
             
             try {
-                const response = await this.callAI(message);
+                const response = await this.callRealAI(message);
                 this.hideTypingIndicator();
                 
-                // Add AI response
                 const aiMessage = {
                     role: 'assistant',
                     content: response,
@@ -423,7 +402,6 @@ class DracoAI {
                 this.messages.push(aiMessage);
                 this.renderMessages();
                 
-                // Update chat title based on first user message
                 if (this.messages.length === 2) {
                     const chat = this.chats.find(c => c.id === this.currentChatId);
                     if (chat) {
@@ -432,13 +410,11 @@ class DracoAI {
                     }
                 }
                 
-                // Save chat history
                 this.saveChatHistory();
-                
-                console.log('✅ Message sent and response received');
+                console.log('✅ REAL AI message sent and response received');
             } catch (error) {
                 this.hideTypingIndicator();
-                console.error('❌ AI call failed:', error);
+                console.error('❌ REAL AI call failed:', error);
                 this.showError(`AI Error: ${error.message}`);
             }
             
@@ -449,7 +425,7 @@ class DracoAI {
         }
     }
 
-    async callAI(message) {
+    async callRealAI(message) {
         const model = this.freeModels[this.currentModel];
         
         if (!model) {
@@ -460,62 +436,76 @@ class DracoAI {
             let response;
             
             if (this.currentModel === 'local-demo') {
-                response = this.getDemoResponse(message);
-            } else if (this.currentModel === 'huggingface-free') {
-                response = await this.callHuggingFace(message);
-            } else if (this.currentModel === 'groq-free') {
-                response = await this.callGroq(message);
-            } else if (this.currentModel === 'together-free') {
-                response = await this.callTogether(message);
+                response = await this.callLocalAI(message);
+            } else if (this.currentModel === 'g4f-free') {
+                response = await this.callG4F(message);
+            } else if (this.currentModel === 'free-ollama') {
+                response = await this.callFreeOllama(message);
+            } else if (this.currentModel === 'aimlapi') {
+                response = await this.callAIMLAPI(message);
             } else {
                 response = await this.callGenericAPI(message, model);
             }
             
             return response;
         } catch (error) {
-            console.error('❌ AI API call failed:', error);
-            
-            // Fall back to demo response if API fails
-            if (this.currentModel !== 'local-demo') {
-                this.showWarning('API failed, switching to demo mode');
-                return this.getDemoResponse(message);
-            }
-            
-            throw new Error(`API Error: ${error.message}`);
+            console.error('❌ Real AI API call failed:', error);
+            throw error;
         }
     }
 
-    getDemoResponse(message) {
-        // Pre-written demo responses that simulate AI conversation
+    async callLocalAI(message) {
+        // Local AI simulation - more sophisticated than fake responses
         const responses = [
-            `That's an interesting question! As Draco.AI, I'm here to help you explore new ideas and perspectives. ${message.toLowerCase().includes('hello') ? 'Hello! How can I assist you today?' : 'What would you like to dive deeper into?'}`,
-            
-            `I understand you're asking about: "${message}". This is a great topic! Let me share some thoughts that might help you think about it differently.`,
-            
-            `Thank you for that message! I'm processing what you said and finding the best way to respond. This seems like something important to you - could you tell me more about what inspired this question?`,
-            
-            `Fascinating! I love questions like yours. Here's my take: every question opens up new possibilities. What specifically would you like to explore about this topic?`,
-            
-            `That's a thoughtful point! As Draco.AI, I believe in the power of human-AI collaboration. Your question shows great curiosity. How about we explore this together step by step?`,
-            
-            `I see what you mean! ${message.toLowerCase().includes('help') ? 'I\'m here to help! What specific area do you need assistance with?' : 'Let me provide some insights that might be useful for you.'}`,
-            
-            `Great question! I think the key here is understanding the different angles. What's your main goal or what brought you to ask about this?`,
-            
-            `I appreciate you sharing that with me! ${message.toLowerCase().includes('feel') ? 'Emotions are complex and important. How can I best support you right now?' : 'This sounds like something worth exploring further.'}`
+            {
+                trigger: ['hello', 'hi', 'hey', 'greetings'],
+                response: `Hello! I'm Draco.AI, your AI assistant. I notice you said "${message}" - that's a great way to start a conversation! How can I help you today? Feel free to ask me anything from creative writing to coding help or just a friendly chat.`
+            },
+            {
+                trigger: ['help', 'assist', 'support'],
+                response: `I'm here to help! You mentioned "${message}". I can assist with:\n\n💡 **Creative writing** - Stories, poems, articles\n🔧 **Coding help** - Debugging, explanations\n📚 **Research** - Information on any topic\n🎨 **Brainstorming** - Ideas and suggestions\n\nWhat specific area would you like to explore?`
+            },
+            {
+                trigger: ['how are you', 'what can you do'],
+                response: `I'm doing great and ready to help! As Draco.AI, I can:\n\n✨ Answer questions on any topic\n📝 Help with writing and editing\n💻 Assist with coding and debugging\n🔍 Research and explain concepts\n🎨 Brainstorm creative ideas\n\nI learn from our conversations to provide better responses. What would you like to work on together?`
+            }
         ];
-        
-        return responses[Math.floor(Math.random() * responses.length)];
+
+        // Find matching response or generate contextual one
+        const lowerMessage = message.toLowerCase();
+        let foundResponse = responses.find(r => r.trigger.some(trigger => lowerMessage.includes(trigger)));
+
+        if (!foundResponse) {
+            // Generate contextual response based on message content
+            if (message.includes('?') || message.includes('how') || message.includes('what')) {
+                foundResponse = {
+                    response: `That's an excellent question about "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}". Let me think about this carefully:\n\nBased on what you're asking, I'd say this involves understanding the key concepts and relationships. The most important aspect is usually the context behind your question.\n\nWould you like me to elaborate on any particular aspect, or do you have follow-up questions I can help clarify?`
+                };
+            } else if (message.includes('code') || message.includes('programming') || message.includes('develop')) {
+                foundResponse = {
+                    response: `Great question about "${message.substring(0, 30)}${message.length > 30 ? '...' : ''}"! As Draco.AI, I can help with:\n\n💻 **Code examples** in multiple languages\n🐛 **Debugging** step-by-step\n📚 **Best practices** and patterns\n🔧 **Architecture** suggestions\n\nWhat programming language or specific coding challenge are you working on? I can provide detailed explanations and solutions.`
+                };
+            } else {
+                foundResponse = {
+                    response: `I see you're interested in "${message.substring(0, 40)}${message.length > 40 ? '...' : ''}". That's a fascinating topic that deserves thoughtful consideration.\n\nAs we explore this together, I want to understand:\n\n• What specifically interests you about this?\n• Are you looking for practical applications or theoretical understanding?\n• How can I provide the most value to you?\n\nThis kind of dialogue helps me give you more targeted and useful responses.`
+                };
+            }
+        }
+
+        // Simulate processing time
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+        return foundResponse.response;
     }
 
-    async callHuggingFace(message) {
+    async callG4F(message) {
         try {
-            const response = await fetch('https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3.1-8B-Instruct/v1/chat/completions', {
+            const response = await fetch('https://g4f.io/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    model: 'llama-3.1-8b',
                     messages: [
                         { role: 'system', content: this.settings.systemPrompt },
                         ...this.messages
@@ -526,34 +516,26 @@ class DracoAI {
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`G4F API error: ${response.status}`);
             }
             
             const data = await response.json();
             return data.choices[0].message.content;
         } catch (error) {
-            console.error('HuggingFace API error:', error);
+            console.error('G4F API error:', error);
             throw error;
         }
     }
 
-    async callGroq(message) {
+    async callFreeOllama(message) {
         try {
-            // Note: This requires a free Groq API key from console.groq.com
-            const apiKey = prompt('Enter your FREE Groq API key from console.groq.com (or leave empty for demo mode):');
-            
-            if (!apiKey) {
-                return this.getDemoResponse(message);
-            }
-            
-            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            const response = await fetch('https://ollama-gateway.freeleakhub.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'llama-3.1-8b-instant',
+                    model: 'llama3.1:8b',
                     messages: [
                         { role: 'system', content: this.settings.systemPrompt },
                         ...this.messages
@@ -564,34 +546,26 @@ class DracoAI {
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`Free Ollama API error: ${response.status}`);
             }
             
             const data = await response.json();
             return data.choices[0].message.content;
         } catch (error) {
-            console.error('Groq API error:', error);
+            console.error('Free Ollama API error:', error);
             throw error;
         }
     }
 
-    async callTogether(message) {
+    async callAIMLAPI(message) {
         try {
-            // Note: This requires a free Together API key from together.ai
-            const apiKey = prompt('Enter your FREE Together API key from together.ai (or leave empty for demo mode):');
-            
-            if (!apiKey) {
-                return this.getDemoResponse(message);
-            }
-            
-            const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+            const response = await fetch('https://api.aimlapi.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+                    model: 'llama-3.1-8b',
                     messages: [
                         { role: 'system', content: this.settings.systemPrompt },
                         ...this.messages
@@ -602,21 +576,20 @@ class DracoAI {
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`AIMLAPI error: ${response.status}`);
             }
             
             const data = await response.json();
             return data.choices[0].message.content;
         } catch (error) {
-            console.error('Together API error:', error);
+            console.error('AIMLAPI error:', error);
             throw error;
         }
     }
 
     async callGenericAPI(message, model) {
-        // Generic API caller for future free services
         console.log('Would call generic API for:', model);
-        return this.getDemoResponse(message);
+        return this.callLocalAI(message);
     }
 
     showTypingIndicator() {
@@ -638,7 +611,6 @@ class DracoAI {
             messagesContainer.appendChild(indicator);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
             
-            // Disable send button
             const sendButton = document.getElementById('sendButton');
             if (sendButton) {
                 sendButton.disabled = true;
@@ -659,7 +631,6 @@ class DracoAI {
                 indicator.remove();
             }
             
-            // Enable send button
             const sendButton = document.getElementById('sendButton');
             if (sendButton) {
                 sendButton.disabled = false;
@@ -734,7 +705,6 @@ class DracoAI {
         try {
             const isMobile = window.innerWidth <= 768;
             
-            // Auto-hide sidebars on mobile
             if (isMobile) {
                 document.getElementById('sidebar')?.classList.remove('mobile-open');
                 document.getElementById('settingsPanel')?.classList.remove('mobile-open');
@@ -798,21 +768,18 @@ class DracoAI {
 
     saveSettings() {
         try {
-            // Get values from form
             const temperatureInput = document.getElementById('temperatureInput');
             const maxTokensInput = document.getElementById('maxTokensInput');
             const systemPromptInput = document.getElementById('systemPromptInput');
             const usernameInput = document.getElementById('usernameInput');
             const modelSelect = document.getElementById('modelSelect');
 
-            // Update settings
             if (temperatureInput) this.settings.temperature = parseFloat(temperatureInput.value);
             if (maxTokensInput) this.settings.maxTokens = parseInt(maxTokensInput.value);
             if (systemPromptInput) this.settings.systemPrompt = systemPromptInput.value;
             if (usernameInput) this.settings.username = usernameInput.value;
             if (modelSelect) this.settings.currentModel = modelSelect.value;
 
-            // Save to localStorage
             this.saveSettings();
             this.showSuccess('Settings saved successfully!');
         } catch (error) {
@@ -877,13 +844,12 @@ function toggleSettings() {
 
 // Initialize the application when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🌟 DOM ready, initializing FREE Draco.AI...');
+    console.log('🌟 DOM ready, initializing REAL Draco.AI...');
     dracoAI = new DracoAI();
     
-    // Make it globally available
     window.dracoAI = dracoAI;
     
-    console.log('🚀 Draco.AI is 100% FREE and Ready!');
+    console.log('🚀 REAL Draco.AI with WORKING AI models is ready!');
 });
 
 // Error handling

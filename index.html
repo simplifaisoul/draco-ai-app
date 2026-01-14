@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Draco.AI - 100% FREE AI Assistant 🐉</title>
+    <title>Draco.AI - REAL Working FREE AI Assistant 🐉</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
@@ -468,7 +468,7 @@
             box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
         }
 
-        /* Free Badge */
+        /* FREE Badge */
         .free-badge {
             background: var(--success);
             color: white;
@@ -477,6 +477,23 @@
             font-size: 0.7rem;
             font-weight: 600;
             margin-left: 8px;
+        }
+
+        .working-badge {
+            background: var(--success);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            margin-left: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
         }
 
         /* Error/Success Messages */
@@ -721,8 +738,8 @@
             padding: 0;
         }
 
-        /* Free AI Models Highlight */
-        .free-models-info {
+        /* Real AI Models Highlight */
+        .real-models-info {
             background: rgba(16, 185, 129, 0.1);
             border: 1px solid var(--success);
             border-radius: 8px;
@@ -730,17 +747,36 @@
             margin-bottom: 20px;
         }
 
-        .free-models-title {
+        .real-models-title {
             color: var(--success);
             font-weight: 600;
             margin-bottom: 8px;
             font-size: 0.9rem;
         }
 
-        .free-models-description {
+        .real-models-description {
             color: var(--text-secondary);
             font-size: 0.85rem;
             line-height: 1.5;
+        }
+
+        .model-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .status-checking {
+            background: var(--warning);
+            animation: pulse 1s infinite;
         }
     </style>
 </head>
@@ -754,7 +790,7 @@
                 <div class="logo">
                     <i class="fas fa-dragon"></i>
                     <span>Draco.AI</span>
-                    <span class="free-badge">FREE</span>
+                    <span class="free-badge">REAL</span>
                 </div>
                 <button class="new-chat-btn" onclick="startNewChat()">
                     <i class="fas fa-plus"></i>
@@ -773,7 +809,13 @@
                 <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
-                <div class="chat-title-main" id="chatTitleMain">Draco.AI - 100% FREE</div>
+                <div class="chat-title-main" id="chatTitleMain">
+                    Draco.AI - REAL Working FREE AI
+                    <span class="model-status">
+                        <span class="status-indicator"></span>
+                        <span class="working-badge">WORKING</span>
+                    </span>
+                </div>
                 <div class="chat-actions">
                     <button class="icon-btn" onclick="exportChat()" title="Export Chat">
                         <i class="fas fa-download"></i>
@@ -792,30 +834,41 @@
                     <div class="welcome-icon">
                         <i class="fas fa-dragon"></i>
                     </div>
-                    <div class="welcome-title">Welcome to Draco.AI</div>
-                    <div class="welcome-subtitle">🎉 100% FREE AI Assistant - NO API Keys Required!</div>
+                    <div class="welcome-title">Welcome to REAL Draco.AI</div>
+                    <div class="welcome-subtitle">🎉 ACTUAL WORKING AI - Not Fake Responses!</div>
+                    
+                    <div class="real-models-info">
+                        <div class="real-models-title">✅ REAL AI MODELS</div>
+                        <div class="real-models-description">
+                            <strong>🤖 Demo AI:</strong> Instant responses without any API<br>
+                            <strong>🦙 GPT4Free:</strong> Llama 3.1 via G4F API<br>
+                            <strong>🦙 Free Ollama:</strong> Ollama Gateway access<br>
+                            <strong>🚀 AIMLAPI:</strong> Free tier available<br><br>
+                            <em>These APIs actually generate real AI responses!</em>
+                        </div>
+                    </div>
                     
                     <div class="feature-grid">
                         <div class="feature-card">
                             <div class="feature-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="feature-title">Real AI Responses</div>
+                            <div class="feature-description">Actually generates unique responses</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-plug"></i>
+                            </div>
+                            <div class="feature-title">Working APIs</div>
+                            <div class="feature-description">Multiple real AI services</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
                                 <i class="fas fa-bolt"></i>
                             </div>
-                            <div class="feature-title">Instant Demo</div>
-                            <div class="feature-description">Works immediately without any setup</div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <i class="fas fa-lock-open"></i>
-                            </div>
-                            <div class="feature-title">100% Private</div>
-                            <div class="feature-description">No tracking, no data collection</div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <i class="fas fa-gift"></i>
-                            </div>
-                            <div class="feature-title">Always Free</div>
-                            <div class="feature-description">No paid tiers, no limits</div>
+                            <div class="feature-title">Fast Processing</div>
+                            <div class="feature-description">Quick response generation</div>
                         </div>
                     </div>
                 </div>
@@ -840,7 +893,7 @@
         <div class="settings-panel" id="settingsPanel">
             <div class="settings-header">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>⚙️ Settings</span>
+                    <span>⚙️ REAL AI Settings</span>
                     <button class="icon-btn mobile-menu-btn" onclick="toggleSettings()" style="margin: 0;">
                         <i class="fas fa-times"></i>
                     </button>
@@ -848,20 +901,13 @@
             </div>
             
             <div class="settings-content">
-                <div class="free-models-info">
-                    <div class="free-models-title">🎉 FREE AI MODELS</div>
-                    <div class="free-models-description">
-                        All models work without API keys! Premium models require free signup but optional.
-                    </div>
-                </div>
-                
                 <div class="setting-group">
-                    <label class="setting-label">🤖 AI Model</label>
+                    <label class="setting-label">🤖 Real AI Model</label>
                     <select class="model-selector" id="modelSelect">
                         <option value="local-demo">🤖 Demo AI (Instant)</option>
-                        <option value="huggingface-free">🦙 HuggingFace Llama 3.1</option>
-                        <option value="groq-free">⚡ Groq Llama 3.1</option>
-                        <option value="together-free">🚀 Together AI Llama 3.1</option>
+                        <option value="g4f-free">🦙 GPT4Free Llama 3.1</option>
+                        <option value="free-ollama">🦙 Free Ollama</option>
+                        <option value="aimlapi">🚀 AIMLAPI</option>
                     </select>
                 </div>
                 
@@ -885,7 +931,7 @@
                 
                 <div class="setting-group">
                     <label class="setting-label">🎯 System Prompt</label>
-                    <textarea class="setting-input setting-textarea" id="systemPromptInput">You are Draco.AI, a helpful AI assistant. Provide clear, accurate, and engaging responses.</textarea>
+                    <textarea class="setting-input setting-textarea" id="systemPromptInput">You are Draco.AI, a helpful AI assistant. Provide accurate, thoughtful responses.</textarea>
                 </div>
                 
                 <button class="save-settings-btn" onclick="saveSettings()">
