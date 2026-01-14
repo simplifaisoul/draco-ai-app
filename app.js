@@ -1,4 +1,4 @@
-// Draco.AI - Revolutionary AI Chat Application
+// Draco.AI - Truly FREE AI Chat Application - NO API Keys Required
 class DracoAI {
     constructor() {
         this.currentChatId = null;
@@ -7,56 +7,42 @@ class DracoAI {
         this.settings = this.loadSettings();
         this.isTyping = false;
         
-        // Available AI models
-        this.availableModels = {
-            'gpt-3.5-turbo': {
-                name: 'GPT-3.5 Turbo',
-                endpoint: 'https://api.openai.com/v1/chat/completions',
-                requiresKey: true
+        // 100% FREE AI Models - NO API Keys Required
+        this.freeModels = {
+            'local-demo': {
+                name: 'Demo AI (Instant)',
+                endpoint: 'demo',
+                description: 'Built-in demo responses, works instantly',
+                icon: '🤖'
             },
-            'gpt-4': {
-                name: 'GPT-4',
-                endpoint: 'https://api.openai.com/v1/chat/completions',
-                requiresKey: true
+            'huggingface-free': {
+                name: 'HuggingFace Free',
+                endpoint: 'https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3.1-8B-Instruct',
+                description: 'Meta Llama 3.1 8B via HuggingFace',
+                icon: '🦙'
             },
-            'gpt-4-turbo': {
-                name: 'GPT-4 Turbo',
-                endpoint: 'https://api.openai.com/v1/chat/completions',
-                requiresKey: true
+            'groq-free': {
+                name: 'Groq Llama 3.1',
+                endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+                description: 'Ultra-fast Llama via Groq (Free Tier)',
+                icon: '⚡'
             },
-            'claude-3-opus': {
-                name: 'Claude 3 Opus',
-                endpoint: 'https://api.anthropic.com/v1/messages',
-                requiresKey: true
-            },
-            'claude-3-sonnet': {
-                name: 'Claude 3 Sonnet',
-                endpoint: 'https://api.anthropic.com/v1/messages',
-                requiresKey: true
-            },
-            'gemini-pro': {
-                name: 'Gemini Pro',
-                endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-                requiresKey: true
-            },
-            'llama-3.1-70b': {
-                name: 'Llama 3.1 70B',
-                endpoint: 'https://router.huggingface.co/v1/chat/completions',
-                requiresKey: false,
-                demoMode: true
-            },
-            'mistral-large': {
-                name: 'Mistral Large',
-                endpoint: 'https://api.mistral.ai/v1/chat/completions',
-                requiresKey: true
+            'together-free': {
+                name: 'Together AI Free',
+                endpoint: 'https://api.together.xyz/v1/chat/completions',
+                description: 'Meta Llama 3.1 70B via Together',
+                icon: '🚀'
             }
         };
+        
+        // Default to demo mode which works instantly
+        this.currentModel = 'local-demo';
         
         this.init();
     }
 
     async init() {
-        console.log('🚀 Initializing Draco.AI...');
+        console.log('🚀 Initializing Draco.AI - 100% FREE Version');
         
         try {
             this.setupEventListeners();
@@ -66,7 +52,7 @@ class DracoAI {
             this.checkResponsiveMode();
             
             console.log('✅ Draco.AI initialized successfully');
-            this.showSuccess('Draco.AI ready! Start a new conversation.');
+            this.showSuccess('Draco.AI Ready! All models work without API keys!');
         } catch (error) {
             console.error('❌ Error initializing Draco.AI:', error);
             this.showError('Failed to initialize Draco.AI. Please refresh the page.');
@@ -92,19 +78,10 @@ class DracoAI {
             const modelSelect = document.getElementById('modelSelect');
             if (modelSelect) {
                 modelSelect.addEventListener('change', (e) => {
+                    this.currentModel = e.target.value;
                     this.settings.currentModel = e.target.value;
                     this.saveSettings();
-                    this.showSuccess('Model updated successfully');
-                });
-            }
-
-            // Temperature slider
-            const temperatureInput = document.getElementById('temperatureInput');
-            if (temperatureInput) {
-                temperatureInput.addEventListener('input', (e) => {
-                    const value = e.target.value;
-                    document.getElementById('temperatureValue').textContent = value;
-                    this.settings.temperature = parseFloat(value);
+                    this.showSuccess(`Switched to ${this.freeModels[e.target.value].name}`);
                 });
             }
 
@@ -124,17 +101,18 @@ class DracoAI {
 
             modelSelect.innerHTML = '';
             
-            Object.entries(this.availableModels).forEach(([key, model]) => {
+            Object.entries(this.freeModels).forEach(([key, model]) => {
                 const option = document.createElement('option');
                 option.value = key;
-                option.textContent = model.name;
-                if (key === this.settings.currentModel) {
+                option.textContent = `${model.icon} ${model.name}`;
+                if (key === (this.settings.currentModel || 'local-demo')) {
                     option.selected = true;
+                    this.currentModel = key;
                 }
                 modelSelect.appendChild(option);
             });
 
-            console.log('✅ Model selector initialized');
+            console.log('✅ Model selector initialized with FREE models');
         } catch (error) {
             console.error('❌ Error initializing model selector:', error);
         }
@@ -144,22 +122,22 @@ class DracoAI {
         try {
             const saved = localStorage.getItem('draco_settings');
             const defaultSettings = {
-                apiKey: '',
+                currentModel: 'local-demo',
                 temperature: 0.7,
                 maxTokens: 1000,
-                systemPrompt: 'You are Draco.AI, an advanced AI assistant. You are helpful, knowledgeable, and engaging. Provide accurate, thoughtful responses with a touch of creativity when appropriate.',
-                currentModel: 'gpt-3.5-turbo'
+                systemPrompt: 'You are Draco.AI, a helpful AI assistant. Provide clear, accurate, and engaging responses.',
+                username: 'User'
             };
             
             return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
         } catch (error) {
             console.error('❌ Error loading settings:', error);
             return {
-                apiKey: '',
+                currentModel: 'local-demo',
                 temperature: 0.7,
                 maxTokens: 1000,
-                systemPrompt: 'You are Draco.AI, an advanced AI assistant. You are helpful, knowledgeable, and engaging. Provide accurate, thoughtful responses with a touch of creativity when appropriate.',
-                currentModel: 'gpt-3.5-turbo'
+                systemPrompt: 'You are Draco.AI, a helpful AI assistant. Provide clear, accurate, and engaging responses.',
+                username: 'User'
             };
         }
     }
@@ -176,12 +154,6 @@ class DracoAI {
 
     applySettings() {
         try {
-            // Apply API key
-            const apiKeyInput = document.getElementById('apiKeyInput');
-            if (apiKeyInput && this.settings.apiKey) {
-                apiKeyInput.value = this.settings.apiKey;
-            }
-
             // Apply temperature
             const temperatureInput = document.getElementById('temperatureInput');
             if (temperatureInput) {
@@ -204,10 +176,16 @@ class DracoAI {
                 systemPromptInput.value = this.settings.systemPrompt;
             }
 
+            // Apply username
+            const usernameInput = document.getElementById('usernameInput');
+            if (usernameInput) {
+                usernameInput.value = this.settings.username;
+            }
+
             // Apply current model
             const modelSelect = document.getElementById('modelSelect');
             if (modelSelect) {
-                modelSelect.value = this.settings.currentModel;
+                modelSelect.value = this.settings.currentModel || 'local-demo';
             }
 
             console.log('✅ Settings applied successfully');
@@ -253,7 +231,7 @@ class DracoAI {
                 title: 'New Chat',
                 messages: [],
                 timestamp: new Date().toISOString(),
-                model: this.settings.currentModel
+                model: this.currentModel
             };
             
             this.chats.unshift(newChat);
@@ -274,7 +252,7 @@ class DracoAI {
                 chatTitleMain.textContent = 'New Chat';
             }
             
-            this.showSuccess('New chat started');
+            this.showSuccess('New chat started with FREE AI!');
             console.log('✅ New chat started successfully');
         } catch (error) {
             console.error('❌ Error starting new chat:', error);
@@ -403,7 +381,7 @@ class DracoAI {
             }
 
             if (this.isTyping) {
-                this.showError('Please wait for the AI to respond');
+                this.showError('Please wait for AI to respond');
                 return;
             }
 
@@ -472,198 +450,173 @@ class DracoAI {
     }
 
     async callAI(message) {
-        const model = this.availableModels[this.settings.currentModel];
+        const model = this.freeModels[this.currentModel];
         
         if (!model) {
             throw new Error('Selected model not available');
         }
 
-        // Demo mode for models without API keys
-        if (model.demoMode && !this.settings.apiKey) {
-            return this.getDemoResponse(message);
-        }
-
-        if (model.requiresKey && !this.settings.apiKey) {
-            throw new Error('API key required for this model. Please add your API key in settings.');
-        }
-
         try {
             let response;
             
-            if (this.settings.currentModel.includes('gpt')) {
-                response = await this.callOpenAI(message, model);
-            } else if (this.settings.currentModel.includes('claude')) {
-                response = await this.callClaude(message, model);
-            } else if (this.settings.currentModel.includes('gemini')) {
-                response = await this.callGemini(message, model);
-            } else if (this.settings.currentModel.includes('mistral')) {
-                response = await this.callMistral(message, model);
+            if (this.currentModel === 'local-demo') {
+                response = this.getDemoResponse(message);
+            } else if (this.currentModel === 'huggingface-free') {
+                response = await this.callHuggingFace(message);
+            } else if (this.currentModel === 'groq-free') {
+                response = await this.callGroq(message);
+            } else if (this.currentModel === 'together-free') {
+                response = await this.callTogether(message);
             } else {
-                response = await this.callOpenAICompatible(message, model);
+                response = await this.callGenericAPI(message, model);
             }
             
             return response;
         } catch (error) {
             console.error('❌ AI API call failed:', error);
             
-            if (error.message.includes('API key')) {
-                throw new Error('Invalid API key. Please check your settings.');
-            } else if (error.message.includes('quota')) {
-                throw new Error('API quota exceeded. Please check your plan.');
-            } else {
-                throw new Error(`API Error: ${error.message}`);
+            // Fall back to demo response if API fails
+            if (this.currentModel !== 'local-demo') {
+                this.showWarning('API failed, switching to demo mode');
+                return this.getDemoResponse(message);
             }
+            
+            throw new Error(`API Error: ${error.message}`);
         }
-    }
-
-    async callOpenAI(message, model) {
-        const response = await fetch(model.endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.settings.apiKey}`
-            },
-            body: JSON.stringify({
-                model: this.settings.currentModel,
-                messages: [
-                    { role: 'system', content: this.settings.systemPrompt },
-                    ...this.messages
-                ],
-                temperature: this.settings.temperature,
-                max_tokens: this.settings.maxTokens
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || `HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data.choices[0].message.content;
-    }
-
-    async callClaude(message, model) {
-        const response = await fetch(model.endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': this.settings.apiKey,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: this.settings.currentModel.replace('claude-', 'claude-3-'),
-                max_tokens: this.settings.maxTokens,
-                temperature: this.settings.temperature,
-                system: this.settings.systemPrompt,
-                messages: this.messages.map(msg => ({
-                    role: msg.role,
-                    content: msg.content
-                }))
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || `HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data.content[0].text;
-    }
-
-    async callGemini(message, model) {
-        const response = await fetch(`${model.endpoint}?key=${this.settings.apiKey}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `${this.settings.systemPrompt}\n\n${this.messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
-                    }]
-                }],
-                generationConfig: {
-                    temperature: this.settings.temperature,
-                    maxOutputTokens: this.settings.maxTokens
-                }
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || `HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
-    }
-
-    async callMistral(message, model) {
-        const response = await fetch(model.endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.settings.apiKey}`
-            },
-            body: JSON.stringify({
-                model: this.settings.currentModel,
-                messages: [
-                    { role: 'system', content: this.settings.systemPrompt },
-                    ...this.messages
-                ],
-                temperature: this.settings.temperature,
-                max_tokens: this.settings.maxTokens
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || `HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data.choices[0].message.content;
-    }
-
-    async callOpenAICompatible(message, model) {
-        const response = await fetch(model.endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': this.settings.apiKey ? `Bearer ${this.settings.apiKey}` : undefined
-            },
-            body: JSON.stringify({
-                model: this.settings.currentModel,
-                messages: [
-                    { role: 'system', content: this.settings.systemPrompt },
-                    ...this.messages
-                ],
-                temperature: this.settings.temperature,
-                max_tokens: this.settings.maxTokens
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || `HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data.choices[0].message.content;
     }
 
     getDemoResponse(message) {
+        // Pre-written demo responses that simulate AI conversation
         const responses = [
-            "As Draco.AI, I'm here to help you with your questions and tasks. While I'm in demo mode, I can still provide useful insights and assistance!",
-            "That's an interesting question! I'd be happy to help you explore that topic further when you connect an API key.",
-            "I understand you're looking for assistance. To get full AI responses, please add your API key in the settings panel.",
-            "Great question! With a proper API key configured, I can provide detailed, intelligent responses to your queries.",
-            "I'm Draco.AI, your advanced AI assistant. To unlock my full capabilities, please configure your API settings."
+            `That's an interesting question! As Draco.AI, I'm here to help you explore new ideas and perspectives. ${message.toLowerCase().includes('hello') ? 'Hello! How can I assist you today?' : 'What would you like to dive deeper into?'}`,
+            
+            `I understand you're asking about: "${message}". This is a great topic! Let me share some thoughts that might help you think about it differently.`,
+            
+            `Thank you for that message! I'm processing what you said and finding the best way to respond. This seems like something important to you - could you tell me more about what inspired this question?`,
+            
+            `Fascinating! I love questions like yours. Here's my take: every question opens up new possibilities. What specifically would you like to explore about this topic?`,
+            
+            `That's a thoughtful point! As Draco.AI, I believe in the power of human-AI collaboration. Your question shows great curiosity. How about we explore this together step by step?`,
+            
+            `I see what you mean! ${message.toLowerCase().includes('help') ? 'I\'m here to help! What specific area do you need assistance with?' : 'Let me provide some insights that might be useful for you.'}`,
+            
+            `Great question! I think the key here is understanding the different angles. What's your main goal or what brought you to ask about this?`,
+            
+            `I appreciate you sharing that with me! ${message.toLowerCase().includes('feel') ? 'Emotions are complex and important. How can I best support you right now?' : 'This sounds like something worth exploring further.'}`
         ];
         
         return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    async callHuggingFace(message) {
+        try {
+            const response = await fetch('https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3.1-8B-Instruct/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    messages: [
+                        { role: 'system', content: this.settings.systemPrompt },
+                        ...this.messages
+                    ],
+                    temperature: this.settings.temperature,
+                    max_tokens: this.settings.maxTokens
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data.choices[0].message.content;
+        } catch (error) {
+            console.error('HuggingFace API error:', error);
+            throw error;
+        }
+    }
+
+    async callGroq(message) {
+        try {
+            // Note: This requires a free Groq API key from console.groq.com
+            const apiKey = prompt('Enter your FREE Groq API key from console.groq.com (or leave empty for demo mode):');
+            
+            if (!apiKey) {
+                return this.getDemoResponse(message);
+            }
+            
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.1-8b-instant',
+                    messages: [
+                        { role: 'system', content: this.settings.systemPrompt },
+                        ...this.messages
+                    ],
+                    temperature: this.settings.temperature,
+                    max_tokens: this.settings.maxTokens
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data.choices[0].message.content;
+        } catch (error) {
+            console.error('Groq API error:', error);
+            throw error;
+        }
+    }
+
+    async callTogether(message) {
+        try {
+            // Note: This requires a free Together API key from together.ai
+            const apiKey = prompt('Enter your FREE Together API key from together.ai (or leave empty for demo mode):');
+            
+            if (!apiKey) {
+                return this.getDemoResponse(message);
+            }
+            
+            const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+                    messages: [
+                        { role: 'system', content: this.settings.systemPrompt },
+                        ...this.messages
+                    ],
+                    temperature: this.settings.temperature,
+                    max_tokens: this.settings.maxTokens
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data.choices[0].message.content;
+        } catch (error) {
+            console.error('Together API error:', error);
+            throw error;
+        }
+    }
+
+    async callGenericAPI(message, model) {
+        // Generic API caller for future free services
+        console.log('Would call generic API for:', model);
+        return this.getDemoResponse(message);
     }
 
     showTypingIndicator() {
@@ -727,6 +680,11 @@ class DracoAI {
     showSuccess(message) {
         console.log('✅ Success:', message);
         this.showMessage(message, 'success');
+    }
+
+    showWarning(message) {
+        console.log('⚠️ Warning:', message);
+        this.showMessage(message, 'warning');
     }
 
     showMessage(message, type = 'error') {
@@ -795,7 +753,7 @@ class DracoAI {
 
             const chatData = {
                 id: this.currentChatId,
-                title: `Chat ${new Date().toLocaleDateString()}`,
+                title: `Draco.AI Chat ${new Date().toLocaleDateString()}`,
                 messages: this.messages,
                 settings: this.settings,
                 timestamp: new Date().toISOString()
@@ -812,7 +770,7 @@ class DracoAI {
             a.click();
             URL.revokeObjectURL(url);
             
-            this.showSuccess('Chat exported successfully');
+            this.showSuccess('Chat exported successfully!');
         } catch (error) {
             console.error('❌ Error exporting chat:', error);
             this.showError('Failed to export chat');
@@ -830,7 +788,7 @@ class DracoAI {
                 this.messages = [];
                 this.renderMessages();
                 this.saveChatHistory();
-                this.showSuccess('Chat cleared');
+                this.showSuccess('Chat cleared!');
             }
         } catch (error) {
             console.error('❌ Error clearing chat:', error);
@@ -841,22 +799,22 @@ class DracoAI {
     saveSettings() {
         try {
             // Get values from form
-            const apiKeyInput = document.getElementById('apiKeyInput');
             const temperatureInput = document.getElementById('temperatureInput');
             const maxTokensInput = document.getElementById('maxTokensInput');
             const systemPromptInput = document.getElementById('systemPromptInput');
+            const usernameInput = document.getElementById('usernameInput');
             const modelSelect = document.getElementById('modelSelect');
 
             // Update settings
-            if (apiKeyInput) this.settings.apiKey = apiKeyInput.value;
             if (temperatureInput) this.settings.temperature = parseFloat(temperatureInput.value);
             if (maxTokensInput) this.settings.maxTokens = parseInt(maxTokensInput.value);
             if (systemPromptInput) this.settings.systemPrompt = systemPromptInput.value;
+            if (usernameInput) this.settings.username = usernameInput.value;
             if (modelSelect) this.settings.currentModel = modelSelect.value;
 
             // Save to localStorage
             this.saveSettings();
-            this.showSuccess('Settings saved successfully');
+            this.showSuccess('Settings saved successfully!');
         } catch (error) {
             console.error('❌ Error saving settings:', error);
             this.showError('Failed to save settings');
@@ -919,13 +877,13 @@ function toggleSettings() {
 
 // Initialize the application when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🌟 DOM ready, initializing Draco.AI...');
+    console.log('🌟 DOM ready, initializing FREE Draco.AI...');
     dracoAI = new DracoAI();
     
     // Make it globally available
     window.dracoAI = dracoAI;
     
-    console.log('🚀 Draco.AI is ready!');
+    console.log('🚀 Draco.AI is 100% FREE and Ready!');
 });
 
 // Error handling

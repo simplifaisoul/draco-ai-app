@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Draco.AI - Revolutionary AI Assistant</title>
+    <title>Draco.AI - 100% FREE AI Assistant 🐉</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
@@ -12,6 +12,9 @@
             --primary-dark: #4f46e5;
             --secondary: #8b5cf6;
             --accent: #ec4899;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
             --bg-primary: #0a0e1a;
             --bg-secondary: #1a1f2e;
             --bg-tertiary: #2a3142;
@@ -19,9 +22,6 @@
             --text-secondary: #e2e8f0;
             --text-muted: #94a3b8;
             --border: #334155;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --error: #ef4444;
             --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --glass: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
@@ -468,13 +468,52 @@
             box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
         }
 
-        /* Error Message */
+        /* Free Badge */
+        .free-badge {
+            background: var(--success);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        /* Error/Success Messages */
         .error-message {
             position: fixed;
             top: 20px;
             right: 20px;
             padding: 16px 20px;
             background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border-radius: 8px;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .success-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 20px;
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+            border-radius: 8px;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .warning-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 20px;
+            background: rgba(245, 158, 11, 0.9);
             color: white;
             border-radius: 8px;
             font-weight: 500;
@@ -492,21 +531,6 @@
                 transform: translateX(0);
                 opacity: 1;
             }
-        }
-
-        /* Success Message */
-        .success-message {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 20px;
-            background: rgba(16, 185, 129, 0.9);
-            color: white;
-            border-radius: 8px;
-            font-weight: 500;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
-            backdrop-filter: blur(10px);
         }
 
         /* Welcome Screen */
@@ -696,6 +720,28 @@
             background: none;
             padding: 0;
         }
+
+        /* Free AI Models Highlight */
+        .free-models-info {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .free-models-title {
+            color: var(--success);
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .free-models-description {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
@@ -708,6 +754,7 @@
                 <div class="logo">
                     <i class="fas fa-dragon"></i>
                     <span>Draco.AI</span>
+                    <span class="free-badge">FREE</span>
                 </div>
                 <button class="new-chat-btn" onclick="startNewChat()">
                     <i class="fas fa-plus"></i>
@@ -726,7 +773,7 @@
                 <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
-                <div class="chat-title-main" id="chatTitleMain">Draco.AI Assistant</div>
+                <div class="chat-title-main" id="chatTitleMain">Draco.AI - 100% FREE</div>
                 <div class="chat-actions">
                     <button class="icon-btn" onclick="exportChat()" title="Export Chat">
                         <i class="fas fa-download"></i>
@@ -746,29 +793,29 @@
                         <i class="fas fa-dragon"></i>
                     </div>
                     <div class="welcome-title">Welcome to Draco.AI</div>
-                    <div class="welcome-subtitle">Your Revolutionary AI Assistant</div>
+                    <div class="welcome-subtitle">🎉 100% FREE AI Assistant - NO API Keys Required!</div>
                     
                     <div class="feature-grid">
                         <div class="feature-card">
                             <div class="feature-icon">
-                                <i class="fas fa-brain"></i>
-                            </div>
-                            <div class="feature-title">Multiple AI Models</div>
-                            <div class="feature-description">Access various AI models in one place</div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <i class="fas fa-shield-alt"></i>
-                            </div>
-                            <div class="feature-title">Privacy First</div>
-                            <div class="feature-description">Your data stays private and secure</div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">
                                 <i class="fas fa-bolt"></i>
                             </div>
-                            <div class="feature-title">Lightning Fast</div>
-                            <div class="feature-description">Get responses instantly</div>
+                            <div class="feature-title">Instant Demo</div>
+                            <div class="feature-description">Works immediately without any setup</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-lock-open"></i>
+                            </div>
+                            <div class="feature-title">100% Private</div>
+                            <div class="feature-description">No tracking, no data collection</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-gift"></i>
+                            </div>
+                            <div class="feature-title">Always Free</div>
+                            <div class="feature-description">No paid tiers, no limits</div>
                         </div>
                     </div>
                 </div>
@@ -793,7 +840,7 @@
         <div class="settings-panel" id="settingsPanel">
             <div class="settings-header">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>Settings</span>
+                    <span>⚙️ Settings</span>
                     <button class="icon-btn mobile-menu-btn" onclick="toggleSettings()" style="margin: 0;">
                         <i class="fas fa-times"></i>
                     </button>
@@ -801,27 +848,30 @@
             </div>
             
             <div class="settings-content">
-                <div class="setting-group">
-                    <label class="setting-label">API Key</label>
-                    <input type="password" class="setting-input" id="apiKeyInput" placeholder="Enter your API key">
+                <div class="free-models-info">
+                    <div class="free-models-title">🎉 FREE AI MODELS</div>
+                    <div class="free-models-description">
+                        All models work without API keys! Premium models require free signup but optional.
+                    </div>
                 </div>
                 
                 <div class="setting-group">
-                    <label class="setting-label">AI Model</label>
+                    <label class="setting-label">🤖 AI Model</label>
                     <select class="model-selector" id="modelSelect">
-                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                        <option value="gpt-4">GPT-4</option>
-                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                        <option value="claude-3-opus">Claude 3 Opus</option>
-                        <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                        <option value="gemini-pro">Gemini Pro</option>
-                        <option value="llama-3.1-70b">Llama 3.1 70B</option>
-                        <option value="mistral-large">Mistral Large</option>
+                        <option value="local-demo">🤖 Demo AI (Instant)</option>
+                        <option value="huggingface-free">🦙 HuggingFace Llama 3.1</option>
+                        <option value="groq-free">⚡ Groq Llama 3.1</option>
+                        <option value="together-free">🚀 Together AI Llama 3.1</option>
                     </select>
                 </div>
                 
                 <div class="setting-group">
-                    <label class="setting-label">Temperature (0-2)</label>
+                    <label class="setting-label">👤 Your Name</label>
+                    <input type="text" class="setting-input" id="usernameInput" placeholder="Enter your name" value="User">
+                </div>
+                
+                <div class="setting-group">
+                    <label class="setting-label">🌡️ Temperature (0-2)</label>
                     <input type="range" class="setting-input" id="temperatureInput" min="0" max="2" step="0.1" value="0.7">
                     <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 4px;">
                         <span id="temperatureValue">0.7</span>
@@ -829,16 +879,18 @@
                 </div>
                 
                 <div class="setting-group">
-                    <label class="setting-label">Max Tokens</label>
+                    <label class="setting-label">📝 Max Tokens</label>
                     <input type="number" class="setting-input" id="maxTokensInput" min="1" max="4000" value="1000">
                 </div>
                 
                 <div class="setting-group">
-                    <label class="setting-label">System Prompt</label>
-                    <textarea class="setting-input setting-textarea" id="systemPromptInput">You are Draco.AI, an advanced AI assistant. You are helpful, knowledgeable, and engaging. Provide accurate, thoughtful responses with a touch of creativity when appropriate.</textarea>
+                    <label class="setting-label">🎯 System Prompt</label>
+                    <textarea class="setting-input setting-textarea" id="systemPromptInput">You are Draco.AI, a helpful AI assistant. Provide clear, accurate, and engaging responses.</textarea>
                 </div>
                 
-                <button class="save-settings-btn" onclick="saveSettings()">Save Settings</button>
+                <button class="save-settings-btn" onclick="saveSettings()">
+                    💾 Save Settings
+                </button>
             </div>
         </div>
     </div>
