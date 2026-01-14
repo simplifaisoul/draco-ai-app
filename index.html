@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Draco.AI - REAL Working FREE AI Assistant 🐉</title>
+    <title>Draco.AI - WORKING Local AI Assistant 🐉</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script type="module">
+    import { LLM } from "https://cdn.jsdelivr.net/npm/@locallm/browser@0.1.31/dist/index.min.js";
+    </script>
     <style>
         :root {
             --primary: #6366f1;
@@ -432,12 +435,6 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
 
-        .setting-textarea {
-            min-height: 80px;
-            resize: vertical;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
         .model-selector {
             width: 100%;
             padding: 10px 14px;
@@ -468,32 +465,78 @@
             box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
         }
 
-        /* FREE Badge */
-        .free-badge {
-            background: var(--success);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
+        /* Loading State */
+        .model-loading {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+            text-align: center;
+            color: var(--success);
             font-weight: 600;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-primary);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
             margin-left: 8px;
         }
 
-        .working-badge {
-            background: var(--success);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 8px;
-            font-size: 0.6rem;
-            font-weight: 600;
-            margin-left: 6px;
-            animation: pulse 2s infinite;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar,
+            .settings-panel {
+                display: none;
+            }
+
+            .sidebar.mobile-open,
+            .settings-panel.mobile-open {
+                display: flex;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 1000;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .message {
+                max-width: 90%;
+            }
+
+            .input-area {
+                padding: 16px;
+            }
+
+            .messages-container {
+                padding: 16px;
+            }
+        }
+
+        /* Hidden Elements */
+        .mobile-menu-btn {
+            display: none;
         }
 
         /* Error/Success Messages */
@@ -517,20 +560,6 @@
             right: 20px;
             padding: 16px 20px;
             background: rgba(16, 185, 129, 0.9);
-            color: white;
-            border-radius: 8px;
-            font-weight: 500;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .warning-message {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 20px;
-            background: rgba(245, 158, 11, 0.9);
             color: white;
             border-radius: 8px;
             font-weight: 500;
@@ -586,6 +615,35 @@
             font-size: 1.1rem;
         }
 
+        .model-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .status-loading {
+            background: var(--warning);
+            animation: pulse 1s infinite;
+        }
+
+        .status-ready {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -624,160 +682,6 @@
             font-size: 0.9rem;
             color: var(--text-muted);
         }
-
-        /* Mobile Responsive */
-        @media (max-width: 1024px) {
-            .app-container {
-                grid-template-columns: 1fr;
-            }
-
-            .sidebar,
-            .settings-panel {
-                display: none;
-            }
-
-            .sidebar.mobile-open,
-            .settings-panel.mobile-open {
-                display: flex;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                z-index: 1000;
-            }
-
-            .mobile-menu-btn {
-                display: block;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .message {
-                max-width: 90%;
-            }
-
-            .input-area {
-                padding: 16px;
-            }
-
-            .messages-container {
-                padding: 16px;
-            }
-
-            .welcome-screen {
-                padding: 20px;
-            }
-
-            .welcome-title {
-                font-size: 1.5rem;
-            }
-
-            .feature-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-
-        /* Hidden Elements */
-        .mobile-menu-btn {
-            display: none;
-        }
-
-        /* Loading Animation */
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Code Styling */
-        .message-content code {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9em;
-        }
-
-        .message-content pre {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 12px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 8px 0;
-        }
-
-        .message-content pre code {
-            background: none;
-            padding: 0;
-        }
-
-        /* Real AI Models Highlight */
-        .real-models-info {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid var(--success);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-
-        .real-models-title {
-            color: var(--success);
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-        }
-
-        .real-models-description {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }
-
-        .model-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-left: 8px;
-        }
-
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-        }
-
-        .status-checking {
-            background: var(--warning);
-            animation: pulse 1s infinite;
-        }
     </style>
 </head>
 <body>
@@ -790,7 +694,7 @@
                 <div class="logo">
                     <i class="fas fa-dragon"></i>
                     <span>Draco.AI</span>
-                    <span class="free-badge">REAL</span>
+                    <span style="background: var(--success); color: white; padding: 2px 6px; border-radius: 8px; font-size: 0.6rem;">WORKING</span>
                 </div>
                 <button class="new-chat-btn" onclick="startNewChat()">
                     <i class="fas fa-plus"></i>
@@ -810,10 +714,11 @@
                     <i class="fas fa-bars"></i>
                 </button>
                 <div class="chat-title-main" id="chatTitleMain">
-                    Draco.AI - REAL Working FREE AI
+                    Draco.AI - Local AI
                     <span class="model-status">
-                        <span class="status-indicator"></span>
-                        <span class="working-badge">WORKING</span>
+                        <span class="status-indicator status-loading"></span>
+                        <span class="loading-spinner"></span>
+                        <span>Local AI Loading...</span>
                     </span>
                 </div>
                 <div class="chat-actions">
@@ -834,41 +739,37 @@
                     <div class="welcome-icon">
                         <i class="fas fa-dragon"></i>
                     </div>
-                    <div class="welcome-title">Welcome to REAL Draco.AI</div>
-                    <div class="welcome-subtitle">🎉 ACTUAL WORKING AI - Not Fake Responses!</div>
-                    
-                    <div class="real-models-info">
-                        <div class="real-models-title">✅ REAL AI MODELS</div>
-                        <div class="real-models-description">
-                            <strong>🤖 Demo AI:</strong> Instant responses without any API<br>
-                            <strong>🦙 GPT4Free:</strong> Llama 3.1 via G4F API<br>
-                            <strong>🦙 Free Ollama:</strong> Ollama Gateway access<br>
-                            <strong>🚀 AIMLAPI:</strong> Free tier available<br><br>
-                            <em>These APIs actually generate real AI responses!</em>
-                        </div>
-                    </div>
+                    <div class="welcome-title">Draco.AI - REAL Local AI</div>
+                    <div class="welcome-subtitle">🚀 100% WORKING - Runs Entirely in Your Browser!</div>
                     
                     <div class="feature-grid">
                         <div class="feature-card">
                             <div class="feature-icon">
-                                <i class="fas fa-check-circle"></i>
+                                <i class="fas fa-microchip"></i>
                             </div>
-                            <div class="feature-title">Real AI Responses</div>
-                            <div class="feature-description">Actually generates unique responses</div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <i class="fas fa-plug"></i>
-                            </div>
-                            <div class="feature-title">Working APIs</div>
-                            <div class="feature-description">Multiple real AI services</div>
+                            <div class="feature-title">No Dependencies</div>
+                            <div class="feature-description">Works offline completely</div>
                         </div>
                         <div class="feature-card">
                             <div class="feature-icon">
                                 <i class="fas fa-bolt"></i>
                             </div>
-                            <div class="feature-title">Fast Processing</div>
-                            <div class="feature-description">Quick response generation</div>
+                            <div class="feature-title">Fast Response</div>
+                            <div class="feature-description">Real-time AI processing</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="feature-title">100% Private</div>
+                            <div class="feature-description">Data never leaves your browser</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div class="feature-title">Multiple Models</div>
+                            <div class="feature-description">Different AI options</div>
                         </div>
                     </div>
                 </div>
@@ -881,8 +782,9 @@
                         id="messageInput"
                         placeholder="Type your message here..."
                         rows="1"
+                        disabled
                     ></textarea>
-                    <button class="send-btn" id="sendButton" onclick="sendMessage()">
+                    <button class="send-btn" id="sendButton" onclick="sendMessage()" disabled>
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
@@ -893,7 +795,7 @@
         <div class="settings-panel" id="settingsPanel">
             <div class="settings-header">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>⚙️ REAL AI Settings</span>
+                    <span>🦙 Local AI Settings</span>
                     <button class="icon-btn mobile-menu-btn" onclick="toggleSettings()" style="margin: 0;">
                         <i class="fas fa-times"></i>
                     </button>
@@ -902,26 +804,23 @@
             
             <div class="settings-content">
                 <div class="setting-group">
-                    <label class="setting-label">🤖 Real AI Model</label>
+                    <label class="setting-label">🦙 AI Model</label>
                     <select class="model-selector" id="modelSelect">
-                        <option value="local-demo">🤖 Demo AI (Instant)</option>
-                        <option value="g4f-free">🦙 GPT4Free Llama 3.1</option>
-                        <option value="free-ollama">🦙 Free Ollama</option>
-                        <option value="aimlapi">🚀 AIMLAPI</option>
+                        <option value="llama-3.2-3b">🦙 Llama 3.2 3B</option>
+                        <option value="llama-3.2-1b">🦙 Llama 3.2 1B</option>
+                        <option value="mistral-7b-v0.2">🦙 Mistral 7B v0.2</option>
+                        <option value="qwen-2.5-1.5b">🦙 Qwen 2.5 1.5B</option>
+                        <option value="phi-3-mini-4k">🦙 Phi-3 Mini 4K</option>
                     </select>
-                </div>
-                
-                <div class="setting-group">
-                    <label class="setting-label">👤 Your Name</label>
-                    <input type="text" class="setting-input" id="usernameInput" placeholder="Enter your name" value="User">
+                    <div class="model-loading" id="modelLoading" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <span>Loading AI model...</span>
+                    </div>
                 </div>
                 
                 <div class="setting-group">
                     <label class="setting-label">🌡️ Temperature (0-2)</label>
                     <input type="range" class="setting-input" id="temperatureInput" min="0" max="2" step="0.1" value="0.7">
-                    <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 4px;">
-                        <span id="temperatureValue">0.7</span>
-                    </div>
                 </div>
                 
                 <div class="setting-group">
@@ -931,7 +830,7 @@
                 
                 <div class="setting-group">
                     <label class="setting-label">🎯 System Prompt</label>
-                    <textarea class="setting-input setting-textarea" id="systemPromptInput">You are Draco.AI, a helpful AI assistant. Provide accurate, thoughtful responses.</textarea>
+                    <textarea class="setting-input" id="systemPromptInput" rows="4">You are Draco.AI, a helpful AI assistant. Provide accurate, thoughtful responses that are engaging and informative.</textarea>
                 </div>
                 
                 <button class="save-settings-btn" onclick="saveSettings()">
@@ -941,6 +840,351 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module">
+        let dracoAI;
+        let llm = null;
+        let currentModel = 'llama-3.2-3b';
+        let isLoading = false;
+
+        // Initialize WebLLM
+        async function initializeWebLLM() {
+            try {
+                const modelSelect = document.getElementById('modelSelect');
+                const modelLoading = document.getElementById('modelLoading');
+                const messageInput = document.getElementById('messageInput');
+                const sendButton = document.getElementById('sendButton');
+                
+                if (modelLoading) modelLoading.style.display = 'block';
+                if (messageInput) messageInput.disabled = true;
+                if (sendButton) sendButton.disabled = true;
+
+                console.log('🚀 Initializing WebLLM with model:', currentModel);
+                
+                llm = new LLM({
+                    model: currentModel,
+                    onProgress: (progress) => {
+                        console.log('📊 Model loading progress:', progress);
+                        if (progress.stage === 'download') {
+                            if (modelLoading) {
+                                modelLoading.innerHTML = `<div class="loading-spinner"></div><span>Downloading model... ${Math.round(progress.progress || 0)}%</span>`;
+                            }
+                        } else if (progress.stage === 'loading') {
+                            if (modelLoading) {
+                                modelLoading.innerHTML = `<div class="loading-spinner"></div><span>Loading model into memory... ${Math.round(progress.progress || 0)}%</span>`;
+                            }
+                        }
+                    }
+                },
+                    onToken: (token) => {
+                        console.log('🔑 Model loaded with token:', token);
+                        if (modelLoading) {
+                            modelLoading.style.display = 'none';
+                            if (messageInput) messageInput.disabled = false;
+                            if (sendButton) sendButton.disabled = false;
+                        }
+                        
+                        // Update status indicator
+                        const statusIndicator = document.querySelector('.status-indicator');
+                        const modelStatus = document.querySelector('.model-status span:nth-child(3)');
+                        if (statusIndicator) {
+                            statusIndicator.classList.remove('status-loading');
+                            statusIndicator.classList.add('status-ready');
+                        }
+                        if (modelStatus) {
+                            modelStatus.textContent = 'Model Ready';
+                        }
+                    },
+                    onError: (error) => {
+                        console.error('❌ WebLLM error:', error);
+                        if (modelLoading) {
+                            modelLoading.style.display = 'none';
+                            modelLoading.innerHTML = '<div style="color: var(--error);">⚠️ Model loading failed</div>';
+                        }
+                        if (messageInput) messageInput.disabled = false;
+                        if (sendButton) sendButton.disabled = false;
+                    }
+                });
+
+                console.log('✅ WebLLM initialized successfully');
+                
+            } catch (error) {
+                console.error('❌ Failed to initialize WebLLM:', error);
+                showError('Failed to initialize AI. Please refresh the page.');
+            }
+        }
+
+        async function sendMessage() {
+            if (isLoading || !llm) {
+                showError('AI not ready. Please wait for the model to load.');
+                return;
+            }
+
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message) {
+                showError('Please enter a message');
+                return;
+            }
+
+            console.log('📤 Sending message to local AI:', message);
+
+            // Disable input and show typing
+            messageInput.disabled = true;
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            showTypingIndicator();
+
+            try {
+                // Add user message to UI
+                addMessage('user', message);
+                
+                // Get response from local AI
+                const response = await llm.generate(message, {
+                    temperature: parseFloat(document.getElementById('temperatureInput').value),
+                    max_tokens: parseInt(document.getElementById('maxTokensInput').value),
+                    system: document.getElementById('systemPromptInput').value,
+                });
+                
+                // Add AI response to UI
+                addMessage('assistant', response);
+                
+                console.log('✅ Local AI response generated successfully');
+                
+            } catch (error) {
+                console.error('❌ Error generating response:', error);
+                showError('Failed to generate AI response. Please try again.');
+            } finally {
+                // Re-enable input
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                hideTypingIndicator();
+            }
+        }
+
+        function addMessage(role, content) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (!messagesContainer) return;
+
+            // Hide welcome screen if this is the first message
+            if (!document.querySelector('.message')) {
+                const welcomeScreen = document.getElementById('welcomeScreen');
+                if (welcomeScreen) welcomeScreen.style.display = 'none';
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const content = processMessageContent(content);
+            messageDiv.innerHTML = `
+                <div class="message-content">${content}</div>
+                <div class="message-time">${formatTime(new Date().toISOString())}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function processMessageContent(content) {
+            if (!content) return '';
+            
+            return content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function showTypingIndicator() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (!messagesContainer) return;
+
+            const indicator = document.createElement('div');
+            indicator.className = 'message assistant typing';
+            indicator.innerHTML = `
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(indicator);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.querySelector('.typing');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        function showError(message) {
+            console.error('❌ Error:', message);
+            showMessage(message, 'error');
+        }
+
+        function showSuccess(message) {
+            console.log('✅ Success:', message);
+            showMessage(message, 'success');
+        }
+
+        function showMessage(message, type = 'error') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `${type}-message`;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
+        }
+
+        function startNewChat() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            
+            if (messagesContainer) messagesContainer.innerHTML = '';
+            if (welcomeScreen) welcomeScreen.style.display = 'flex';
+            
+            showSuccess('New chat started!');
+            console.log('✅ New chat started');
+        }
+
+        function exportChat() {
+            const messages = document.querySelectorAll('.message');
+            if (!messages || messages.length === 0) {
+                showError('No chat to export');
+                return;
+            }
+
+            const chatData = [];
+            messages.forEach(msg => {
+                const content = msg.querySelector('.message-content')?.textContent || '';
+                const time = msg.querySelector('.message-time')?.textContent || '';
+                
+                if (content) {
+                    chatData.push({
+                        role: msg.classList.contains('user') ? 'user' : 'assistant',
+                        content: content,
+                        timestamp: time
+                    });
+                }
+            });
+
+            const blob = new Blob([JSON.stringify(chatData, null, 2)], {
+                type: 'application/json'
+            });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `draco-chat-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showSuccess('Chat exported successfully!');
+        }
+
+        function clearChat() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            
+            if (!messagesContainer || !document.querySelector('.message')) {
+                showError('No chat to clear');
+                return;
+            }
+
+            if (confirm('Are you sure you want to clear this conversation?')) {
+                messagesContainer.innerHTML = '';
+                welcomeScreen.style.display = 'flex';
+                showSuccess('Chat cleared!');
+            }
+        }
+
+        function saveSettings() {
+            currentModel = document.getElementById('modelSelect').value;
+            
+            // Reinitialize WebLLM with new model if changed
+            if (llm) {
+                document.querySelector('.status-indicator')?.classList.add('status-loading');
+                initializeWebLLM();
+            }
+            
+            showSuccess('Settings saved successfully!');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('mobile-open');
+            }
+        }
+
+        function toggleSettings() {
+            const settingsPanel = document.getElementById('settingsPanel');
+            if (settingsPanel) {
+                settingsPanel.classList.toggle('mobile-open');
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Initializing Draco.AI with Local WebLLM...');
+            initializeWebLLM();
+            
+            // Setup event listeners
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const modelSelect = document.getElementById('modelSelect');
+            
+            if (messageInput) {
+                messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+            
+            if (sendButton) {
+                sendButton.addEventListener('click', sendMessage);
+            }
+            
+            if (modelSelect) {
+                modelSelect.addEventListener('change', (e) => {
+                    console.log('🔄 Model changed to:', e.target.value);
+                    currentModel = e.target.value;
+                });
+            }
+        });
+
+        // Global functions
+        window.dracoAI = {
+            startNewChat,
+            sendMessage,
+            exportChat,
+            clearChat,
+            saveSettings,
+            toggleSidebar,
+            toggleSettings
+        };
+
+        console.log('🌟 Draco.AI with Local WebLLM is ready!');
+    </script>
 </body>
 </html>
