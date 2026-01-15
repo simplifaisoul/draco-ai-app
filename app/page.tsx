@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
 import { CodeBlock } from "./components/CodeBlock";
+import { SettingsModal } from "./components/SettingsModal";
 
 // Types
 interface Message {
@@ -41,6 +42,13 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false); // Fix persistence
   const [enableSearch, setEnableSearch] = useState(false);
 
+  // Settings State
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState({
+    systemPrompt: "You are Draco AI. Helpful, smart, and concise. Format code nicely.",
+    voiceURI: ""
+  });
+
   // Audio State
   const [isListening, setIsListening] = useState(false);
   const [speakingMsgId, setSpeakingMsgId] = useState<number | null>(null);
@@ -74,14 +82,25 @@ export default function Home() {
 
   // Load from LocalStorage
   useEffect(() => {
-    const saved = localStorage.getItem("draco_history");
-    if (saved) {
+    const savedHistory = localStorage.getItem("draco_history");
+    const savedSettings = localStorage.getItem("draco_settings");
+
+    if (savedHistory) {
       try {
-        setMessages(JSON.parse(saved));
+        setMessages(JSON.parse(savedHistory));
       } catch (e) {
         console.error("Failed to load history", e);
       }
     }
+
+    if (savedSettings) {
+      try {
+        setSettings(JSON.parse(savedSettings));
+      } catch (e) {
+        console.error("Failed to load settings", e);
+      }
+    }
+
     setIsLoaded(true);
   }, []);
 
@@ -89,8 +108,9 @@ export default function Home() {
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem("draco_history", JSON.stringify(messages));
+      localStorage.setItem("draco_settings", JSON.stringify(settings));
     }
-  }, [messages, isLoaded]);
+  }, [messages, settings, isLoaded]);
 
   useEffect(() => {
     scrollToBottom();
@@ -128,6 +148,11 @@ export default function Home() {
     } else {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
+      if (settings.voiceURI) {
+        const voices = window.speechSynthesis.getVoices();
+        const selectedVoice = voices.find(v => v.voiceURI === settings.voiceURI);
+        if (selectedVoice) utterance.voice = selectedVoice;
+      }
       utterance.onend = () => setSpeakingMsgId(null);
       window.speechSynthesis.speak(utterance);
       setSpeakingMsgId(index);
@@ -196,7 +221,7 @@ export default function Home() {
 
       // 3. Streaming Request
       const messagesPayload = [
-        { role: "system", content: "You are Draco AI. Helpful, smart, and concise. Format code nicely." },
+        { role: "system", content: settings.systemPrompt },
         ...messages.map((m) => ({ role: m.role, content: m.content })),
         { role: "user", content: originalInput },
       ];
@@ -274,6 +299,14 @@ export default function Home() {
 
   return (
     <div className="flex h-[100dvh] bg-[#0f1117] text-[#f8fafc] font-sans overflow-hidden">
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        onSave={setSettings}
+      />
+
       {/* Dynamic Background */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-900/20 rounded-full blur-[120px] animate-pulse"></div>
@@ -374,6 +407,15 @@ export default function Home() {
               title="Toggle Web Search"
             >
               <Globe size={18} />
+            </button>
+
+            {/* Settings Toggle */}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors border border-transparent"
+              title="Settings"
+            >
+              <SettingsIcon size={18} />
             </button>
           </div>
         </header>
@@ -512,7 +554,7 @@ export default function Home() {
                   sendMessage();
                 }
               }}
-              placeholder={enableSearch ? "Ask Draco to search the web..." : "Message Draco..."}
+              placeholder={enableSearch ? "Ask Draco to search the web..." : "Message Draco (or type /image)..."}
               className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 resize-none max-h-32 py-3 text-base md:text-sm custom-scrollbar"
               rows={1}
               style={{ minHeight: "44px" }}
