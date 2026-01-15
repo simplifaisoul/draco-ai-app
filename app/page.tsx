@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download } from "lucide-react";
+import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download, Eye } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
 import { CodeBlock } from "./components/CodeBlock";
 import { SettingsModal } from "./components/SettingsModal";
+import { PreviewPane } from "./components/PreviewPane";
 
 // Types
 interface Message {
@@ -55,6 +56,10 @@ export default function Home() {
 
   // Drag & Drop State
   const [isDragging, setIsDragging] = useState(false);
+
+  // Preview State (Artifacts)
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<{ code: string, language: string } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -117,6 +122,34 @@ export default function Home() {
 
   useEffect(() => {
     scrollToBottom();
+  }, [messages]);
+
+  // Effect to auto-detect artifacts in the latest message
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role === "assistant") {
+      // Regex to find the LAST code block
+      // Matches ```lang ... ```
+      const codeBlockRegex = /```(\w+)\n([\s\S]*?)```/g;
+      let match;
+      let lastMatch = null;
+
+      while ((match = codeBlockRegex.exec(lastMsg.content)) !== null) {
+        lastMatch = match;
+      }
+
+      if (lastMatch) {
+        const lang = lastMatch[1].toLowerCase();
+        if (lang === 'html' || lang === 'xml' || lang === 'jsx' || lang === 'tsx') {
+          setPreviewData({ code: lastMatch[2], language: lang });
+          // Only auto-open if we haven't manually closed it? For now, auto-open on first encounter could be annoying. 
+          // Let's just set data and show a "Preview Available" indicator unless forced.
+          // Actually, let's auto-open if it's the *very first* time detecting in this stream?
+          // Promoting user control: Just ensure data is there.
+        }
+      }
+    }
   }, [messages]);
 
   const scrollToBottom = () => {
@@ -475,13 +508,27 @@ export default function Home() {
             <button
               onClick={() => setEnableSearch(!enableSearch)}
               className={`p-2 rounded-lg transition-all border ${enableSearch
-                ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.2)]"
-                : "text-gray-400 border-transparent hover:bg-white/5"
+                  ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.2)]"
+                  : "text-gray-400 border-transparent hover:bg-white/5"
                 }`}
               title="Toggle Web Search"
             >
               <Globe size={18} />
             </button>
+
+            {/* Preview Toggle (Artifacts) */}
+            {previewData && (
+              <button
+                onClick={() => setShowPreview(!showPreview)}
+                className={`p-2 rounded-lg transition-all border ${showPreview
+                    ? "bg-green-500/20 text-green-400 border-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.2)]"
+                    : "text-green-500/50 border-transparent hover:bg-white/5 animate-pulse"
+                  }`}
+                title="Toggle Live Preview"
+              >
+                <Eye size={18} />
+              </button>
+            )}
 
             {/* Settings Toggle */}
             <button
@@ -494,130 +541,146 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden pt-20 pb-[120px] px-4 md:px-8 scroll-smooth custom-scrollbar">
-          {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center opacity-90 px-4">
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="bg-indigo-500/10 p-6 rounded-full mb-6 relative group"
-              >
-                <div className="text-6xl animate-pulse group-hover:scale-110 transition-transform duration-500">🐉</div>
-                <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-xl animate-pulse delay-75"></div>
-              </motion.div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mb-3 bg-[length:200%_auto] animate-gradient">
-                Draco.AI
-              </h1>
-              <p className="text-gray-400 max-w-md text-sm md:text-base leading-relaxed mb-8">
-                Your premium AI companion. <br />
-                <span className="text-indigo-400">Streaming • Voice • Persistent • Code Aware</span>
-              </p>
+        {/* Content Container (Chat + Preview) */}
+        <div className="flex-1 overflow-hidden relative flex">
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
-                {MODELS.slice(0, 3).map((m, i) => (
+          {/* Chat Area */}
+          <div className={`flex-1 overflow-y-auto overflow-x-hidden pt-20 pb-[120px] px-4 md:px-8 scroll-smooth custom-scrollbar transition-all duration-300 ${showPreview ? "hidden md:block md:w-1/2 md:max-w-[50%]" : "w-full"}`}>
+            {messages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center opacity-90 px-4">
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="bg-indigo-500/10 p-6 rounded-full mb-6 relative group"
+                >
+                  <div className="text-6xl animate-pulse group-hover:scale-110 transition-transform duration-500">🐉</div>
+                  <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-xl animate-pulse delay-75"></div>
+                </motion.div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mb-3 bg-[length:200%_auto] animate-gradient">
+                  Draco.AI
+                </h1>
+                <p className="text-gray-400 max-w-md text-sm md:text-base leading-relaxed mb-8">
+                  Your premium AI companion. <br />
+                  <span className="text-indigo-400">Streaming • Voice • Persistent • Artifacts</span>
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
+                  {MODELS.slice(0, 3).map((m, i) => (
+                    <motion.div
+                      key={m.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="bg-[#1f242d]/60 backdrop-blur-sm border border-[#2d3748] p-4 rounded-xl text-left hover:border-indigo-500/50 hover:bg-[#1f242d]/80 transition-all cursor-pointer group active:scale-[0.98] shadow-lg"
+                      onClick={() => setCurrentModel(m.id)}
+                    >
+                      <div className="text-2xl mb-2 group-hover:scale-110 transition-transform origin-left">{m.icon}</div>
+                      <div className="font-semibold text-sm text-gray-200">{m.name}</div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className={`max-w-3xl mx-auto space-y-6 ${showPreview ? "max-w-full px-2" : ""}`}>
+                {messages.map((msg, i) => (
                   <motion.div
-                    key={m.id}
-                    initial={{ opacity: 0, y: 20 }}
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-[#1f242d]/60 backdrop-blur-sm border border-[#2d3748] p-4 rounded-xl text-left hover:border-indigo-500/50 hover:bg-[#1f242d]/80 transition-all cursor-pointer group active:scale-[0.98] shadow-lg"
-                    onClick={() => setCurrentModel(m.id)}
+                    className={`flex gap-3 md:gap-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    <div className="text-2xl mb-2 group-hover:scale-110 transition-transform origin-left">{m.icon}</div>
-                    <div className="font-semibold text-sm text-gray-200">{m.name}</div>
+                    {msg.role === "assistant" && (
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30 mt-1 shadow-lg shadow-indigo-500/10">
+                          <Bot size={16} className="text-indigo-400" />
+                        </div>
+                        <button
+                          onClick={() => toggleSpeech(msg.content, i)}
+                          className={`p-1 rounded-full hover:bg-white/5 transition-colors ${speakingMsgId === i ? "text-indigo-400" : "text-gray-500"}`}
+                          title="Read Aloud"
+                        >
+                          {speakingMsgId === i ? <Volume2 size={14} /> : <VolumeX size={14} className="opacity-50 hover:opacity-100" />}
+                        </button>
+                      </div>
+                    )}
+
+                    <div className={`max-w-[90%] md:max-w-[85%] rounded-2xl px-4 py-3 md:px-5 md:py-4 text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-sm ${msg.role === "user"
+                      ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-br-sm shadow-indigo-900/20"
+                      : "bg-[#1e232e]/90 border border-[#2d3748] text-gray-100 rounded-bl-sm"
+                      }`}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          code({ node, inline, className, children, ...props }: any) {
+                            const match = /language-(\w+)/.exec(className || "");
+                            return !inline && match ? (
+                              <CodeBlock
+                                language={match[1]}
+                                value={String(children).replace(/\n$/, "")}
+                              />
+                            ) : (
+                              <code className="bg-black/30 px-1.5 py-0.5 rounded font-mono text-xs text-indigo-200 border border-white/5" {...props}>
+                                {children}
+                              </code>
+                            )
+                          },
+                          table: ({ node, ...props }: any) => (
+                            <div className="overflow-x-auto my-4 border border-[#2d3748] rounded-lg">
+                              <table className="min-w-full divide-y divide-[#2d3748] text-sm text-left" {...props} />
+                            </div>
+                          ),
+                          thead: ({ node, ...props }: any) => <thead className="bg-[#1f242d] text-gray-200" {...props} />,
+                          th: ({ node, ...props }: any) => <th className="px-4 py-3 text-left font-medium uppercase tracking-wider" {...props} />,
+                          tbody: ({ node, ...props }: any) => <tbody className="bg-[#161b22] divide-y divide-[#2d3748] text-gray-300" {...props} />,
+                          tr: ({ node, ...props }: any) => <tr className="hover:bg-[#1f242d]/50 transition-colors" {...props} />,
+                          td: ({ node, ...props }: any) => <td className="px-4 py-3 whitespace-nowrap" {...props} />,
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+
+                    {msg.role === "user" && (
+                      <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center shrink-0 border border-purple-500/30 mt-1">
+                        <User size={16} className="text-purple-400" />
+                      </div>
+                    )}
                   </motion.div>
                 ))}
+
+                {/* Only show loading dots if we are waiting for API, NOT while streaming */}
+                {isLoading && messages[messages.length - 1]?.role === "user" && (
+                  <div className="flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30">
+                      <Bot size={16} className="text-indigo-400" />
+                    </div>
+                    <div className="bg-[#1e232e]/80 border border-[#2d3748] px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-1 shadow-lg">
+                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></span>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
               </div>
-            </div>
-          ) : (
-            <div className="max-w-3xl mx-auto space-y-6">
-              {messages.map((msg, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex gap-3 md:gap-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  {msg.role === "assistant" && (
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30 mt-1 shadow-lg shadow-indigo-500/10">
-                        <Bot size={16} className="text-indigo-400" />
-                      </div>
-                      <button
-                        onClick={() => toggleSpeech(msg.content, i)}
-                        className={`p-1 rounded-full hover:bg-white/5 transition-colors ${speakingMsgId === i ? "text-indigo-400" : "text-gray-500"}`}
-                        title="Read Aloud"
-                      >
-                        {speakingMsgId === i ? <Volume2 size={14} /> : <VolumeX size={14} className="opacity-50 hover:opacity-100" />}
-                      </button>
-                    </div>
-                  )}
+            )}
+          </div>
 
-                  <div className={`max-w-[90%] md:max-w-[75%] rounded-2xl px-4 py-3 md:px-5 md:py-4 text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-sm ${msg.role === "user"
-                    ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-br-sm shadow-indigo-900/20"
-                    : "bg-[#1e232e]/90 border border-[#2d3748] text-gray-100 rounded-bl-sm"
-                    }`}>
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        code({ node, inline, className, children, ...props }: any) {
-                          const match = /language-(\w+)/.exec(className || "");
-                          return !inline && match ? (
-                            <CodeBlock
-                              language={match[1]}
-                              value={String(children).replace(/\n$/, "")}
-                            />
-                          ) : (
-                            <code className="bg-black/30 px-1.5 py-0.5 rounded font-mono text-xs text-indigo-200 border border-white/5" {...props}>
-                              {children}
-                            </code>
-                          )
-                        },
-                        table: ({ node, ...props }: any) => (
-                          <div className="overflow-x-auto my-4 border border-[#2d3748] rounded-lg">
-                            <table className="min-w-full divide-y divide-[#2d3748] text-sm text-left" {...props} />
-                          </div>
-                        ),
-                        thead: ({ node, ...props }: any) => <thead className="bg-[#1f242d] text-gray-200" {...props} />,
-                        th: ({ node, ...props }: any) => <th className="px-4 py-3 text-left font-medium uppercase tracking-wider" {...props} />,
-                        tbody: ({ node, ...props }: any) => <tbody className="bg-[#161b22] divide-y divide-[#2d3748] text-gray-300" {...props} />,
-                        tr: ({ node, ...props }: any) => <tr className="hover:bg-[#1f242d]/50 transition-colors" {...props} />,
-                        td: ({ node, ...props }: any) => <td className="px-4 py-3 whitespace-nowrap" {...props} />,
-                      }}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
-                  </div>
+          {/* Preview Pane (Split Screen) */}
+          <AnimatePresence>
+            {showPreview && previewData && (
+              <PreviewPane
+                code={previewData.code}
+                language={previewData.language}
+                onClose={() => setShowPreview(false)}
+              />
+            )}
+          </AnimatePresence>
 
-                  {msg.role === "user" && (
-                    <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center shrink-0 border border-purple-500/30 mt-1">
-                      <User size={16} className="text-purple-400" />
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-
-              {/* Only show loading dots if we are waiting for API, NOT while streaming */}
-              {isLoading && messages[messages.length - 1]?.role === "user" && (
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30">
-                    <Bot size={16} className="text-indigo-400" />
-                  </div>
-                  <div className="bg-[#1e232e]/80 border border-[#2d3748] px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-1 shadow-lg">
-                    <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></span>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
         </div>
 
-        {/* Input Area */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-[#0f1117] via-[#0f1117]/95 to-transparent z-40 flex justify-center backdrop-blur-sm">
+        {/* Input Area (Modified to account for split screen?) */}
+        <div className={`absolute bottom-0 left-0 right-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-[#0f1117] via-[#0f1117]/95 to-transparent z-40 flex justify-center backdrop-blur-sm transition-all duration-300 ${showPreview ? "md:w-1/2" : "w-full"}`}>
           <div className="w-full max-w-3xl bg-[#1f242d] border border-[#2d3748] rounded-[24px] p-2 pl-4 flex items-end gap-2 shadow-2xl shadow-black/50 focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
             <textarea
               value={input}
