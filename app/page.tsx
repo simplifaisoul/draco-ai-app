@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User } from "lucide-react";
+import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
+import { CodeBlock } from "./components/CodeBlock";
 
 // Types
 interface Message {
@@ -37,13 +38,68 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Load from LocalStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("draco_history");
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to load history", e);
+      }
+    }
+  }, []);
+
+  // Save to LocalStorage
+  useEffect(() => {
+    localStorage.setItem("draco_history", JSON.stringify(messages));
+    scrollToBottom();
+  }, [messages]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const clearHistory = () => {
+    if (confirm("Clear all chat history?")) {
+      setMessages([]);
+      localStorage.removeItem("draco_history");
+      setSidebarOpen(false);
+    }
+  };
+
+  // Typewriter effect helper
+  const simulateStreaming = async (fullText: string) => {
+    const chunkSize = 3; // chars per tick
+    let currentText = "";
+
+    // Create a temporary placeholder message
+    setMessages(prev => [...prev, { role: "assistant", content: "", timestamp: new Date().toISOString() }]);
+
+    for (let i = 0; i < fullText.length; i += chunkSize) {
+      // Add minimal delay for realistic typing speed (10-30ms)
+      await new Promise(r => setTimeout(r, 15));
+
+      currentText += fullText.slice(i, i + chunkSize);
+
+      setMessages(prev => {
+        const newHistory = [...prev];
+        const lastMsg = newHistory[newHistory.length - 1];
+        if (lastMsg.role === "assistant") {
+          lastMsg.content = currentText;
+        }
+        return newHistory;
+      });
+    }
+
+    // Final update to ensure exact text
+    setMessages(prev => {
+      const newHistory = [...prev];
+      const lastMsg = newHistory[newHistory.length - 1];
+      lastMsg.content = fullText;
+      return newHistory;
+    });
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -54,14 +110,12 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      // Direct call to Pollinations AI
-      // In a full production app, this might go via our Python backend, but for speed we keep client-side for now.
       const response = await fetch("https://text.pollinations.ai/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [
-            { role: "system", content: "You are Draco AI. Helpful, smart, and concise." },
+            { role: "system", content: "You are Draco AI. Helpful, smart, and concise. Format code nicely." },
             ...messages.map((m) => ({ role: m.role, content: m.content })),
             { role: "user", content: input },
           ],
@@ -74,8 +128,9 @@ export default function Home() {
       if (!response.ok) throw new Error("API Error");
 
       const text = await response.text();
-      const aiMsg: Message = { role: "assistant", content: text, timestamp: new Date().toISOString() };
-      setMessages((prev) => [...prev, aiMsg]);
+      // Start "streaming" simulation
+      await simulateStreaming(text);
+
     } catch (error) {
       console.error(error);
       setMessages((prev) => [
@@ -89,6 +144,12 @@ export default function Home() {
 
   return (
     <div className="flex h-[100dvh] bg-[#0f1117] text-[#f8fafc] font-sans overflow-hidden">
+      {/* Dynamic Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-900/20 rounded-full blur-[120px] animate-pulse"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-900/10 rounded-full blur-[120px] animate-pulse delay-1000"></div>
+      </div>
+
       {/* Sidebar - Desktop & Mobile */}
       <AnimatePresence>
         {(sidebarOpen || (typeof window !== 'undefined' && window.innerWidth >= 768)) && (
@@ -97,7 +158,7 @@ export default function Home() {
             animate={{ x: 0 }}
             exit={{ x: -280 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className={`fixed md:relative z-50 w-[280px] h-full bg-[#161b22] border-r border-[#2d3748] flex flex-col p-4 shadow-2xl md:shadow-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+            className={`fixed md:relative z-50 w-[280px] h-full bg-[#161b22]/95 backdrop-blur-xl border-r border-[#2d3748] flex flex-col p-4 shadow-2xl md:shadow-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
               }`}
           >
             <div className="flex items-center justify-between mb-6">
@@ -110,19 +171,27 @@ export default function Home() {
             </div>
 
             <button
-              onClick={() => { setMessages([]); setInput(""); setSidebarOpen(false); }}
+              onClick={() => { setMessages([]); localStorage.removeItem("draco_history"); setInput(""); setSidebarOpen(false); }}
               className="w-full flex items-center gap-2 bg-[#1f242d] hover:bg-[#2d3748] border border-[#2d3748] p-3 rounded-xl text-sm font-medium transition-colors mb-4 active:scale-95 duration-200"
             >
               <Plus size={18} /> New Chat
             </button>
 
             <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">History</div>
-              {/* Placeholder History Items */}
-              <div className="p-3 hover:bg-[#1f242d] rounded-xl cursor-pointer text-sm text-gray-400 truncate flex items-center gap-2 transition-colors">
-                <MessageSquare size={14} /> New Session
-              </div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">Recent</div>
+              {messages.length > 0 ? (
+                <div className="p-3 bg-[#1f242d]/50 rounded-xl text-sm text-gray-300 truncate border border-[#2d3748]/50">
+                  <MessageSquare size={14} className="inline mr-2 text-indigo-400" />
+                  {messages[0]?.content.substring(0, 20)}...
+                </div>
+              ) : (
+                <div className="p-4 text-xs text-gray-500 text-center italic">No history yet</div>
+              )}
             </div>
+
+            <button onClick={clearHistory} className="mt-4 flex items-center justify-center gap-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded-lg transition-colors text-sm">
+              <Trash2 size={14} /> Clear History
+            </button>
           </motion.aside>
         )}
       </AnimatePresence>
@@ -139,7 +208,7 @@ export default function Home() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-full relative w-full bg-gradient-to-b from-[#0f1117] to-[#0a0c10]">
+      <main className="flex-1 flex flex-col h-full relative w-full bg-transparent z-10">
         {/* Header */}
         <header className="h-16 border-b border-[#2d3748/50] flex items-center justify-between px-4 bg-[#0f1117]/80 backdrop-blur-xl z-30 absolute top-0 left-0 right-0">
           <div className="flex items-center gap-3 w-full">
@@ -154,7 +223,7 @@ export default function Home() {
               <select
                 value={currentModel}
                 onChange={(e) => setCurrentModel(e.target.value)}
-                className="w-full appearance-none bg-[#1f242d] border border-[#2d3748] text-white py-2 pl-12 pr-8 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 cursor-pointer hover:bg-[#2d3748] transition-colors"
+                className="w-full appearance-none bg-[#1f242d] border border-[#2d3748] text-white py-2 pl-12 pr-8 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 cursor-pointer hover:bg-[#2d3748] transition-colors shadow-lg"
               >
                 {MODELS.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -174,16 +243,17 @@ export default function Home() {
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-indigo-500/10 p-6 rounded-full mb-6 relative"
+                className="bg-indigo-500/10 p-6 rounded-full mb-6 relative group"
               >
-                <div className="text-6xl animate-pulse">🐉</div>
+                <div className="text-6xl animate-pulse group-hover:scale-110 transition-transform duration-500">🐉</div>
                 <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-xl animate-pulse delay-75"></div>
               </motion.div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mb-3 bg-[length:200%_auto] animate-gradient">
                 Draco.AI
               </h1>
               <p className="text-gray-400 max-w-md text-sm md:text-base leading-relaxed mb-8">
-                Your premium AI companion. Advanced models, zero cost, instant answers.
+                Your premium AI companion. <br />
+                <span className="text-indigo-400">Streaming • Persistent • Code Aware</span>
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
@@ -193,7 +263,7 @@ export default function Home() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    className="bg-[#1f242d]/40 backdrop-blur-sm border border-[#2d3748] p-4 rounded-xl text-left hover:border-indigo-500/50 hover:bg-[#1f242d]/80 transition-all cursor-pointer group active:scale-[0.98]"
+                    className="bg-[#1f242d]/60 backdrop-blur-sm border border-[#2d3748] p-4 rounded-xl text-left hover:border-indigo-500/50 hover:bg-[#1f242d]/80 transition-all cursor-pointer group active:scale-[0.98] shadow-lg"
                     onClick={() => setCurrentModel(m.id)}
                   >
                     <div className="text-2xl mb-2 group-hover:scale-110 transition-transform origin-left">{m.icon}</div>
@@ -212,28 +282,28 @@ export default function Home() {
                   className={`flex gap-3 md:gap-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   {msg.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30 mt-1">
+                    <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30 mt-1 shadow-lg shadow-indigo-500/10">
                       <Bot size={16} className="text-indigo-400" />
                     </div>
                   )}
 
-                  <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-3 md:px-5 md:py-4 text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-sm ${msg.role === "user"
+                  <div className={`max-w-[90%] md:max-w-[75%] rounded-2xl px-4 py-3 md:px-5 md:py-4 text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-sm ${msg.role === "user"
                       ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-br-sm shadow-indigo-900/20"
                       : "bg-[#1e232e]/90 border border-[#2d3748] text-gray-100 rounded-bl-sm"
                     }`}>
                     <ReactMarkdown
                       components={{
                         code({ node, inline, className, children, ...props }: any) {
-                          return inline ? (
-                            <code className="bg-black/30 px-1.5 py-0.5 rounded font-mono text-xs text-indigo-200" {...props}>
+                          const match = /language-(\w+)/.exec(className || "");
+                          return !inline && match ? (
+                            <CodeBlock
+                              language={match[1]}
+                              value={String(children).replace(/\n$/, "")}
+                            />
+                          ) : (
+                            <code className="bg-black/30 px-1.5 py-0.5 rounded font-mono text-xs text-indigo-200 border border-white/5" {...props}>
                               {children}
                             </code>
-                          ) : (
-                            <pre className="bg-[#0d1117] p-3 rounded-lg overflow-x-auto my-3 border border-white/5 shadow-inner">
-                              <code className="font-mono text-xs text-gray-300" {...props}>
-                                {children}
-                              </code>
-                            </pre>
                           )
                         }
                       }}
@@ -249,12 +319,14 @@ export default function Home() {
                   )}
                 </motion.div>
               ))}
-              {isLoading && (
+
+              {/* Only show loading dots if we are waiting for API, NOT while streaming */}
+              {isLoading && messages[messages.length - 1]?.role === "user" && (
                 <div className="flex gap-4">
                   <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30">
                     <Bot size={16} className="text-indigo-400" />
                   </div>
-                  <div className="bg-[#1e232e] border border-[#2d3748] px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-1">
+                  <div className="bg-[#1e232e]/80 border border-[#2d3748] px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-1 shadow-lg">
                     <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
                     <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
                     <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></span>
