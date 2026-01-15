@@ -197,13 +197,18 @@ export default function Home() {
   };
 
   const exportChat = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(messages, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `draco_chat_${new Date().toISOString()}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(messages, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", `draco_chat_${new Date().toISOString()}.json`);
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    } catch (e) {
+      console.error("Export failed:", e);
+      alert("Failed to export chat.");
+    }
   };
 
   const toggleListening = () => {
@@ -328,8 +333,6 @@ export default function Home() {
         };
         setMessages(prev => [...prev, imageMsg]);
         setIsLoading(false);
-        setMessages(prev => [...prev, imageMsg]);
-        setIsLoading(false);
         return;
       }
 
@@ -388,12 +391,15 @@ export default function Home() {
         messagesPayload.push({ role: "user", content: originalInput });
       }
 
-      const response = await fetch("https://text.pollinations.ai/", {
+      // Use dynamic endpoint for better stability per model
+      // Fallback to 'openai' if model is weird, but usually model name in path works best for Pollinations
+      const endpoint = `https://text.pollinations.ai/${activeModel}`;
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: messagesPayload,
-          model: activeModel,
           stream: true, // Enable streaming
         }),
       });

@@ -42,7 +42,11 @@ export const ModelSelector = ({ models, selectedModelId, onSelect }: ModelSelect
                     <span className="text-lg">{selectedModel.icon}</span>
                     <span className="font-medium truncate">{selectedModel.name}</span>
                 </span>
-                <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+
+                <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${selectedModelId.startsWith('p1') || selectedModelId.startsWith('openai') || selectedModelId.startsWith('searchgpt') ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse' : 'bg-emerald-500'}`} title="Online & Ready"></div>
+                    <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                </div>
             </button>
 
             <AnimatePresence>
@@ -69,7 +73,7 @@ export const ModelSelector = ({ models, selectedModelId, onSelect }: ModelSelect
                                     <div className={`text-sm font-medium flex items-center justify-between ${selectedModelId === model.id ? "text-indigo-400" : "text-gray-200"
                                         }`}>
                                         {model.name}
-                                        {selectedModelId === model.id && <Check size={14} className="text-indigo-400" />}
+                                        {selectedModelId === model.id ? <Check size={14} className="text-indigo-400" /> : <span className="w-2 h-2 rounded-full bg-green-500/50"></span>}
                                     </div>
                                     <div className="text-xs text-gray-500 truncate group-hover:text-gray-400">
                                         {model.description}
@@ -80,6 +84,6 @@ export const ModelSelector = ({ models, selectedModelId, onSelect }: ModelSelect
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 };
