@@ -1,663 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Draco.AI - WORKING Mobile-Optimized AI Assistant 🐉</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Draco.AI - Premium AI Assistant</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script type="module">
-    import { LLM } from "https://cdn.jsdelivr.net/npm/@locallm/browser@0.1.31/dist/index.min.js";
-    </script>
-    <style>
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #8b5cf6;
-            --accent: #ec4899;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --error: #ef4444;
-            --bg-primary: #0a0e1a;
-            --bg-secondary: #1a1f2e;
-            --bg-tertiary: #2a3142;
-            --text-primary: #f8fafc;
-            --text-secondary: #e2e8f0;
-            --text-muted: #94a3b8;
-            --border: #334155;
-            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --glass: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.6;
-            overflow: hidden;
-            position: relative;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* Mobile First Responsive Design */
-        @media (max-width: 480px) {
-            .app-container {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto 1fr auto;
-            }
-        }
-
-        /* Animated Background - Optimized */
-        .bg-animation {
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            z-index: -1;
-            background: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 50%, #0a0e1a 100%);
-            overflow: hidden;
-        }
-
-        .bg-animation::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: -50%;
-            left: -50%;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
-            animation: rotate 20s linear infinite;
-            display: none; /* Hide on mobile for performance */
-        }
-
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* Glass Morphism - Mobile Optimized */
-        .glass-card {
-            background: var(--glass);
-            backdrop-filter: blur(5px); /* Reduced blur for mobile */
-            border: 1px solid var(--glass-border);
-            border-radius: 12px; /* Slightly smaller radius */
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Layout - Mobile First */
-        .app-container {
-            display: grid;
-            grid-template-columns: 1fr;
-            grid-template-rows: auto 1fr auto;
-            height: 100vh;
-            gap: 1px;
-            background: var(--border);
-        }
-
-        /* Sidebar - Hidden on Mobile */
-        .sidebar {
-            background: var(--bg-secondary);
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            z-index: 1001;
-            transition: transform 0.3s ease;
-        }
-
-        .sidebar.mobile-open {
-            transform: translateX(0);
-        }
-
-        /* Mobile Menu Button */
-        .mobile-menu-btn {
-            display: block;
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1002;
-            width: 44px;
-            height: 44px;
-            background: var(--gradient);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.2rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .mobile-menu-btn:active {
-            background: var(--primary-dark);
-        }
-
-        /* Chat Area - Full Screen on Mobile */
-        .chat-main {
-            background: var(--bg-primary);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .chat-header {
-            padding: 12px 16px; /* Reduced padding */
-            border-bottom: 1px solid var(--border);
-            background: var(--bg-secondary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .chat-title-main {
-            font-size: 1.1rem; /* Slightly smaller */
-            font-weight: 600;
-        }
-
-        .chat-actions {
-            display: none; /* Hide extra actions on mobile */
-        }
-
-        .messages-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px; /* Adjusted for mobile */
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .message {
-            max-width: 95%; /* Wider on mobile */
-            animation: fadeInUp 0.2s ease; /* Faster animation */
-        }
-
-        .message-content {
-            padding: 12px 16px; /* Slightly smaller padding */
-            border-radius: 12px;
-            word-wrap: break-word;
-            line-height: 1.6;
-            font-size: 0.9rem; /* Slightly smaller text */
-        }
-
-        .message-time {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 3px;
-            padding: 0 6px;
-        }
-
-        /* Input Area - Mobile Optimized */
-        .input-area {
-            padding: 16px;
-            border-top: 1px solid var(--border);
-            background: var(--bg-secondary);
-        }
-
-        .input-container {
-            display: flex;
-            gap: 8px; /* Smaller gap */
-            align-items: flex-end;
-        }
-
-        .message-input {
-            flex: 1;
-            min-height: 50px;
-            max-height: 120px; /* Lower max height */
-            padding: 12px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 10px; /* Smaller radius */
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: 0.9rem; /* Slightly smaller text */
-            outline: none;
-            transition: all 0.2s ease;
-        }
-
-        .message-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-
-        .send-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
-            background: var(--gradient);
-            color: white;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 1rem;
-        }
-
-        .send-btn:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-        }
-
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Settings Panel - Mobile Optimized */
-        .settings-panel {
-            background: var(--bg-secondary);
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            z-index: 1001;
-            overflow-y: auto;
-            transition: transform 0.3s ease;
-        }
-
-        .settings-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--border);
-            background: var(--bg-tertiary);
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .settings-content {
-            padding: 16px;
-        }
-
-        /* Typing Indicator - Mobile Optimized */
-        .typing-indicator {
-            display: flex;
-            gap: 3px;
-            padding: 12px 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            width: fit-content;
-        }
-
-        .typing-indicator span {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--text-muted);
-            animation: typing 1s ease-in-out infinite;
-        }
-
-        .typing-indicator span:nth-child(1) { animation-delay: 0s; }
-        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes typing {
-            0%, 60%, 100% {
-                transform: translateY(0);
-                opacity: 0.4;
-            }
-            30% {
-                transform: translateY(-8px);
-                opacity: 1;
-            }
-        }
-
-        /* Messages Container */
-        .welcome-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .welcome-icon {
-            font-size: 3rem; /* Slightly smaller for mobile */
-            margin-bottom: 16px;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .welcome-title {
-            font-size: 1.5rem; /* Slightly smaller */
-            margin-bottom: 12px;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .welcome-subtitle {
-            color: var(--text-secondary);
-            margin-bottom: 24px;
-            font-size: 1rem;
-            line-height: 1.4;
-        }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: 1fr; /* Single column on mobile */
-            gap: 16px;
-            margin-top: 24px;
-            width: 100%;
-            max-width: none;
-        }
-
-        .feature-card {
-            padding: 16px;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            text-align: center;
-            transition: all 0.2s ease;
-        }
-
-        .feature-icon {
-            font-size: 1.5rem;
-            margin-bottom: 12px;
-            color: var(--primary);
-        }
-
-        .feature-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 1rem;
-        }
-
-        .feature-description {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            line-height: 1.4;
-        }
-
-        /* Loading State */
-        .model-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-left: 8px;
-        }
-
-        .status-indicator {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--success);
-            animation: pulse 1s infinite;
-        }
-
-        .status-loading {
-            background: var(--warning);
-            animation: pulse 1s infinite;
-        }
-
-        .status-ready {
-            background: var(--success);
-        }
-
-        /* Error/Success Messages - Mobile Optimized */
-        .error-message {
-            position: fixed;
-            top: 16px;
-            right: 16px;
-            padding: 12px 16px;
-            background: rgba(239, 68, 68, 0.9);
-            color: white;
-            border-radius: 6px;
-            font-weight: 500;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
-            backdrop-filter: blur(5px);
-        }
-
-        .success-message {
-            position: fixed;
-            top: 16px;
-            right: 16px;
-            padding: 12px 16px;
-            background: rgba(16, 185, 129, 0.9);
-            color: white;
-            border-radius: 6px;
-            font-weight: 500;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
-            backdrop-filter: blur(5px);
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid var(--text-primary);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-left: 4px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Hidden Elements */
-        .mobile-menu-btn {
-            display: block;
-        }
-
-        /* Code Styling - Mobile Optimized */
-        .message-content code {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8em;
-        }
-
-        .message-content pre {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 8px;
-            border-radius: 6px;
-            overflow-x: auto;
-            margin: 4px 0;
-        }
-
-        .message-content pre code {
-            background: none;
-            padding: 0;
-        }
-
-        /* Better Touch Targets */
-        .send-btn:active {
-            transform: scale(0.95);
-        }
-
-        .mobile-menu-btn:active {
-            background: var(--primary-dark);
-        }
-
-        /* Welcome Screen Feature Grid - Mobile Optimized */
-        .welcome-subtitle {
-            margin-bottom: 20px; /* More space on mobile */
-        }
-
-        /* Performance Optimizations */
-        .message-content {
-            will-change: auto; /* Optimize text rendering */
-            -webkit-transform: translateZ(0); /* Hardware acceleration */
-            transform: translateZ(0);
-        }
-
-        /* Reduced Motion on Mobile */
-        @media (prefers-reduced-motion: reduce) {
-            * {
-                animation-duration: 0.1s !important;
-                transition-duration: 0.1s !important;
-            }
-        }
-    </style>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
 </head>
-<body>
-    <div class="bg-animation"></div>
-    
-    <div class="app-container">
-        <!-- Mobile Menu Button -->
-        <button class="mobile-menu-btn" onclick="toggleSidebar()">
-            <i class="fas fa-bars"></i>
-        </button>
 
-        <!-- Sidebar (Hidden on Mobile) -->
-        <div class="sidebar" id="sidebar">
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
-                    <i class="fas fa-dragon"></i>
-                    <span>Draco.AI</span>
-                    <span style="background: var(--success); color: white; padding: 2px 6px; border-radius: 8px; font-size: 0.6rem;">WORKING</span>
+                    <i class="fas fa-dragon"></i> Draco.AI
                 </div>
-                <button class="new-chat-btn" onclick="startNewChat()">
-                    <i class="fas fa-plus"></i>
-                    New Chat
+                <!-- Close btn for mobile -->
+                <button class="mobile-menu-btn" onclick="toggleSidebar()" style="font-size: 1rem;">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
-            
-            <div class="chat-list" id="chatList">
-                <!-- Chat items will be dynamically added here -->
-            </div>
-        </div>
 
-        <!-- Main Chat Area -->
-        <div class="chat-main">
-            <div class="chat-header">
-                <div class="chat-title-main" id="chatTitleMain">
-                    Draco.AI - Mobile AI
-                    <span class="model-status">
-                        <span class="status-indicator status-ready"></span>
-                        <span>Local AI Ready</span>
-                    </span>
-                </div>
+            <button class="new-chat-btn" onclick="startNewChat()">
+                <i class="fas fa-plus"></i> New Chat
+            </button>
+
+            <div class="chat-list" id="chatList">
+                <!-- Chat items here -->
             </div>
-            
+        </aside>
+
+        <!-- Main Content -->
+        <main class="chat-main">
+            <!-- Header -->
+            <header class="chat-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="model-selector-container">
+                        <select class="model-select" id="modelSelect">
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Status/Settings could go here -->
+                <div class="model-status" style="display: none;"> <!-- Hidden for cleaner look, relying on dropdown -->
+                    <span class="status-indicator status-ready"></span>
+                </div>
+            </header>
+
+            <!-- Messages -->
             <div class="messages-container" id="messagesContainer">
                 <div class="welcome-screen" id="welcomeScreen">
-                    <div class="welcome-icon">
-                        <i class="fas fa-dragon"></i>
-                    </div>
-                    <div class="welcome-title">Draco.AI - Mobile Optimized</div>
-                    <div class="welcome-subtitle">🚀 Mobile-First AI That Actually Works!</div>
-                    
+                    <div class="welcome-icon">🐉</div>
+                    <h1 class="welcome-title">Draco.AI</h1>
+                    <p class="welcome-subtitle">Premium. Instant. Free.</p>
+
                     <div class="feature-grid">
                         <div class="feature-card">
-                            <div class="feature-icon">
-                                <i class="fas fa-mobile-alt"></i>
-                            </div>
-                            <div class="feature-title">100% Mobile</div>
-                            <div class="feature-description">Optimized for touch screens</div>
+                            <i class="fas fa-bolt feature-icon"></i>
+                            <div class="feature-title">Instant</div>
+                            <div class="feature-description">No downloads required</div>
                         </div>
                         <div class="feature-card">
-                            <div class="feature-icon">
-                                <i class="fas fa-rocket"></i>
-                            </div>
-                            <div class="feature-title">Real AI Models</div>
-                            <div class="feature-description">Llama 3.2B, Mistral, Phi</div>
+                            <i class="fas fa-layer-group feature-icon"></i>
+                            <div class="feature-title">8+ Models</div>
+                            <div class="feature-description">GPT-4o, Claude, Llama 3</div>
                         </div>
                         <div class="feature-card">
-                            <div class="feature-icon">
-                                <i class="fas fa-bolt"></i>
-                            </div>
-                            <div class="feature-title">Super Fast</div>
-                            <div class="feature-description">Optimized responses</div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <i class="fas fa-shield-alt"></i>
-                            </div>
-                            <div class="feature-title">Privacy First</div>
-                            <div class="feature-description">100% offline capability</div>
+                            <i class="fas fa-shield-alt feature-icon"></i>
+                            <div class="feature-title">Private</div>
+                            <div class="feature-description">Your data is safe</div>
                         </div>
                     </div>
                 </div>
-                </div>
             </div>
-            
+
+            <!-- Input Area -->
             <div class="input-area">
                 <div class="input-container">
-                    <textarea 
-                        class="message-input" 
-                        id="messageInput"
-                        placeholder="Type your message here..."
-                        rows="1"
-                    ></textarea>
-                    <button class="send-btn" id="sendButton" onclick="sendMessage()">
-                        <i class="fas fa-paper-plane"></i>
+                    <textarea class="message-input" id="messageInput" placeholder="Message Draco..."
+                        rows="1"></textarea>
+                    <button class="send-btn" id="sendButton" disabled>
+                        <i class="fas fa-arrow-up"></i>
                     </button>
                 </div>
             </div>
-        </div>
-
-        <!-- Settings Panel (Hidden on Mobile) -->
-        <div class="settings-panel" id="settingsPanel">
-            <div class="settings-header">
-                <button class="mobile-menu-btn" onclick="toggleSettings()" style="margin: 0;">
-                    <i class="fas fa-times"></i>
-                </button>
-                <div>
-                    <span>🦙 Mobile Settings</span>
-                </div>
-            </div>
-            
-            <div class="settings-content">
-                <div class="setting-group">
-                    <label class="setting-label">🦙 AI Model</label>
-                    <select class="model-selector" id="modelSelect">
-                        <option value="llama-3.2-3b">🦙 Llama 3.2B</option>
-                        <option value="llama-3.2-1b">🦙 Llama 3.2.1B</option>
-                        <option value="mistral-7b-v0.2">🦙 Mistral 7B v0.2</option>
-                        <option value="phi-3-mini-4k">🦙 Phi 3 Mini</option>
-                    </select>
-                    <div class="model-loading" id="modelLoading" style="display: none;">
-                        <div class="loading-spinner"></div>
-                        <span>Loading AI model...</span>
-                    </div>
-                </div>
-                
-                <div class="setting-group">
-                    <label class="setting-label">🌡️️ Temperature</label>
-                    <input type="range" class="setting-input" id="temperatureInput" min="0" max="2" step="0.1" value="0.7">
-                </div>
-                
-                <div class="setting-group">
-                    <label class="setting-label">📝 Max Tokens</label>
-                    <input type="number" class="setting-input" id="maxTokensInput" min="1" max="2000" value="1000">
-                </div>
-                
-                <div class="setting-group">
-                    <label class="setting-label">🎯 System Prompt</label>
-                    <textarea class="setting-input" id="systemPromptInput" rows="3">You are Draco.AI, a helpful AI assistant. Provide accurate, thoughtful responses that are engaging and informative.</textarea>
-                </div>
-                
-                <button class="save-settings-btn" onclick="saveSettings()">
-                    💾 Save Settings
-                </button>
-            </div>
-        </div>
+        </main>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="app.js"></script>
 </body>
+
+</html>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="app.js"></script>
+</body>
+
 </html>
