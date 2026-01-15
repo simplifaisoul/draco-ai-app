@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
 import ReactMarkdown from "react-markdown";
@@ -52,6 +52,9 @@ export default function Home() {
   // Audio State
   const [isListening, setIsListening] = useState(false);
   const [speakingMsgId, setSpeakingMsgId] = useState<number | null>(null);
+
+  // Drag & Drop State
+  const [isDragging, setIsDragging] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -159,6 +162,39 @@ export default function Home() {
     }
   };
 
+  // Drag and Drop Handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+
+    files.forEach(file => {
+      if (file.type.startsWith("text/") || file.name.endsWith(".js") || file.name.endsWith(".ts") || file.name.endsWith(".tsx") || file.name.endsWith(".json") || file.name.endsWith(".md") || file.name.endsWith(".py")) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const content = ev.target?.result as string;
+          setInput(prev => prev + `\n\n[File: ${file.name}]\n\`\`\`\n${content}\n\`\`\`\n`);
+        };
+        reader.readAsText(file);
+      } else {
+        // For non-text files, maybe just list them? for now ignore
+        console.log("Ignored non-text file:", file.name);
+      }
+    });
+  }, []);
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -203,16 +239,16 @@ export default function Home() {
       // 2. Determine Model & System Prompt
       let activeModel = currentModel;
       if (enableSearch) {
-        // Switch to a search-capable model or hint it? 
+        // Switch to a search-capable model or hint it?
         // Pollinations 'searchgpt' or 'gemini-search' are good options.
         // Let's force 'searchgpt' if search is enabled, or just let users know.
         // Actually, let's keep user selection but if "Search" is on, maybe prepend "Search web for:"?
         // Simpler: Just rely on the "SearchGPT" model if specifically selected, OR if search is toggled, swap model logic.
         // Let's assume if search is ON, we prioritize a search model if the current one isn't search-capable.
-        // For simplicity, we'll just pass the toggle state to the prompt or let the user choose "SearchGPT". 
+        // For simplicity, we'll just pass the toggle state to the prompt or let the user choose "SearchGPT".
         // BUT, user asked for a "Web Search" toggle. Let's make that toggle force 'searchgpt'.
         if (currentModel !== 'searchgpt' && currentModel !== 'gemini') {
-          // Modify system prompt to encourage searching if model supports it, 
+          // Modify system prompt to encourage searching if model supports it,
           // but really 'searchgpt' is the best bet on Pollinations for this.
           // Let's swap to 'searchgpt' temporarily for this request if toggle is ON?
           activeModel = 'searchgpt';
@@ -298,7 +334,28 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-[100dvh] bg-[#0f1117] text-[#f8fafc] font-sans overflow-hidden">
+    <div
+      className="flex h-[100dvh] bg-[#0f1117] text-[#f8fafc] font-sans overflow-hidden relative"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag Overlay */}
+      <AnimatePresence>
+        {isDragging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[100] bg-indigo-500/20 backdrop-blur-sm border-4 border-indigo-500 border-dashed m-4 rounded-3xl flex flex-col items-center justify-center pointer-events-none"
+          >
+            <Upload size={64} className="text-indigo-400 mb-4 animate-bounce" />
+            <h2 className="text-3xl font-bold text-white drop-shadow-lg">Drop text files here</h2>
+            <p className="text-indigo-200 mt-2">I can read code and text files!</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Settings Modal */}
       <SettingsModal
         isOpen={settingsOpen}
