@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download, Eye } from "lucide-react";
+import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download, Eye, Headphones, LayoutGrid } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
 import ReactMarkdown from "react-markdown";
@@ -11,12 +11,16 @@ import { SettingsModal } from "./components/SettingsModal";
 import { PreviewPane } from "./components/PreviewPane";
 import { ModelSelector } from "./components/ModelSelector";
 import { AudioVisualizer } from "./components/AudioVisualizer";
+import { ThinkingProcess } from "./components/ThinkingProcess";
+import { Dashboard } from "./components/Dashboard";
 
 // Types
 interface Message {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: string;
+  thought?: string; // New field for Chain of Thought
+  isThinking?: boolean; // State during generation
 }
 
 interface AIModel {
@@ -30,10 +34,10 @@ const MODELS: AIModel[] = [
   { id: "openai", name: "GPT-4o (OpenAI)", icon: "🧠", description: "Smartest model" },
   { id: "claude", name: "Claude 3.5 Sonnet", icon: "🎭", description: "Natural reasoning" },
   { id: "mistral", name: "Mistral Large", icon: "🌪️", description: "Open source power" },
+  { id: "deepseek-r1", name: "DeepSeek R1", icon: "🐋", description: "Reasoning (CoT)" },
   { id: "llama", name: "Llama 3.1", icon: "🦙", description: "Meta's latest" },
   { id: "qwen-coder", name: "Qwen 2.5 Coder", icon: "💻", description: "Code specialist" },
   { id: "searchgpt", name: "SearchGPT", icon: "🌐", description: "Web search" },
-  { id: "deepseek", name: "DeepSeek R1", icon: "🐋", description: "Reasoning" },
 ];
 
 export default function Home() {
@@ -44,6 +48,7 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false); // Fix persistence
   const [enableSearch, setEnableSearch] = useState(false);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
 
   // Settings State
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -54,10 +59,16 @@ export default function Home() {
 
   // Audio State
   const [isListening, setIsListening] = useState(false);
+  const [handsFreeMode, setHandsFreeMode] = useState(false);
   const [speakingMsgId, setSpeakingMsgId] = useState<number | null>(null);
+
+  // Memory State (The Vault)
+  const [memory, setMemory] = useState<string[]>([]);
+  const [showMemory, setShowMemory] = useState(true); // Toggle in sidebar
 
   // Drag & Drop State
   const [isDragging, setIsDragging] = useState(false);
+  const [attachment, setAttachment] = useState<{ url: string, name: string } | null>(null);
 
   // Preview State (Artifacts)
   const [showPreview, setShowPreview] = useState(false);
@@ -111,6 +122,13 @@ export default function Home() {
       }
     }
 
+    const savedMemory = localStorage.getItem("draco_memory");
+    if (savedMemory) {
+      try {
+        setMemory(JSON.parse(savedMemory));
+      } catch (e) { console.error("Failed to load memory", e); }
+    }
+
     setIsLoaded(true);
   }, []);
 
@@ -119,12 +137,24 @@ export default function Home() {
     if (isLoaded) {
       localStorage.setItem("draco_history", JSON.stringify(messages));
       localStorage.setItem("draco_settings", JSON.stringify(settings));
+      localStorage.setItem("draco_memory", JSON.stringify(memory));
     }
-  }, [messages, settings, isLoaded]);
+  }, [messages, settings, memory, isLoaded]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Hands-Free Mode: Auto-Speak when assistant finishes
+  useEffect(() => {
+    if (handsFreeMode && !isLoading && messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.role === "assistant" && !speakingMsgId) {
+        // Speak it
+        toggleSpeech(lastMsg.content, messages.length - 1);
+      }
+    }
+  }, [isLoading, messages, handsFreeMode]);
 
   // Effect to auto-detect artifacts in the latest message
   useEffect(() => {
@@ -201,7 +231,20 @@ export default function Home() {
         const selectedVoice = voices.find(v => v.voiceURI === settings.voiceURI);
         if (selectedVoice) utterance.voice = selectedVoice;
       }
-      utterance.onend = () => setSpeakingMsgId(null);
+
+      utterance.onend = () => {
+        setSpeakingMsgId(null);
+        // Auto-Listen if Hands-Free
+        if (handsFreeMode) {
+          setTimeout(() => {
+            if (recognitionRef.current && !isListening) {
+              recognitionRef.current.start();
+              setIsListening(true);
+            }
+          }, 500); // Short delay for natural turn-taking
+        }
+      };
+
       window.speechSynthesis.speak(utterance);
       setSpeakingMsgId(index);
     }
@@ -226,7 +269,14 @@ export default function Home() {
     if (files.length === 0) return;
 
     files.forEach(file => {
-      if (file.type.startsWith("text/") || file.name.endsWith(".js") || file.name.endsWith(".ts") || file.name.endsWith(".tsx") || file.name.endsWith(".json") || file.name.endsWith(".md") || file.name.endsWith(".py")) {
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const result = ev.target?.result as string;
+          setAttachment({ url: result, name: file.name });
+        };
+        reader.readAsDataURL(file);
+      } else if (file.type.startsWith("text/") || file.name.endsWith(".js") || file.name.endsWith(".ts") || file.name.endsWith(".tsx") || file.name.endsWith(".json") || file.name.endsWith(".md") || file.name.endsWith(".py")) {
         const reader = new FileReader();
         reader.onload = (ev) => {
           const content = ev.target?.result as string;
@@ -234,8 +284,7 @@ export default function Home() {
         };
         reader.readAsText(file);
       } else {
-        // For non-text files, maybe just list them? for now ignore
-        console.log("Ignored non-text file:", file.name);
+        console.log("Ignored non-text/non-image file:", file.name);
       }
     });
   }, []);
@@ -247,15 +296,18 @@ export default function Home() {
     setSpeakingMsgId(null);
 
     const originalInput = input.trim();
-    const userMsg: Message = { role: "user", content: originalInput, timestamp: new Date().toISOString() };
+    // For UI display, if there's an attachment, append it as markdown image
+    const uiContent = attachment ? `${originalInput}\n\n![${attachment.name}](${attachment.url})` : originalInput;
+
+    const userMsg: Message = { role: "user", content: uiContent, timestamp: new Date().toISOString() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setAttachment(null); // Clear attachment
     setIsLoading(true);
 
     try {
       // 1. Check for Image Command
       if (originalInput.startsWith("/image") || originalInput.startsWith("/draw")) {
-        // Extract prompt
         const prompt = originalInput.replace(/^\/(image|draw)\s*/i, "").trim();
         if (!prompt) {
           setMessages(prev => [...prev, { role: "assistant", content: "Please provide a description for the image. Example: `/image neon dragon`", timestamp: new Date().toISOString() }]);
@@ -264,11 +316,9 @@ export default function Home() {
         }
 
         const encodedPrompt = encodeURIComponent(prompt);
-        // Add random seed to avoid caching same image
         const randomSeed = Math.floor(Math.random() * 10000);
         const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
 
-        // Simulate "generating" delay briefly
         await new Promise(r => setTimeout(r, 600));
 
         const imageMsg: Message = {
@@ -278,34 +328,65 @@ export default function Home() {
         };
         setMessages(prev => [...prev, imageMsg]);
         setIsLoading(false);
-        return; // Stop here
+        setMessages(prev => [...prev, imageMsg]);
+        setIsLoading(false);
+        return;
+      }
+
+      // 1.5. Check for Memory Commands
+      if (originalInput.startsWith("/remember ")) {
+        const textToRemember = originalInput.replace("/remember ", "").trim();
+        if (textToRemember) {
+          setMemory(prev => [...prev, textToRemember]);
+          setMessages(prev => [...prev, { role: "assistant", content: `🧠 I've stored that in The Vault: "${textToRemember}"`, timestamp: new Date().toISOString() }]);
+          setIsLoading(false);
+          return;
+        }
+      }
+      if (originalInput.startsWith("/forget ")) {
+        const indexStr = originalInput.replace("/forget ", "").trim();
+        const index = parseInt(indexStr) - 1; // User uses 1-based index usually, or we assume they use UI
+        // Actually, let's just support clearing all or UI deletion.
+        // Command support is tricky without IDs. Let's redirect to UI.
+        setMessages(prev => [...prev, { role: "assistant", content: "To forget something, please use the 'The Vault' section in the sidebar.", timestamp: new Date().toISOString() }]);
+        setIsLoading(false);
+        return;
       }
 
       // 2. Determine Model & System Prompt
       let activeModel = currentModel;
       if (enableSearch) {
-        // Switch to a search-capable model or hint it?
-        // Pollinations 'searchgpt' or 'gemini-search' are good options.
-        // Let's force 'searchgpt' if search is enabled, or just let users know.
-        // Actually, let's keep user selection but if "Search" is on, maybe prepend "Search web for:"?
-        // Simpler: Just rely on the "SearchGPT" model if specifically selected, OR if search is toggled, swap model logic.
-        // Let's assume if search is ON, we prioritize a search model if the current one isn't search-capable.
-        // For simplicity, we'll just pass the toggle state to the prompt or let the user choose "SearchGPT".
-        // BUT, user asked for a "Web Search" toggle. Let's make that toggle force 'searchgpt'.
         if (currentModel !== 'searchgpt' && currentModel !== 'gemini') {
-          // Modify system prompt to encourage searching if model supports it,
-          // but really 'searchgpt' is the best bet on Pollinations for this.
-          // Let's swap to 'searchgpt' temporarily for this request if toggle is ON?
           activeModel = 'searchgpt';
         }
       }
 
       // 3. Streaming Request
+
+      // Inject Memory into System Prompt of "messagesPayload" only, not the visible setting
+      const vaultContext = memory.length > 0 ? `\n\n[THE VAULT - LONG TERM MEMORY]:\n${memory.map((m, i) => `${i + 1}. ${m}`).join("\n")}\n\n[INSTRUCTION]: Use the above memory to personalize your response if relevant.` : "";
+      const finalSystemPrompt = settings.systemPrompt + vaultContext;
+
       const messagesPayload = [
-        { role: "system", content: settings.systemPrompt },
+        { role: "system", content: finalSystemPrompt },
         ...messages.map((m) => ({ role: m.role, content: m.content })),
-        { role: "user", content: originalInput },
       ];
+
+      // Add current message. If attachment, format as multimodal.
+      if (attachment) {
+        // Force visually capable model if possible, though 'openai' default is 4o which is good.
+        // activeModel = 'openai'; 
+
+        messagesPayload.push({
+          role: "user",
+          content: [
+            { type: "text", text: originalInput },
+            { type: "image_url", image_url: { url: attachment.url } }
+          ]
+        } as any); // Type assertion needed because simple Message interface uses string content
+      } else {
+        messagesPayload.push({ role: "user", content: originalInput });
+      }
 
       const response = await fetch("https://text.pollinations.ai/openai/chat/completions", {
         method: "POST",
@@ -319,24 +400,37 @@ export default function Home() {
 
       if (!response.ok) throw new Error("API Error");
 
-      // Create placeholder for assistant response
-      setMessages(prev => [...prev, { role: "assistant", content: "", timestamp: new Date().toISOString() }]);
+      // Initialize response
+      setMessages(prev => [...prev, { role: "assistant", content: "", timestamp: new Date().toISOString(), thought: "", isThinking: activeModel === 'deepseek-r1' }]);
 
       // Read the stream
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+
       let fullContent = "";
+      let fullThought = "";
+      let isThinking = activeModel === 'deepseek-r1';
 
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            setMessages(prev => {
+              const newHistory = [...prev];
+              const lastMsg = newHistory[newHistory.length - 1];
+              if (lastMsg && lastMsg.role === "assistant") {
+                lastMsg.isThinking = false;
+              }
+              return newHistory;
+            });
+            break;
+          }
 
           const chunk = decoder.decode(value, { stream: true });
           buffer += chunk;
           const lines = buffer.split("\n");
-          buffer = lines.pop() || ""; // Keep incomplete line in buffer
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
             const trimmed = line.trim();
@@ -350,12 +444,24 @@ export default function Home() {
               const deltaContent = json.choices?.[0]?.delta?.content || "";
 
               if (deltaContent) {
-                fullContent += deltaContent;
+                if (deltaContent.includes("<think>")) isThinking = true;
+                if (deltaContent.includes("</think>")) isThinking = false;
+
+                const cleanDelta = deltaContent.replace(/<think>|<\/think>/g, "");
+
+                if (isThinking) {
+                  fullThought += cleanDelta;
+                } else {
+                  fullContent += cleanDelta;
+                }
+
                 setMessages(prev => {
                   const newHistory = [...prev];
                   const lastMsg = newHistory[newHistory.length - 1];
-                  if (lastMsg.role === "assistant") {
+                  if (lastMsg && lastMsg.role === "assistant") {
                     lastMsg.content = fullContent;
+                    lastMsg.thought = fullThought;
+                    lastMsg.isThinking = isThinking;
                   }
                   return newHistory;
                 });
@@ -366,7 +472,6 @@ export default function Home() {
           }
         }
       }
-
     } catch (error) {
       console.error(error);
       setMessages((prev) => [
@@ -408,6 +513,18 @@ export default function Home() {
         settings={settings}
         onSave={setSettings}
       />
+
+      <AnimatePresence>
+        {dashboardOpen && (
+          <Dashboard
+            isOpen={dashboardOpen}
+            onClose={() => setDashboardOpen(false)}
+            stats={{ messageCount: messages.length, memoryCount: memory.length }}
+            onVibeSelect={(prompt) => setSettings(prev => ({ ...prev, systemPrompt: prompt }))}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Dynamic Background */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
@@ -464,6 +581,47 @@ export default function Home() {
             <button onClick={clearHistory} className="mt-4 flex items-center justify-center gap-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded-lg transition-colors text-sm">
               <Trash2 size={14} /> Clear History
             </button>
+
+            {/* The Vault (Memory) */}
+            <div className="mt-6 border-t border-[#2d3748] pt-4">
+              <div
+                className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-2 cursor-pointer hover:text-gray-300 transition-colors"
+                onClick={() => setShowMemory(!showMemory)}
+              >
+                <span>🧠 The Vault ({memory.length})</span>
+                <ChevronDown size={14} className={`transition-transform duration-200 ${showMemory ? "" : "-rotate-90"}`} />
+              </div>
+
+              <AnimatePresence>
+                {showMemory && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="space-y-2 overflow-hidden"
+                  >
+                    {memory.length > 0 ? (
+                      memory.map((mem, i) => (
+                        <div key={i} className="group relative p-2 bg-[#1f242d]/30 rounded-lg border border-[#2d3748]/50 text-xs text-gray-400 hover:text-gray-200 hover:border-indigo-500/30 transition-all">
+                          <div className="pr-4">{mem}</div>
+                          <button
+                            onClick={() => setMemory(prev => prev.filter((_, idx) => idx !== i))}
+                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-red-400 hover:bg-red-900/20 p-1 rounded transition-all"
+                            title="Forget"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-xs text-gray-600 italic px-2">
+                        Type <code className="bg-white/5 px-1 rounded">/remember [text]</code> to add memories.
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </motion.aside>
         )}
       </AnimatePresence>
@@ -507,6 +665,14 @@ export default function Home() {
             </div>
 
             {/* Search Toggle */}
+            <button
+              onClick={() => setDashboardOpen(true)}
+              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors border border-transparent hidden md:block" // Hidden on mobile to save space? or not?
+              title="Dashboard"
+            >
+              <LayoutGrid size={18} />
+            </button>
+
             <button
               onClick={() => setEnableSearch(!enableSearch)}
               className={`p-2 rounded-lg transition-all border ${enableSearch
@@ -698,7 +864,35 @@ export default function Home() {
               rows={1}
               style={{ minHeight: "44px" }}
             />
-            {/* Image Command Hint Icon (optional, or just use it as a shortcut button later) */}
+            {/* Attachment Preview */}
+            <AnimatePresence>
+              {attachment && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="absolute bottom-full mb-2 left-4 z-50"
+                >
+                  <div className="relative group">
+                    <img src={attachment.url} alt="Preview" className="w-24 h-24 object-cover rounded-xl border-2 border-indigo-500 shadow-xl bg-black" />
+                    <button
+                      onClick={() => setAttachment(null)}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <button
+              onClick={() => setHandsFreeMode(!handsFreeMode)}
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all mb-0.5 shrink-0 ${handsFreeMode ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.3)] animate-pulse" : "text-gray-400 hover:text-white"}`}
+              title="Hands-Free Mode"
+            >
+              <Headphones size={20} />
+            </button>
 
             <button
               onClick={toggleListening}

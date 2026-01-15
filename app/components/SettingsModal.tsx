@@ -1,5 +1,5 @@
-import { X, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { X, Sparkles, Download, Upload } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 
 interface Settings {
     systemPrompt: string;
@@ -37,7 +37,39 @@ export const SettingsModal = ({ isOpen, onClose, settings, onSave }: SettingsMod
 
         loadVoices();
         window.speechSynthesis.onvoiceschanged = loadVoices;
+        window.speechSynthesis.onvoiceschanged = loadVoices;
     }, []);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const exportSettings = () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localSettings, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "draco_settings.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    };
+
+    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const parsed = JSON.parse(event.target?.result as string);
+                if (parsed.systemPrompt && typeof parsed.systemPrompt === 'string') {
+                    setLocalSettings(prev => ({ ...prev, ...parsed }));
+                    alert("Settings imported successfully!");
+                }
+            } catch (err) {
+                alert("Failed to parse settings file.");
+            }
+        };
+        reader.readAsText(file);
+    };
 
     if (!isOpen) return null;
 
@@ -62,8 +94,8 @@ export const SettingsModal = ({ isOpen, onClose, settings, onSave }: SettingsMod
                                     key={p.id}
                                     onClick={() => setLocalSettings(prev => ({ ...prev, systemPrompt: p.prompt }))}
                                     className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 ${localSettings.systemPrompt === p.prompt
-                                            ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]"
-                                            : "bg-[#0f1117] border-[#2d3748] text-gray-400 hover:border-gray-500 hover:text-white"
+                                        ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                                        : "bg-[#0f1117] border-[#2d3748] text-gray-400 hover:border-gray-500 hover:text-white"
                                         }`}
                                 >
                                     {p.name}
@@ -99,19 +131,45 @@ export const SettingsModal = ({ isOpen, onClose, settings, onSave }: SettingsMod
                     </div>
                 </div>
 
-                <div className="mt-8 flex justify-end gap-3 shrink-0 pt-4 border-t border-[#2d3748]">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={() => { onSave(localSettings); onClose(); }}
-                        className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors font-medium shadow-lg shadow-indigo-500/20"
-                    >
-                        Save Changes
-                    </button>
+                <div className="mt-8 flex justify-between items-center shrink-0 pt-4 border-t border-[#2d3748]">
+                    <div className="flex gap-2">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImport}
+                            className="hidden"
+                            accept=".json"
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-[#1f242d] hover:bg-[#2d3748] text-indigo-400 rounded-lg border border-[#2d3748] transition-colors"
+                            title="Import Settings"
+                        >
+                            <Upload size={14} /> Import
+                        </button>
+                        <button
+                            onClick={exportSettings}
+                            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-[#1f242d] hover:bg-[#2d3748] text-indigo-400 rounded-lg border border-[#2d3748] transition-colors"
+                            title="Export Settings"
+                        >
+                            <Download size={14} /> Export
+                        </button>
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={() => { onSave(localSettings); onClose(); }}
+                            className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors font-medium shadow-lg shadow-indigo-500/20"
+                        >
+                            Save Changes
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
