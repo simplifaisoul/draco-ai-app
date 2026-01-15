@@ -31,10 +31,10 @@ interface AIModel {
 }
 
 const MODELS: AIModel[] = [
-  { id: "openai", name: "GPT-4o (OpenAI)", icon: "🧠", description: "Smartest model" },
+  { id: "openai", name: "Draco V1 (Advanced)", icon: "🧠", description: "Our smartest model" },
   { id: "claude", name: "Claude 3.5 Sonnet", icon: "🎭", description: "Natural reasoning" },
   { id: "mistral", name: "Mistral Large", icon: "🌪️", description: "Open source power" },
-  { id: "deepseek-r1", name: "DeepSeek R1", icon: "🐋", description: "Reasoning (CoT)" },
+  { id: "p1", name: "Pollinations 1", icon: "🐝", description: "Fast & General" },
   { id: "llama", name: "Llama 3.1", icon: "🦙", description: "Meta's latest" },
   { id: "qwen-coder", name: "Qwen 2.5 Coder", icon: "💻", description: "Code specialist" },
   { id: "searchgpt", name: "SearchGPT", icon: "🌐", description: "Web search" },
@@ -388,7 +388,7 @@ export default function Home() {
         messagesPayload.push({ role: "user", content: originalInput });
       }
 
-      const response = await fetch("https://text.pollinations.ai/openai/chat/completions", {
+      const response = await fetch("https://text.pollinations.ai/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -772,9 +772,9 @@ export default function Home() {
                       </div>
                     )}
 
-                    <div className={`max-w-[90%] md:max-w-[85%] rounded-2xl px-4 py-3 md:px-5 md:py-4 text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-sm ${msg.role === "user"
-                      ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-br-sm shadow-indigo-900/20"
-                      : "bg-[#1e232e]/90 border border-[#2d3748] text-gray-100 rounded-bl-sm"
+                    <div className={`max-w-[90%] md:max-w-[85%] rounded-2xl px-4 py-3 md:px-5 md:py-4 text-sm md:text-base leading-relaxed backdrop-blur-sm transition-all duration-300 ${msg.role === "user"
+                      ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-br-sm shadow-lg shadow-indigo-900/20"
+                      : "bg-[#1e232e]/90 border border-[#2d3748] text-gray-100 rounded-bl-sm shadow-xl shadow-indigo-500/10 hover:shadow-indigo-500/20"
                       }`}>
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
