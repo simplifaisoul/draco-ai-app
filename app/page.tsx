@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CodeBlock } from "./components/CodeBlock";
 import { SettingsModal } from "./components/SettingsModal";
 import { PreviewPane } from "./components/PreviewPane";
+import { ModelSelector } from "./components/ModelSelector";
+import { AudioVisualizer } from "./components/AudioVisualizer";
 
 // Types
 interface Message {
@@ -508,8 +510,8 @@ export default function Home() {
             <button
               onClick={() => setEnableSearch(!enableSearch)}
               className={`p-2 rounded-lg transition-all border ${enableSearch
-                  ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.2)]"
-                  : "text-gray-400 border-transparent hover:bg-white/5"
+                ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.2)]"
+                : "text-gray-400 border-transparent hover:bg-white/5"
                 }`}
               title="Toggle Web Search"
             >
@@ -521,8 +523,8 @@ export default function Home() {
               <button
                 onClick={() => setShowPreview(!showPreview)}
                 className={`p-2 rounded-lg transition-all border ${showPreview
-                    ? "bg-green-500/20 text-green-400 border-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.2)]"
-                    : "text-green-500/50 border-transparent hover:bg-white/5 animate-pulse"
+                  ? "bg-green-500/20 text-green-400 border-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.2)]"
+                  : "text-green-500/50 border-transparent hover:bg-white/5 animate-pulse"
                   }`}
                 title="Toggle Live Preview"
               >
@@ -700,9 +702,9 @@ export default function Home() {
 
             <button
               onClick={toggleListening}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all mb-0.5 shrink-0 ${isListening ? "bg-red-500/20 text-red-400 animate-pulse" : "text-gray-400 hover:text-white"}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all mb-0.5 shrink-0 ${isListening ? "bg-red-500/20 text-red-400 border border-red-500/50" : "text-gray-400 hover:text-white"}`}
             >
-              {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+              {isListening ? <AudioVisualizer isListening={true} /> : <Mic size={20} />}
             </button>
 
             <button
