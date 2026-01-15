@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2 } from "lucide-react";
+import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon } from "lucide-react";
+import remarkGfm from "remark-gfm";
+
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
 import { CodeBlock } from "./components/CodeBlock";
@@ -36,6 +38,9 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState("openai");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false); // Fix persistence
+  const [enableSearch, setEnableSearch] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load from LocalStorage
@@ -48,11 +53,17 @@ export default function Home() {
         console.error("Failed to load history", e);
       }
     }
+    setIsLoaded(true);
   }, []);
 
   // Save to LocalStorage
   useEffect(() => {
-    localStorage.setItem("draco_history", JSON.stringify(messages));
+    if (isLoaded) {
+      localStorage.setItem("draco_history", JSON.stringify(messages));
+    }
+  }, [messages, isLoaded]);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
@@ -68,68 +79,129 @@ export default function Home() {
     }
   };
 
-  // Typewriter effect helper
-  const simulateStreaming = async (fullText: string) => {
-    const chunkSize = 3; // chars per tick
-    let currentText = "";
-
-    // Create a temporary placeholder message
-    setMessages(prev => [...prev, { role: "assistant", content: "", timestamp: new Date().toISOString() }]);
-
-    for (let i = 0; i < fullText.length; i += chunkSize) {
-      // Add minimal delay for realistic typing speed (10-30ms)
-      await new Promise(r => setTimeout(r, 15));
-
-      currentText += fullText.slice(i, i + chunkSize);
-
-      setMessages(prev => {
-        const newHistory = [...prev];
-        const lastMsg = newHistory[newHistory.length - 1];
-        if (lastMsg.role === "assistant") {
-          lastMsg.content = currentText;
-        }
-        return newHistory;
-      });
-    }
-
-    // Final update to ensure exact text
-    setMessages(prev => {
-      const newHistory = [...prev];
-      const lastMsg = newHistory[newHistory.length - 1];
-      lastMsg.content = fullText;
-      return newHistory;
-    });
-  };
-
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMsg: Message = { role: "user", content: input, timestamp: new Date().toISOString() };
+    const originalInput = input.trim();
+    const userMsg: Message = { role: "user", content: originalInput, timestamp: new Date().toISOString() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
     try {
-      const response = await fetch("https://text.pollinations.ai/", {
+      // 1. Check for Image Command
+      if (originalInput.startsWith("/image") || originalInput.startsWith("/draw")) {
+        // Extract prompt
+        const prompt = originalInput.replace(/^\/(image|draw)\s*/i, "").trim();
+        if (!prompt) {
+          setMessages(prev => [...prev, { role: "assistant", content: "Please provide a description for the image. Example: `/image neon dragon`", timestamp: new Date().toISOString() }]);
+          setIsLoading(false);
+          return;
+        }
+
+        const encodedPrompt = encodeURIComponent(prompt);
+        // Add random seed to avoid caching same image
+        const randomSeed = Math.floor(Math.random() * 10000);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
+
+        // Simulate "generating" delay briefly
+        await new Promise(r => setTimeout(r, 600));
+
+        const imageMsg: Message = {
+          role: "assistant",
+          content: `Here is your generated image for "**${prompt}**":\n\n![Generated Image](${imageUrl})`,
+          timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, imageMsg]);
+        setIsLoading(false);
+        return; // Stop here
+      }
+
+      // 2. Determine Model & System Prompt
+      let activeModel = currentModel;
+      if (enableSearch) {
+        // Switch to a search-capable model or hint it? 
+        // Pollinations 'searchgpt' or 'gemini-search' are good options.
+        // Let's force 'searchgpt' if search is enabled, or just let users know.
+        // Actually, let's keep user selection but if "Search" is on, maybe prepend "Search web for:"?
+        // Simpler: Just rely on the "SearchGPT" model if specifically selected, OR if search is toggled, swap model logic.
+        // Let's assume if search is ON, we prioritize a search model if the current one isn't search-capable.
+        // For simplicity, we'll just pass the toggle state to the prompt or let the user choose "SearchGPT". 
+        // BUT, user asked for a "Web Search" toggle. Let's make that toggle force 'searchgpt'.
+        if (currentModel !== 'searchgpt' && currentModel !== 'gemini') {
+          // Modify system prompt to encourage searching if model supports it, 
+          // but really 'searchgpt' is the best bet on Pollinations for this.
+          // Let's swap to 'searchgpt' temporarily for this request if toggle is ON?
+          activeModel = 'searchgpt';
+        }
+      }
+
+      // 3. Streaming Request
+      const messagesPayload = [
+        { role: "system", content: "You are Draco AI. Helpful, smart, and concise. Format code nicely." },
+        ...messages.map((m) => ({ role: m.role, content: m.content })),
+        { role: "user", content: originalInput },
+      ];
+
+      const response = await fetch("https://text.pollinations.ai/openai/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [
-            { role: "system", content: "You are Draco AI. Helpful, smart, and concise. Format code nicely." },
-            ...messages.map((m) => ({ role: m.role, content: m.content })),
-            { role: "user", content: input },
-          ],
-          model: currentModel,
-          seed: Math.floor(Math.random() * 1000),
-          jsonMode: false,
+          messages: messagesPayload,
+          model: activeModel,
+          stream: true, // Enable streaming
         }),
       });
 
       if (!response.ok) throw new Error("API Error");
 
-      const text = await response.text();
-      // Start "streaming" simulation
-      await simulateStreaming(text);
+      // Create placeholder for assistant response
+      setMessages(prev => [...prev, { role: "assistant", content: "", timestamp: new Date().toISOString() }]);
+
+      // Read the stream
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullContent = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          buffer += chunk;
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data: ")) continue;
+
+            const dataStr = trimmed.slice(6);
+            if (dataStr === "[DONE]") continue;
+
+            try {
+              const json = JSON.parse(dataStr);
+              const deltaContent = json.choices?.[0]?.delta?.content || "";
+
+              if (deltaContent) {
+                fullContent += deltaContent;
+                setMessages(prev => {
+                  const newHistory = [...prev];
+                  const lastMsg = newHistory[newHistory.length - 1];
+                  if (lastMsg.role === "assistant") {
+                    lastMsg.content = fullContent;
+                  }
+                  return newHistory;
+                });
+              }
+            } catch (e) {
+              console.error("Error parsing stream chunk", e);
+            }
+          }
+        }
+      }
 
     } catch (error) {
       console.error(error);
@@ -233,6 +305,18 @@ export default function Home() {
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
             </div>
+
+            {/* Search Toggle */}
+            <button
+              onClick={() => setEnableSearch(!enableSearch)}
+              className={`p-2 rounded-lg transition-all border ${enableSearch
+                ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.2)]"
+                : "text-gray-400 border-transparent hover:bg-white/5"
+                }`}
+              title="Toggle Web Search"
+            >
+              <Globe size={18} />
+            </button>
           </div>
         </header>
 
@@ -288,10 +372,11 @@ export default function Home() {
                   )}
 
                   <div className={`max-w-[90%] md:max-w-[75%] rounded-2xl px-4 py-3 md:px-5 md:py-4 text-sm md:text-base leading-relaxed shadow-lg backdrop-blur-sm ${msg.role === "user"
-                      ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-br-sm shadow-indigo-900/20"
-                      : "bg-[#1e232e]/90 border border-[#2d3748] text-gray-100 rounded-bl-sm"
+                    ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-br-sm shadow-indigo-900/20"
+                    : "bg-[#1e232e]/90 border border-[#2d3748] text-gray-100 rounded-bl-sm"
                     }`}>
                     <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
                       components={{
                         code({ node, inline, className, children, ...props }: any) {
                           const match = /language-(\w+)/.exec(className || "");
@@ -305,7 +390,17 @@ export default function Home() {
                               {children}
                             </code>
                           )
-                        }
+                        },
+                        table: ({ node, ...props }: any) => (
+                          <div className="overflow-x-auto my-4 border border-[#2d3748] rounded-lg">
+                            <table className="min-w-full divide-y divide-[#2d3748] text-sm text-left" {...props} />
+                          </div>
+                        ),
+                        thead: ({ node, ...props }: any) => <thead className="bg-[#1f242d] text-gray-200" {...props} />,
+                        th: ({ node, ...props }: any) => <th className="px-4 py-3 text-left font-medium uppercase tracking-wider" {...props} />,
+                        tbody: ({ node, ...props }: any) => <tbody className="bg-[#161b22] divide-y divide-[#2d3748] text-gray-300" {...props} />,
+                        tr: ({ node, ...props }: any) => <tr className="hover:bg-[#1f242d]/50 transition-colors" {...props} />,
+                        td: ({ node, ...props }: any) => <td className="px-4 py-3 whitespace-nowrap" {...props} />,
                       }}
                     >
                       {msg.content}
@@ -350,11 +445,13 @@ export default function Home() {
                   sendMessage();
                 }
               }}
-              placeholder="Message Draco..."
+              placeholder={enableSearch ? "Ask Draco to search the web..." : "Message Draco (or type /image)..."}
               className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 resize-none max-h-32 py-3 text-base md:text-sm custom-scrollbar"
               rows={1}
               style={{ minHeight: "44px" }}
             />
+            {/* Image Command Hint Icon (optional, or just use it as a shortcut button later) */}
+
             <button
               onClick={sendMessage}
               disabled={!input.trim() || isLoading}
