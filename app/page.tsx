@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon } from "lucide-react";
+import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
 import ReactMarkdown from "react-markdown";
@@ -41,7 +41,36 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false); // Fix persistence
   const [enableSearch, setEnableSearch] = useState(false);
 
+  // Audio State
+  const [isListening, setIsListening] = useState(false);
+  const [speakingMsgId, setSpeakingMsgId] = useState<number | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setInput((prev) => prev + " " + transcript);
+          setIsListening(false);
+        };
+
+        recognition.onerror = () => setIsListening(false);
+        recognition.onend = () => setIsListening(false);
+
+        recognitionRef.current = recognition;
+      }
+    }
+  }, []);
 
   // Load from LocalStorage
   useEffect(() => {
@@ -79,8 +108,37 @@ export default function Home() {
     }
   };
 
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert("Speech recognition not supported in this browser.");
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
+  const toggleSpeech = (text: string, index: number) => {
+    if (speakingMsgId === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingMsgId(null);
+    } else {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onend = () => setSpeakingMsgId(null);
+      window.speechSynthesis.speak(utterance);
+      setSpeakingMsgId(index);
+    }
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+
+    window.speechSynthesis.cancel(); // Stop speaking if user interrupts
+    setSpeakingMsgId(null);
 
     const originalInput = input.trim();
     const userMsg: Message = { role: "user", content: originalInput, timestamp: new Date().toISOString() };
@@ -337,7 +395,7 @@ export default function Home() {
               </h1>
               <p className="text-gray-400 max-w-md text-sm md:text-base leading-relaxed mb-8">
                 Your premium AI companion. <br />
-                <span className="text-indigo-400">Streaming • Persistent • Code Aware</span>
+                <span className="text-indigo-400">Streaming • Voice • Persistent • Code Aware</span>
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
@@ -366,8 +424,17 @@ export default function Home() {
                   className={`flex gap-3 md:gap-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   {msg.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30 mt-1 shadow-lg shadow-indigo-500/10">
-                      <Bot size={16} className="text-indigo-400" />
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30 mt-1 shadow-lg shadow-indigo-500/10">
+                        <Bot size={16} className="text-indigo-400" />
+                      </div>
+                      <button
+                        onClick={() => toggleSpeech(msg.content, i)}
+                        className={`p-1 rounded-full hover:bg-white/5 transition-colors ${speakingMsgId === i ? "text-indigo-400" : "text-gray-500"}`}
+                        title="Read Aloud"
+                      >
+                        {speakingMsgId === i ? <Volume2 size={14} /> : <VolumeX size={14} className="opacity-50 hover:opacity-100" />}
+                      </button>
                     </div>
                   )}
 
@@ -445,12 +512,19 @@ export default function Home() {
                   sendMessage();
                 }
               }}
-              placeholder={enableSearch ? "Ask Draco to search the web..." : "Message Draco (or type /image)..."}
+              placeholder={enableSearch ? "Ask Draco to search the web..." : "Message Draco..."}
               className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 resize-none max-h-32 py-3 text-base md:text-sm custom-scrollbar"
               rows={1}
               style={{ minHeight: "44px" }}
             />
             {/* Image Command Hint Icon (optional, or just use it as a shortcut button later) */}
+
+            <button
+              onClick={toggleListening}
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all mb-0.5 shrink-0 ${isListening ? "bg-red-500/20 text-red-400 animate-pulse" : "text-gray-400 hover:text-white"}`}
+            >
+              {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+            </button>
 
             <button
               onClick={sendMessage}
