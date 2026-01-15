@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: draco-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: draco-frontend
+  template:
+    metadata:
+      labels:
+        app: draco-frontend
+    spec:
+      containers:
+        - name: nextjs
+          image: draco-frontend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "http://draco-backend-service"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: draco-frontend-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: draco-frontend
+  ports:
+    - port: 80
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: draco-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: draco-backend
+  template:
+    metadata:
+      labels:
+        app: draco-backend
+    spec:
+      containers:
+        - name: fastapi
+          image: draco-backend:latest
+          ports:
+            - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: draco-backend-service
+spec:
+  clusterIP: None # Internal headless service or ClusterIP
+  selector:
+    app: draco-backend
+  ports:
+    - port: 80
+      targetPort: 8000

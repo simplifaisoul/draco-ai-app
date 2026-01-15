@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  /* Neon Dragon Theme */
+  --background: #0f1117;
+  --foreground: #f8fafc;
+
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-secondary: #8b5cf6;
+  --color-accent: #ec4899;
+
+  /* Sidebar & Components */
+  --sidebar-bg: #161b22;
+  --chat-bg: #0f1117;
+  --input-bg: #1f242d;
+  --message-user-bg: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  --message-ai-bg: #1e232e;
+
+  --border-color: #2d3748;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-sidebar: var(--sidebar-bg);
+  --color-input: var(--input-bg);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), sans-serif;
+  overflow: hidden;
+  /* For app-like feel */
+}
