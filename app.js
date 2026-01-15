@@ -7,20 +7,62 @@ class DracoAI {
         this.settings = this.loadSettings();
         this.isTyping = false;
 
-        // REAL Working FREE AI Models - These actually generate responses
+        // REAL Working FREE AI Models via Pollinations.ai
         this.freeModels = {
             'pollinations': {
-                name: 'Pollinations AI (GPT-4o/Claude)',
+                name: 'GPT-4o (OpenAI)',
                 endpoint: 'https://text.pollinations.ai/',
-                description: 'Free, instant, uncensored AI via Pollinations',
-                icon: '🌺',
-                requiresKey: false
+                modelId: 'openai',
+                description: 'Smartest model, best for logic & coding',
+                icon: '🧠'
+            },
+            'claude': {
+                name: 'Claude 3.5 Sonnet',
+                endpoint: 'https://text.pollinations.ai/',
+                modelId: 'claude',
+                description: 'Natural writing & reasoning',
+                icon: '🎭'
+            },
+            'mistral': {
+                name: 'Mistral Large',
+                endpoint: 'https://text.pollinations.ai/',
+                modelId: 'mistral',
+                description: 'High performance open-source model',
+                icon: '🌪️'
+            },
+            'llama': {
+                name: 'Llama 3.1',
+                endpoint: 'https://text.pollinations.ai/',
+                modelId: 'llama',
+                description: 'Meta\'s latest powerful model',
+                icon: '🦙'
+            },
+            'qwen': {
+                name: 'Qwen 2.5 Coder',
+                endpoint: 'https://text.pollinations.ai/',
+                modelId: 'qwen-coder',
+                description: 'Specialized for programming tasks',
+                icon: '💻'
+            },
+            'searchgpt': {
+                name: 'Web Search (GPT)',
+                endpoint: 'https://text.pollinations.ai/',
+                modelId: 'searchgpt',
+                description: 'Access to real-time internet data',
+                icon: '🌐'
+            },
+            'deepseek': {
+                name: 'DeepSeek R1',
+                endpoint: 'https://text.pollinations.ai/',
+                modelId: 'deepseek',
+                description: 'Strong reasoning capabilities',
+                icon: '🐋'
             },
             'local-demo': {
-                name: 'Demo AI (Instant)',
+                name: 'Demo Mode (Offline)',
                 endpoint: 'demo',
-                description: 'Built-in demo responses, works instantly',
-                icon: '🤖'
+                description: 'Instant responses without internet',
+                icon: '⚡'
             }
         };
 
@@ -416,18 +458,21 @@ class DracoAI {
     }
 
     async callRealAI(message) {
-        if (this.currentModel === 'pollinations') {
-            return await this.callPollinations(message);
-        } else if (this.currentModel === 'local-demo') {
+        if (this.currentModel === 'local-demo') {
             return await this.callLocalAI(message);
         } else {
-            // Fallback to polinations if unknown
+            // All other models route through Pollinations
             return await this.callPollinations(message);
         }
     }
 
     async callPollinations(message) {
         try {
+            const modelConfig = this.freeModels[this.currentModel];
+            const modelId = modelConfig.modelId || 'openai';
+
+            console.log(`🔌 Connecting to Pollinations with model: ${modelId}`);
+
             const response = await fetch('https://text.pollinations.ai/', {
                 method: 'POST',
                 headers: {
@@ -438,12 +483,16 @@ class DracoAI {
                         { role: 'system', content: this.settings.systemPrompt },
                         ...this.messages.map(m => ({ role: m.role, content: m.content }))
                     ],
-                    model: 'openai', // Pollinations uses 'openai' for GPT compatibility or others
-                    seed: Math.floor(Math.random() * 1000)
+                    model: modelId,
+                    seed: Math.floor(Math.random() * 1000),
+                    jsonMode: false
                 })
             });
 
             if (!response.ok) {
+                if (response.status === 429) {
+                    throw new Error('Server busy (Rate Limit). Please wait a moment and try again.');
+                }
                 throw new Error(`Pollinations API error: ${response.status}`);
             }
 
