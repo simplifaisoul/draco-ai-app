@@ -60,14 +60,36 @@ STYLE: Helpful, smart, and concise. Format code nicely. Do not start with JSON o
         }
 
         // 2. Call Providers (Failover)
-        // Pass fullMessages including the system prompt
         const result = await providerManager.callWithFallback(fullMessages, { model });
 
+        // STREAMING HANDLING
+        if (result.content instanceof ReadableStream) {
+            // If it's a stream, we pipe it directly to the response.
+            // Note: We skip caching for now because we can't easily read the stream AND pipe it without teeing (cloning).
+            // For max speed, we just pipe it.
+            const stream = result.content;
+
+            // Create a new response with the stream
+            const response = new Response(stream, {
+                headers: {
+                    'Content-Type': 'text/plain; charset=utf-8',
+                    'X-Provider': result.provider,
+                    'X-RateLimit-Limit': '30', // Hardcoded constant matching RATE_LIMIT in rateLimit.ts
+                    'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+                    'X-RateLimit-Reset': rateLimit.resetIn.toString()
+                }
+            });
+            return response;
+        }
+
+        // NON-STREAMING HANDLING (Legacy/Fallback)
+        const textContent = result.content as string;
+
         // 3. Store in Cache
-        setCachedResponse(messages, result.content, result.provider);
+        setCachedResponse(messages, textContent, result.provider);
 
         const response = NextResponse.json({
-            response: result.content,
+            response: textContent,
             cached: false,
             provider: result.provider
         });

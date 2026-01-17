@@ -11,13 +11,13 @@ export interface CallOptions {
 
 export interface ProviderResponse {
     provider: string;
-    content: string;
+    content: string | ReadableStream;
 }
 
 export interface AIProvider {
     name: string;
     isAvailable: boolean;
     priority: number;
-    call(messages: Message[], options?: CallOptions): Promise<string>;
+    call(messages: Message[], options?: CallOptions): Promise<string | ReadableStream>;
     health(): Promise<boolean>;
 }

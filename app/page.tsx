@@ -444,30 +444,76 @@ function DracoApp() {
 
       if (!response.ok) throw new Error("API Error");
 
-      const data = await response.json();
+      // Check if response is JSON (legacy/fallback) or Stream
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        let content = data.response;
+        if (typeof content === 'object') content = JSON.stringify(content);
 
-      let content = data.response;
-      if (typeof content === 'object') {
-        content = JSON.stringify(content);
+        // Image Check (for legacy path)
+        if (content.trim().startsWith("/image") || content.trim().startsWith("/draw")) {
+          const prompt = content.replace(/^\/(image|draw)\s*/i, "").trim();
+          const encodedPrompt = encodeURIComponent(prompt);
+          const randomSeed = Math.floor(Math.random() * 10000);
+          const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
+          content = `Generated image for "**${prompt}**":\n\n![Generated Image](${imageUrl})`;
+        }
+
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: content,
+          timestamp: new Date().toISOString(),
+          thought: data.cached ? "⚡ Cached Response" : undefined,
+          isThinking: false
+        }]);
+      } else {
+        // Handle Streaming Response
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("No reader available");
+
+        // Add initial empty assistant message
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: "",
+          timestamp: new Date().toISOString(),
+          isThinking: false
+        }]);
+
+        const decoder = new TextDecoder();
+        let done = false;
+        let streamedContent = "";
+
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          const chunkValue = decoder.decode(value, { stream: true });
+          streamedContent += chunkValue;
+
+          // Update the last message with new content
+          setMessages(prev => {
+            const newArr = [...prev];
+            const lastMsg = newArr[newArr.length - 1];
+            lastMsg.content = streamedContent;
+            return newArr;
+          });
+        }
+
+        // Post-Stream Image Check
+        if (streamedContent.trim().startsWith("/image") || streamedContent.trim().startsWith("/draw")) {
+          const prompt = streamedContent.replace(/^\/(image|draw)\s*/i, "").trim();
+          const encodedPrompt = encodeURIComponent(prompt);
+          const randomSeed = Math.floor(Math.random() * 10000);
+          const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
+          streamedContent = `Generated image for "**${prompt}**":\n\n![Generated Image](${imageUrl})`;
+
+          setMessages(prev => {
+            const newArr = [...prev];
+            newArr[newArr.length - 1].content = streamedContent;
+            return newArr;
+          });
+        }
       }
-
-      const provider = data.provider;
-
-      if (content.trim().startsWith("/image") || content.trim().startsWith("/draw")) {
-        const prompt = content.replace(/^\/(image|draw)\s*/i, "").trim();
-        const encodedPrompt = encodeURIComponent(prompt);
-        const randomSeed = Math.floor(Math.random() * 10000);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
-        content = `Generated image for "**${prompt}**":\n\n![Generated Image](${imageUrl})`;
-      }
-
-      setMessages(prev => [...prev, {
-        role: "assistant",
-        content: content,
-        timestamp: new Date().toISOString(),
-        thought: data.cached ? "⚡ Cached Response" : undefined,
-        isThinking: false
-      }]);
     } catch (error) {
       console.error(error);
       setMessages((prev) => [
@@ -870,8 +916,8 @@ function DracoApp() {
                     onClick={sendMessage}
                     disabled={(!input.trim() && !attachment) || isLoading}
                     className={`p-2.5 rounded-xl transition-all duration-300 ${(input.trim() || attachment) && !isLoading
-                        ? "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] text-white shadow-lg shadow-[var(--color-primary)]/30 hover:shadow-[var(--color-primary)]/50 hover:scale-105 active:scale-95"
-                        : "bg-[var(--input-bg)] text-[var(--color-secondary)] cursor-not-allowed"
+                      ? "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] text-white shadow-lg shadow-[var(--color-primary)]/30 hover:shadow-[var(--color-primary)]/50 hover:scale-105 active:scale-95"
+                      : "bg-[var(--input-bg)] text-[var(--color-secondary)] cursor-not-allowed"
                       }`}
                   >
                     <Send size={18} className={isLoading ? "animate-spin" : ""} />

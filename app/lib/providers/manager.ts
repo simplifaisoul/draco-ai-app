@@ -21,6 +21,7 @@ export class ProviderManager {
             try {
                 console.log(`[Manager] Trying ${provider.name}...`);
                 const content = await provider.call(messages, options);
+                // @ts-ignore
                 return { provider: provider.name, content };
             } catch (e) {
                 lastError = e as Error;
