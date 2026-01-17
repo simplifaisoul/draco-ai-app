@@ -733,7 +733,7 @@ function DracoApp() {
         <div className="flex-1 overflow-hidden relative flex">
 
           {/* Chat Area */}
-          <div className={`flex-1 overflow-y-auto overflow-x-hidden pt-20 pb-[120px] px-4 md:px-8 scroll-smooth custom-scrollbar transition-all duration-300 ${showPreview ? "hidden md:block md:w-1/2 md:max-w-[50%]" : "w-full"}`}>
+          <div className={`flex-1 overflow-y-auto overflow-x-hidden pt-20 pb-[180px] md:pb-[120px] px-4 md:px-8 scroll-smooth custom-scrollbar transition-all duration-300 ${showPreview ? "hidden md:block md:w-1/2 md:max-w-[50%]" : "w-full"}`}>
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center opacity-90 px-4">
                 <motion.div
@@ -942,7 +942,7 @@ function DracoApp() {
                   placeholder={
                     isListening
                       ? "Listening..."
-                      : "Ask Draco anything... (Type /image for visuals)"
+                      : "Ask Draco anything..."
                   }
                   className="w-full bg-transparent text-[var(--foreground)] p-4 max-h-[200px] min-h-[60px] outline-none resize-none placeholder-[var(--color-secondary)]/50 rounded-2xl"
                   rows={input.split("\n").length > 1 ? Math.min(input.split("\n").length, 6) : 1}
