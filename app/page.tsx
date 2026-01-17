@@ -13,6 +13,8 @@ import { ModelSelector } from "./components/ModelSelector";
 import { AudioVisualizer } from "./components/AudioVisualizer";
 import { ThinkingProcess } from "./components/ThinkingProcess";
 import { Dashboard } from "./components/Dashboard";
+import { TermsModal } from "./components/TermsModal";
+import { SceneController, BrandLink, useScene } from "./components/SceneController";
 
 // Types
 interface Message {
@@ -36,6 +38,15 @@ const MODELS: AIModel[] = [
 ];
 
 export default function Home() {
+  return (
+    <SceneController>
+      <DracoApp />
+    </SceneController>
+  );
+}
+
+function DracoApp() {
+  const { theme, setTheme } = useScene();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -475,6 +486,8 @@ export default function Home() {
         onSave={setSettings}
       />
 
+      <TermsModal />
+
       <AnimatePresence>
         {dashboardOpen && (
           <Dashboard
@@ -601,13 +614,37 @@ export default function Home() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-full relative w-full bg-transparent z-10">
         {/* Header */}
-        <header className="h-16 border-b border-[#2d3748/50] flex items-center justify-between px-4 bg-[#0f1117]/80 backdrop-blur-xl z-30 absolute top-0 left-0 right-0">
+        <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-black/20 backdrop-blur-xl z-30 absolute top-0 left-0 right-0">
           <div className="flex items-center gap-3 w-full">
             <button onClick={() => setSidebarOpen(true)} className="md:hidden text-gray-400 p-2 hover:bg-white/5 rounded-lg active:scale-95">
               <Menu />
             </button>
 
+            {/* SimplifAI-1 Branding */}
+            <div className="hidden md:flex flex-col items-start mr-4">
+              <BrandLink />
+            </div>
+
+            {/* Scene Selector */}
+            <div className="hidden md:flex items-center gap-1 bg-[#1f242d]/80 p-1 rounded-full border border-white/10 mr-4">
+              {(['cosmic', 'corporate', 'neural'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTheme(t)}
+                  className={`px-3 py-1 rounded-full text-[10px] uppercase font-bold transition-all ${theme === t
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
             <div className="relative group flex-1 md:flex-none max-w-[200px]">
+              <div className="absolute -top-3 left-0 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-500/30">
+                OPEN BETA
+              </div>
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                 <span className="text-xs mr-1 opacity-50">Model:</span>
               </div>

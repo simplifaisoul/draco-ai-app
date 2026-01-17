@@ -13,8 +13,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Draco AI - Premium Chat",
-  description: "Next-gen AI assistant powered by free models.",
+  title: {
+    default: "Draco AI - Premium Chat",
+    template: "%s | Draco AI"
+  },
+  description: "Experience the next evolution of AI chat. Powered by advanced neural models, featuring voice interaction, persistent memory, and artifacts.",
+  keywords: ["AI", "Chatbot", "GPT", "Draco", "Neural", "Voice AI", "Pollinations", "Groq"],
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({
