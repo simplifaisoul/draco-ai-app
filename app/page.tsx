@@ -483,20 +483,70 @@ function DracoApp() {
         const decoder = new TextDecoder();
         let done = false;
         let streamedContent = "";
+        let streamedThought = "";
+        let buffer = ""; // Buffer for handling split chunks
 
         while (!done) {
           const { value, done: doneReading } = await reader.read();
           done = doneReading;
           const chunkValue = decoder.decode(value, { stream: true });
-          streamedContent += chunkValue;
+          buffer += chunkValue;
 
-          // Update the last message with new content
-          setMessages(prev => {
-            const newArr = [...prev];
-            const lastMsg = newArr[newArr.length - 1];
-            lastMsg.content = streamedContent;
-            return newArr;
-          });
+          // Process buffer line by line
+          const lines = buffer.split('\n');
+          // Keep the last line in buffer as it might be incomplete
+          buffer = lines.pop() || "";
+
+          let hasNewContent = false;
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+
+            if (trimmed.startsWith("data: ")) {
+              const dataStr = trimmed.slice(6);
+              if (dataStr === "[DONE]") continue;
+
+              try {
+                const json = JSON.parse(dataStr);
+                // Extract content from OpenAI-style chunk
+                const contentChunk = json.choices?.[0]?.delta?.content;
+                // Optional: usage of reasoning_content if available (e.g. DeepSeek)
+                const reasoningChunk = json.choices?.[0]?.delta?.reasoning_content;
+
+                if (contentChunk) {
+                  streamedContent += contentChunk;
+                  hasNewContent = true;
+                }
+
+                if (reasoningChunk) {
+                  streamedThought += reasoningChunk;
+                  hasNewContent = true;
+                }
+              } catch (e) {
+                // If parse fails, ignore (it might be a keepalive or garbage)
+                // console.warn("Failed to parse SSE JSON", e);
+              }
+            } else {
+              // Non-SSE line? 
+              // If we are strictly in SSE mode, we ignore. 
+              // If the provider sends raw text mixed in (unlikely for Pollinations), we might lose it.
+              // But given the logs, it IS SSE. So stricter parsing is better to avoid "data: ..." text.
+            }
+          }
+
+          if (hasNewContent) {
+            setMessages(prev => {
+              const newArr = [...prev];
+              const lastMsg = newArr[newArr.length - 1];
+              lastMsg.content = streamedContent;
+              if (streamedThought) {
+                lastMsg.thought = streamedThought;
+                lastMsg.isThinking = !streamedContent; // If we have thought but no content yet, we are "thinking"
+              }
+              return newArr;
+            });
+          }
         }
 
         // Post-Stream Image Check
@@ -745,6 +795,10 @@ function DracoApp() {
                       ? "bg-[image:var(--message-user-bg)] text-white rounded-br-sm shadow-lg shadow-[var(--color-primary)]/20"
                       : "bg-[var(--message-ai-bg)]/90 border border-[var(--border-color)] text-[var(--foreground)] rounded-bl-sm shadow-xl shadow-[var(--color-primary)]/10 hover:shadow-[var(--color-primary)]/20"
                       }`}>
+
+                      {/* Chain of Thought UI */}
+                      <ThinkingProcess thought={msg.thought || ""} isThinking={msg.isThinking || false} />
+
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
@@ -777,11 +831,7 @@ function DracoApp() {
                       </ReactMarkdown>
 
                       {/* Thoughts / Chain of Thought */}
-                      {msg.thought && (
-                        <div className="mt-2 pt-2 border-t border-white/5 text-xs text-[var(--color-primary)] font-mono flex items-center gap-1">
-                          {msg.thought}
-                        </div>
-                      )}
+                      {/* Thoughts moved to top */}
                     </div>
 
                     {msg.role === "user" && (
