@@ -10,12 +10,12 @@ interface SceneContextType {
     setTheme: (theme: SceneTheme) => void;
 }
 
-const SceneContext = createContext<SceneContextType>({ theme: "cosmic", setTheme: () => { } });
+const SceneContext = createContext<SceneContextType>({ theme: "neural", setTheme: () => { } });
 
 export const useScene = () => useContext(SceneContext);
 
 export function SceneController({ children }: { children: ReactNode }) {
-    const [theme, setTheme] = useState<SceneTheme>("cosmic");
+    const [theme, setTheme] = useState<SceneTheme>("neural");
 
     // Persist preference
     useEffect(() => {

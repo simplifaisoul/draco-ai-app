@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download, Eye, Headphones, LayoutGrid, Brain } from "lucide-react";
+import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download, Eye, Headphones, LayoutGrid, Brain, Copy, Check } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
 import ReactMarkdown from "react-markdown";
@@ -75,6 +75,12 @@ function DracoApp() {
   // Memory State (The Vault)
   const [memory, setMemory] = useState<string[]>([]);
   const [showMemory, setShowMemory] = useState(true);
+
+  // Chain of Thought Toggle
+  const [showChainOfThought, setShowChainOfThought] = useState(true);
+
+  // Copy State
+  const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
 
   // Drag & Drop State
   const [isDragging, setIsDragging] = useState(false);
@@ -288,6 +294,16 @@ function DracoApp() {
 
       window.speechSynthesis.speak(utterance);
       setSpeakingMsgId(index);
+    }
+  };
+
+  const copyMessage = async (content: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageId(index);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
     }
   };
 
@@ -718,6 +734,18 @@ function DracoApp() {
               </button>
             )}
 
+            {/* Chain of Thought Toggle */}
+            <button
+              onClick={() => setShowChainOfThought(!showChainOfThought)}
+              className={`p-2 rounded-lg transition-all border ${showChainOfThought
+                ? "bg-[var(--color-primary)]/20 text-[var(--color-primary)] border-[var(--color-primary)]/50"
+                : "text-[var(--color-secondary)] border-transparent hover:bg-white/5"
+                }`}
+              title="Toggle Chain of Thought"
+            >
+              <Brain size={18} />
+            </button>
+
             {/* Settings Toggle */}
             <button
               onClick={() => setSettingsOpen(true)}
@@ -807,6 +835,13 @@ function DracoApp() {
                           <Bot size={16} className="text-[var(--color-primary)]" />
                         </div>
                         <button
+                          onClick={() => copyMessage(msg.content, i)}
+                          className={`p-1 rounded-full hover:bg-white/5 transition-colors ${copiedMessageId === i ? "text-green-400" : "text-[var(--color-secondary)]"}`}
+                          title="Copy Message"
+                        >
+                          {copiedMessageId === i ? <Check size={14} /> : <Copy size={14} className="opacity-50 hover:opacity-100" />}
+                        </button>
+                        <button
                           onClick={() => toggleSpeech(msg.content, i)}
                           className={`p-1 rounded-full hover:bg-white/5 transition-colors ${speakingMsgId === i ? "text-[var(--color-primary)]" : "text-[var(--color-secondary)]"}`}
                           title="Read Aloud"
@@ -822,7 +857,7 @@ function DracoApp() {
                       }`}>
 
                       {/* Chain of Thought UI */}
-                      <ThinkingProcess thought={msg.thought || ""} isThinking={msg.isThinking || false} />
+                      {showChainOfThought && <ThinkingProcess thought={msg.thought || ""} isThinking={msg.isThinking || false} />}
 
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
