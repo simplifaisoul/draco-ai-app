@@ -7,9 +7,10 @@ export class GroqProvider implements AIProvider {
     priority = 2;
 
     async call(messages: Message[], options?: CallOptions): Promise<string> {
-        if (!ENV.groqApiKey) throw new Error('Groq Key missing');
+        if (!ENV.groqApiKey) throw new Error('Grok API Key missing');
 
-        const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+        // Using xAI (Grok) Endpoint
+        const endpoint = 'https://api.x.ai/v1/chat/completions';
 
         try {
             const response = await fetch(endpoint, {
@@ -19,19 +20,19 @@ export class GroqProvider implements AIProvider {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    model: 'llama-3.1-70b-versatile',
+                    model: 'grok-2-1212', // Latest Grok Beta
                     messages: messages,
                     temperature: 0.7,
                 }),
                 signal: AbortSignal.timeout(30000),
             });
 
-            if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
+            if (!response.ok) throw new Error(`xAI API error: ${response.status}`);
 
             const data = await response.json();
             return data.choices?.[0]?.message?.content || '';
         } catch (error) {
-            console.error('[Groq] Error:', error);
+            console.error('[Grok] Error:', error);
             throw error;
         }
     }
@@ -39,7 +40,8 @@ export class GroqProvider implements AIProvider {
     async health(): Promise<boolean> {
         if (!ENV.groqApiKey) return false;
         try {
-            const response = await fetch('https://api.groq.com/openai/v1/models', {
+            // xAI doesn't have a public free health check easily without auth, but models endpoint works
+            const response = await fetch('https://api.x.ai/v1/models', {
                 headers: { 'Authorization': `Bearer ${ENV.groqApiKey}` }
             });
             return response.ok;

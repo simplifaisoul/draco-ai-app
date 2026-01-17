@@ -6,8 +6,8 @@ export class PollinationsProvider implements AIProvider {
     priority = 1;
 
     async call(messages: Message[], options?: CallOptions): Promise<string> {
-        // Force 'gpt-4o' if model is 'openai' (or default) to avoid gpt-oss-20b which is unstable/reasoning-heavy
-        const modelId = (!options?.model || options.model === 'openai') ? 'gpt-4o' : options.model;
+        // Use standard 'openai' endpoint which is most stable, or user selection if valid
+        const modelId = options?.model === 'openai' ? 'openai' : (options?.model || 'openai');
         const endpoint = `https://text.pollinations.ai/${modelId}`;
 
         try {

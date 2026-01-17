@@ -634,16 +634,7 @@ export default function Home() {
               <LayoutGrid size={18} />
             </button>
 
-            <button
-              onClick={() => setEnableSearch(!enableSearch)}
-              className={`p-2 rounded-lg transition-all border ${enableSearch
-                ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.2)]"
-                : "text-gray-400 border-transparent hover:bg-white/5"
-                }`}
-              title="Toggle Web Search"
-            >
-              <Globe size={18} />
-            </button>
+            {/* Search Toggle Removed */}
 
             {/* Preview Toggle (Artifacts) */}
             {previewData && (
