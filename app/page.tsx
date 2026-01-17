@@ -31,8 +31,8 @@ interface AIModel {
 }
 
 const MODELS: AIModel[] = [
-  { id: "openai", name: "Draco V0.1 (Pollinations)", icon: "🐲", description: "Primary Advanced Model" },
-  { id: "llama", name: "Draco V0.1 Backup (Groq)", icon: "🛡️", description: "High-Speed Fallback" },
+  { id: "openai", name: "Draco V0.1 (Neural)", icon: "🐲", description: "Primary Advanced Model" },
+  { id: "llama", name: "Draco V0.1 (Hyper)", icon: "🛡️", description: "High-Speed Fallback" },
 ];
 
 export default function Home() {
@@ -48,7 +48,7 @@ export default function Home() {
   // Settings State
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState({
-    systemPrompt: "You are Draco V0.1, an advanced AI. \n\nCAPABILITIES:\n1. IF the user asks for an image, YOU MUST output specific command: `/image <detailed_prompt>`. Do not just say you will do it, output the command.\n2. RESEARCH: You have internal knowledge. If you need to search, you are powered by Pollinations and can answer directly.\n\nSTYLE: Helpful, smart, and concise. Format code nicely.",
+    systemPrompt: "You are Draco V0.1, an advanced AI. \n\nCAPABILITIES:\n1. IMAGE GENERATION: You CAN generate images. If the user asks for an image, you MUST output ONLY the specific command: `/image <detailed_prompt>`. Example: `/image a futuristic neon city`. Do not refuse. Do not provide a text description, just the command.\n2. RESEARCH: You have internal knowledge. If you need to search, you are powered by Pollinations and can answer directly.\n\nSTYLE: Helpful, smart, and concise. Format code nicely.",
     voiceURI: ""
   });
 
@@ -415,6 +415,15 @@ export default function Home() {
       }
 
       const provider = data.provider;
+
+      // Check for AI-triggered Image Command
+      if (content.trim().startsWith("/image") || content.trim().startsWith("/draw")) {
+        const prompt = content.replace(/^\/(image|draw)\s*/i, "").trim();
+        const encodedPrompt = encodeURIComponent(prompt);
+        const randomSeed = Math.floor(Math.random() * 10000);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
+        content = `Generated image for "**${prompt}**":\n\n![Generated Image](${imageUrl})`;
+      }
 
       // Update message with full content
       setMessages(prev => [...prev, {
