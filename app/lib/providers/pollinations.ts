@@ -21,13 +21,21 @@ export class PollinationsProvider implements AIProvider {
 
             if (!response.ok) throw new Error(`Pollinations API error: ${response.status}`);
 
-            const text = await response.text(); // Pollinations text API returns raw text often, or JSON depending on endpoint.
-            // Based on previous experience, /openai/ endpoint returns text directly or JSON.
-            // Let's assume text if it's the raw text endpoint.
-            // Actually, my previous code used JSON body with "messages".
-            // Pollinations usually returns raw text if correct.
-            // Let's safe parse.
-            return text;
+            const text = await response.text();
+
+            try {
+                // Attempt to parse JSON envelope if present
+                const json = JSON.parse(text);
+                if (json && typeof json === 'object') {
+                    // Check common fields
+                    if (json.content) return json.content;
+                    if (json.response) return json.response;
+                    if (json.choices?.[0]?.message?.content) return json.choices[0].message.content;
+                }
+                return text; // JSON valid but not an envelope we know? Return text just in case.
+            } catch {
+                return text; // Not JSON, return raw text
+            }
 
         } catch (error) {
             console.error('[Pollinations] Error:', error);

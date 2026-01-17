@@ -31,13 +31,8 @@ interface AIModel {
 }
 
 const MODELS: AIModel[] = [
-  { id: "openai", name: "Draco V0.1 (Advanced)", icon: "🧠", description: "Our smartest model" },
-  { id: "claude", name: "Claude 3.5 Sonnet", icon: "🎭", description: "Natural reasoning" },
-  { id: "mistral", name: "Mistral Large", icon: "🌪️", description: "Open source power" },
-  { id: "p1", name: "Pollinations 1", icon: "🐝", description: "Fast & General" },
-  { id: "llama", name: "Llama 3.1", icon: "🦙", description: "Meta's latest" },
-  { id: "qwen-coder", name: "Qwen 2.5 Coder", icon: "💻", description: "Code specialist" },
-  { id: "searchgpt", name: "SearchGPT", icon: "🌐", description: "Web search" },
+  { id: "openai", name: "Draco V0.1 (Pollinations)", icon: "🐲", description: "Primary Advanced Model" },
+  { id: "llama", name: "Draco V0.1 Backup (Groq)", icon: "🛡️", description: "High-Speed Fallback" },
 ];
 
 export default function Home() {
@@ -53,7 +48,7 @@ export default function Home() {
   // Settings State
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState({
-    systemPrompt: "You are Draco AI. Helpful, smart, and concise. Format code nicely.",
+    systemPrompt: "You are Draco V0.1, an advanced AI. \n\nCAPABILITIES:\n1. IF the user asks for an image, YOU MUST output specific command: `/image <detailed_prompt>`. Do not just say you will do it, output the command.\n2. RESEARCH: You have internal knowledge. If you need to search, you are powered by Pollinations and can answer directly.\n\nSTYLE: Helpful, smart, and concise. Format code nicely.",
     voiceURI: ""
   });
 
@@ -132,10 +127,13 @@ export default function Home() {
     setIsLoaded(true);
   }, []);
 
-  // Save to LocalStorage
+  // Save to LocalStorage with safeguards
   useEffect(() => {
-    if (isLoaded) {
+    // Only save if loaded and we actually have messages handling the race condition
+    if (isLoaded && messages.length > 0) {
       localStorage.setItem("draco_history", JSON.stringify(messages));
+    }
+    if (isLoaded) {
       localStorage.setItem("draco_settings", JSON.stringify(settings));
       localStorage.setItem("draco_memory", JSON.stringify(memory));
     }
@@ -358,11 +356,8 @@ export default function Home() {
 
       // 2. Determine Model & System Prompt
       let activeModel = currentModel;
-      if (enableSearch) {
-        if (currentModel !== 'searchgpt' && currentModel !== 'gemini') {
-          activeModel = 'searchgpt';
-        }
-      }
+      // Search is handled by model capabilities now
+
 
       // 3. Streaming Request
 
@@ -412,7 +407,13 @@ export default function Home() {
       if (!response.ok) throw new Error("API Error");
 
       const data = await response.json();
-      const content = data.response;
+
+      // Fix: Ensure we extract string content, not object
+      let content = data.response;
+      if (typeof content === 'object') {
+        content = JSON.stringify(content); // Fallback: Stringify if still object
+      }
+
       const provider = data.provider;
 
       // Update message with full content
