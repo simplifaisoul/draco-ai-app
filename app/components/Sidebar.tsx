@@ -16,6 +16,8 @@ interface SidebarProps {
     showMemory: boolean;
     memory: string[];
     onForgetMemory: (index: number) => void;
+    currentTheme: 'cosmic' | 'corporate' | 'neural';
+    onSetTheme: (theme: 'cosmic' | 'corporate' | 'neural') => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -30,7 +32,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onToggleMemory,
     showMemory,
     memory,
-    onForgetMemory
+    onForgetMemory,
+    currentTheme,
+    onSetTheme
 }) => {
     const [sessions, setSessions] = useState<ChatSession[]>([]);
 
@@ -223,6 +227,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 >
                                     <Trash2 size={14} /> Clear All
                                 </button>
+                            </div>
+
+                            {/* Mobile Theme Selector (Visible in Sidebar) */}
+                            <div className="pt-2">
+                                <div className="text-[10px] font-bold text-[var(--color-secondary)] uppercase tracking-wider mb-1.5 px-1">Theme</div>
+                                <div className="grid grid-cols-3 gap-1 bg-[var(--input-bg)]/50 p-1 rounded-xl border border-[var(--border-color)]">
+                                    {(['cosmic', 'corporate', 'neural'] as const).map((t) => (
+                                        <button
+                                            key={t}
+                                            onClick={() => onSetTheme(t)}
+                                            className={`px-1 py-1.5 rounded-lg text-[10px] uppercase font-bold transition-all ${currentTheme === t
+                                                ? 'bg-[var(--color-primary)] text-white shadow-md'
+                                                : 'text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--background)]/50'
+                                                }`}
+                                        >
+                                            {t}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             <div className="text-[10px] text-center text-[var(--color-secondary)] pt-2 flex items-center justify-center gap-1">

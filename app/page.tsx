@@ -639,6 +639,8 @@ function DracoApp() {
         showMemory={showMemory}
         memory={memory}
         onForgetMemory={(index) => setMemory(prev => prev.filter((_, i) => i !== index))}
+        currentTheme={theme as 'cosmic' | 'corporate' | 'neural'}
+        onSetTheme={setTheme}
       />
 
       {/* Main Content */}
