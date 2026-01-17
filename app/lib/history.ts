@@ -1,4 +1,4 @@
-import { Message } from "../components/SceneController"; // Or wherever Message type is defined, actually we should unify types.
+// import { Message } from "../components/SceneController"; // Removed broken import
 
 // We'll define a shared type here or import it. 
 // For now, let's redefine minimal interface to avoid circular deps if types are in page.tsx
