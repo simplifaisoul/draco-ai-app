@@ -6,8 +6,8 @@ export class PollinationsProvider implements AIProvider {
     priority = 1;
 
     async call(messages: Message[], options?: CallOptions): Promise<string | ReadableStream> {
-        // Use 'gpt-4o-mini' for better performance and potential reasoning support
-        const modelId = 'gpt-4o-mini';
+        // Use standard 'openai' endpoint for stability (maps to GPT-4o typically)
+        const modelId = 'openai';
         const endpoint = `https://text.pollinations.ai/${modelId}`;
 
         try {

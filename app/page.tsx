@@ -739,30 +739,55 @@ function DracoApp() {
                   animate={{ scale: 1, opacity: 1 }}
                   className="bg-[var(--color-primary)]/10 p-6 rounded-full mb-6 relative group"
                 >
-                  <div className="text-6xl animate-pulse group-hover:scale-110 transition-transform duration-500 cursor-default">🐲</div>
+                  <div className="text-6xl animate-pulse group-hover:scale-110 transition-transform duration-500 cursor-default">🐉</div>
                   <div className="absolute inset-0 bg-[var(--color-primary)]/20 rounded-full blur-xl animate-pulse delay-75 pointer-events-none"></div>
                 </motion.div>
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] bg-clip-text text-transparent mb-3 bg-[length:200%_auto] animate-gradient">
                   Draco.AI
                 </h1>
                 <p className="text-[var(--color-secondary)] max-w-md text-sm md:text-base leading-relaxed mb-8">
-                  <span className="text-[var(--color-primary)] font-medium">Image Generation • Real-Time Search • Advanced Reasoning</span>
+                  Your Personalized AI Companion
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
-                  {MODELS.slice(0, 3).map((m, i) => (
-                    <motion.div
-                      key={m.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="bg-[var(--input-bg)]/60 backdrop-blur-sm border border-[var(--border-color)] p-4 rounded-xl text-left hover:border-[var(--color-primary)]/50 hover:bg-[var(--input-bg)]/80 transition-all cursor-pointer group active:scale-[0.98] shadow-lg"
-                      onClick={() => setCurrentModel(m.id)}
-                    >
-                      <div className="text-2xl mb-2 group-hover:scale-110 transition-transform origin-left">{m.icon}</div>
-                      <div className="font-semibold text-sm text-[var(--foreground)]">{m.name}</div>
-                    </motion.div>
-                  ))}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-[var(--input-bg)]/60 backdrop-blur-sm border border-[var(--border-color)] p-4 rounded-xl text-left hover:border-[var(--color-primary)]/50 hover:bg-[var(--input-bg)]/80 transition-all cursor-default group shadow-lg"
+                  >
+                    <div className="mb-2 group-hover:scale-110 transition-transform origin-left text-[var(--color-primary)]">
+                      <ImageIcon size={24} />
+                    </div>
+                    <div className="font-semibold text-sm text-[var(--foreground)]">Image Generation</div>
+                    <div className="text-xs text-[var(--color-secondary)] mt-1">Create stunning visuals on demand</div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-[var(--input-bg)]/60 backdrop-blur-sm border border-[var(--border-color)] p-4 rounded-xl text-left hover:border-[var(--color-primary)]/50 hover:bg-[var(--input-bg)]/80 transition-all cursor-default group shadow-lg"
+                  >
+                    <div className="mb-2 group-hover:scale-110 transition-transform origin-left text-[var(--color-primary)]">
+                      <Brain size={24} />
+                    </div>
+                    <div className="font-semibold text-sm text-[var(--foreground)]">Advanced Reasoning</div>
+                    <div className="text-xs text-[var(--color-secondary)] mt-1">Deep analysis & problem solving</div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-[var(--input-bg)]/60 backdrop-blur-sm border border-[var(--border-color)] p-4 rounded-xl text-left hover:border-[var(--color-primary)]/50 hover:bg-[var(--input-bg)]/80 transition-all cursor-default group shadow-lg"
+                  >
+                    <div className="mb-2 group-hover:scale-110 transition-transform origin-left text-[var(--color-primary)]">
+                      <FileText size={24} />
+                    </div>
+                    <div className="font-semibold text-sm text-[var(--foreground)]">Persistent Memory</div>
+                    <div className="text-xs text-[var(--color-secondary)] mt-1">Remembers context across chats</div>
+                  </motion.div>
                 </div>
               </div>
             ) : (
