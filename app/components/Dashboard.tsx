@@ -1,3 +1,5 @@
+// Dashboard.tsx - Themed Update
+
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { X, Cloud, Clock, Activity, MessageSquare, Brain } from "lucide-react";
@@ -57,7 +59,7 @@ export const Dashboard = ({ isOpen, onClose, stats, onVibeSelect, onOpenSettings
         >
             <button
                 onClick={onClose}
-                className="absolute top-6 right-6 text-gray-400 hover:text-white bg-white/5 p-2 rounded-full transition-all"
+                className="absolute top-6 right-6 text-[var(--color-secondary)] hover:text-[var(--foreground)] bg-[var(--background)]/10 p-2 rounded-full transition-all"
             >
                 <X size={24} />
             </button>
@@ -65,30 +67,30 @@ export const Dashboard = ({ isOpen, onClose, stats, onVibeSelect, onOpenSettings
             <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
                 {/* Clock & Greeting Module */}
-                <div className="md:col-span-2 lg:col-span-2 bg-[#1f242d]/80 border border-[#2d3748] rounded-3xl p-8 flex flex-col justify-between h-64 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-32 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-indigo-500/20 transition-all duration-700"></div>
+                <div className="md:col-span-2 lg:col-span-2 bg-[var(--sidebar-bg)] border border-[var(--border-color)] rounded-3xl p-8 flex flex-col justify-between h-64 relative overflow-hidden group shadow-2xl">
+                    <div className="absolute top-0 right-0 p-32 bg-[var(--color-primary)]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-[var(--color-primary)]/20 transition-all duration-700"></div>
 
                     <div>
-                        <h2 className="text-3xl font-light text-gray-300">{greeting}, User.</h2>
-                        <div className="text-sm text-gray-500 mt-2 flex items-center gap-2">
+                        <h2 className="text-3xl font-light text-[var(--color-secondary)] opacity-80">{greeting}, User.</h2>
+                        <div className="text-sm text-[var(--color-secondary)]/70 mt-2 flex items-center gap-2">
                             <Cloud size={14} /> {weather}
                         </div>
                     </div>
 
-                    <div className="text-8xl font-bold tracking-tighter bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent font-mono">
+                    <div className="text-8xl font-bold tracking-tighter bg-gradient-to-r from-[var(--foreground)] to-[var(--color-secondary)] bg-clip-text text-transparent font-mono">
                         {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                 </div>
 
                 {/* Stats Module */}
-                <div className="bg-[#1f242d]/80 border border-[#2d3748] rounded-3xl p-6 flex flex-col justify-center gap-6 relative overflow-hidden h-64">
+                <div className="bg-[var(--sidebar-bg)] border border-[var(--border-color)] rounded-3xl p-6 flex flex-col justify-center gap-6 relative overflow-hidden h-64 shadow-xl">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-indigo-500/20 rounded-xl text-indigo-400">
+                        <div className="p-3 bg-[var(--color-primary)]/20 rounded-xl text-[var(--color-primary)]">
                             <MessageSquare size={24} />
                         </div>
                         <div>
-                            <div className="text-2xl font-bold text-white">{stats.messageCount}</div>
-                            <div className="text-xs text-gray-500 uppercase tracking-wider">Messages sent</div>
+                            <div className="text-2xl font-bold text-[var(--foreground)]">{stats.messageCount}</div>
+                            <div className="text-xs text-[var(--color-secondary)] uppercase tracking-wider">Messages sent</div>
                         </div>
                     </div>
 
@@ -97,8 +99,8 @@ export const Dashboard = ({ isOpen, onClose, stats, onVibeSelect, onOpenSettings
                             <Brain size={24} />
                         </div>
                         <div>
-                            <div className="text-2xl font-bold text-white">{stats.memoryCount}</div>
-                            <div className="text-xs text-gray-500 uppercase tracking-wider">Memories stored</div>
+                            <div className="text-2xl font-bold text-[var(--foreground)]">{stats.memoryCount}</div>
+                            <div className="text-xs text-[var(--color-secondary)] uppercase tracking-wider">Memories stored</div>
                         </div>
                     </div>
 
@@ -107,25 +109,25 @@ export const Dashboard = ({ isOpen, onClose, stats, onVibeSelect, onOpenSettings
                             <Activity size={24} />
                         </div>
                         <div>
-                            <div className="text-2xl font-bold text-white">Online</div>
-                            <div className="text-xs text-gray-500 uppercase tracking-wider">System Status</div>
+                            <div className="text-2xl font-bold text-[var(--foreground)]">Online</div>
+                            <div className="text-xs text-[var(--color-secondary)] uppercase tracking-wider">System Status</div>
                         </div>
                     </div>
                 </div>
 
                 {/* Vibe Check / Personality Engine */}
-                <div className="md:col-span-3 bg-[#1f242d]/80 border border-[#2d3748] rounded-3xl p-6 flex flex-col gap-4">
-                    <h3 className="text-gray-400 text-sm uppercase tracking-wider font-bold">Vibe Check (Personality)</h3>
+                <div className="md:col-span-3 bg-[var(--sidebar-bg)] border border-[var(--border-color)] rounded-3xl p-6 flex flex-col gap-4 shadow-xl">
+                    <h3 className="text-[var(--color-secondary)] text-sm uppercase tracking-wider font-bold opacity-70">Vibe Check (Personality)</h3>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         {VIBES.map(vibe => (
                             <button
                                 key={vibe.id}
                                 onClick={() => { onVibeSelect(vibe.prompt); onClose(); }} // Close dashboard on select for instant feel
-                                className="bg-[#1f242d] border border-[#2d3748] hover:border-indigo-500 hover:bg-indigo-500/10 p-4 rounded-xl text-left transition-all active:scale-95 group"
+                                className="bg-[var(--input-bg)]/50 border border-[var(--border-color)] hover:border-[var(--color-primary)] hover:bg-[var(--input-bg)] p-4 rounded-xl text-left transition-all active:scale-95 group"
                             >
                                 <div className="text-2xl mb-2 group-hover:scale-110 transition-transform origin-left">{vibe.emoji}</div>
-                                <div className="font-bold text-gray-200">{vibe.name}</div>
-                                <div className="text-xs text-gray-500">{vibe.desc}</div>
+                                <div className="font-bold text-[var(--foreground)]">{vibe.name}</div>
+                                <div className="text-xs text-[var(--color-secondary)]">{vibe.desc}</div>
                             </button>
                         ))}
 
@@ -133,7 +135,7 @@ export const Dashboard = ({ isOpen, onClose, stats, onVibeSelect, onOpenSettings
                         {/* Custom Button */}
                         <button
                             onClick={() => { onOpenSettings(); onClose(); }}
-                            className="bg-[#1f242d]/50 border border-dashed border-[#2d3748] hover:border-indigo-500 hover:text-indigo-400 p-4 rounded-xl flex flex-col items-center justify-center gap-2 transition-all active:scale-95 group"
+                            className="bg-[var(--input-bg)]/30 border border-dashed border-[var(--border-color)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] p-4 rounded-xl flex flex-col items-center justify-center gap-2 transition-all active:scale-95 group text-[var(--color-secondary)]"
                         >
                             <div className="text-2xl group-hover:scale-110 transition-transform">✨</div>
                             <div className="font-bold text-sm">Create Custom</div>
