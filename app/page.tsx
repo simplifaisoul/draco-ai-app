@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download, Eye, Headphones, LayoutGrid } from "lucide-react";
+import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download, Eye, Headphones, LayoutGrid, Brain } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
 import ReactMarkdown from "react-markdown";
@@ -36,7 +36,6 @@ interface AIModel {
 
 const MODELS: AIModel[] = [
   { id: "openai", name: "Draco V0.1 (Neural)", icon: "🐲", description: "Primary Advanced Model" },
-  { id: "llama", name: "Draco V0.1 (Hyper)", icon: "🛡️", description: "High-Speed Fallback" },
 ];
 
 export default function Home() {
@@ -738,10 +737,13 @@ function DracoApp() {
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="bg-[var(--color-primary)]/10 p-6 rounded-full mb-6 relative group"
+                  className="bg-[var(--color-primary)]/10 p-8 rounded-full mb-8 relative group cursor-default"
                 >
-                  <div className="text-6xl animate-pulse group-hover:scale-110 transition-transform duration-500">🐉</div>
-                  <div className="absolute inset-0 bg-[var(--color-primary)]/20 rounded-full blur-xl animate-pulse delay-75"></div>
+                  <div className="relative z-10">
+                    <Brain size={64} className="text-[var(--color-primary)] animate-pulse drop-shadow-[0_0_15px_rgba(var(--color-primary),0.5)]" />
+                  </div>
+                  <div className="absolute inset-0 bg-[var(--color-primary)]/30 rounded-full blur-2xl animate-pulse delay-75 group-hover:bg-[var(--color-primary)]/40 transition-all duration-500"></div>
+                  <div className="absolute -inset-4 border border-[var(--color-primary)]/20 rounded-full animate-spin-slow opacity-50 pointer-events-none"></div>
                 </motion.div>
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] bg-clip-text text-transparent mb-3 bg-[length:200%_auto] animate-gradient">
                   Draco.AI

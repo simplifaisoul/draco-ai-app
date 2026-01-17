@@ -6,7 +6,7 @@ export class GroqProvider implements AIProvider {
     isAvailable = !!ENV.groqApiKey;
     priority = 2;
 
-    async call(messages: Message[], options?: CallOptions): Promise<string> {
+    async call(messages: Message[], options?: CallOptions): Promise<string | ReadableStream> {
         if (!ENV.groqApiKey) throw new Error('Grok API Key missing');
 
         // Using xAI (Grok) Endpoint
@@ -23,12 +23,18 @@ export class GroqProvider implements AIProvider {
                     model: 'grok-2-1212', // Latest Grok Beta
                     messages: messages,
                     temperature: 0.7,
+                    stream: true, // Enable Streaming
                 }),
                 signal: AbortSignal.timeout(30000),
             });
 
             if (!response.ok) throw new Error(`xAI API error: ${response.status}`);
 
+            if (response.body) {
+                return response.body;
+            }
+
+            // Fallback (shouldn't happen with stream: true usually)
             const data = await response.json();
             return data.choices?.[0]?.message?.content || '';
         } catch (error) {
