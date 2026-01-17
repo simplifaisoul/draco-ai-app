@@ -848,6 +848,17 @@ function DracoApp() {
                           tbody: ({ node, ...props }: any) => <tbody className="bg-[var(--sidebar-bg)] divide-y divide-[var(--border-color)] text-[var(--foreground)]" {...props} />,
                           tr: ({ node, ...props }: any) => <tr className="hover:bg-[var(--input-bg)]/50 transition-colors" {...props} />,
                           td: ({ node, ...props }: any) => <td className="px-4 py-3 whitespace-nowrap" {...props} />,
+                          p: ({ node, ...props }: any) => <p className="mb-4 leading-7 last:mb-0" {...props} />,
+                          ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
+                          ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
+                          li: ({ node, ...props }: any) => <li className="pl-1" {...props} />,
+                          h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mb-4 mt-6 first:mt-0 pb-2 border-b border-[var(--border-color)]" {...props} />,
+                          h2: ({ node, ...props }: any) => <h2 className="text-xl font-bold mb-3 mt-5 pb-1 border-b border-[var(--border-color)]/50" {...props} />,
+                          h3: ({ node, ...props }: any) => <h3 className="text-lg font-bold mb-2 mt-4" {...props} />,
+                          blockquote: ({ node, ...props }: any) => <blockquote className="border-l-4 border-[var(--color-primary)] pl-4 py-1 my-4 bg-[var(--input-bg)]/30 rounded-r italic" {...props} />,
+                          a: ({ node, ...props }: any) => <a className="text-[var(--color-primary)] hover:underline underline-offset-4" target="_blank" rel="noopener noreferrer" {...props} />,
+                          img: ({ ...props }: any) => <img className="rounded-lg shadow-lg my-4 max-w-full h-auto border border-[var(--border-color)]" {...props} />,
+                          hr: ({ ...props }: any) => <hr className="my-6 border-[var(--border-color)]" {...props} />,
                         }}
                       >
                         {msg.content}
