@@ -15,6 +15,8 @@ import { ThinkingProcess } from "./components/ThinkingProcess";
 import { Dashboard } from "./components/Dashboard";
 import { TermsModal } from "./components/TermsModal";
 import { SceneController, BrandLink, useScene } from "./components/SceneController";
+import { Sidebar } from "./components/Sidebar"; // New Import
+import { HistoryManager, ChatSession } from "./lib/history"; // New Import
 
 // Types
 interface Message {
@@ -52,9 +54,12 @@ function DracoApp() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState("openai");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false); // Fix persistence
+  const [isLoaded, setIsLoaded] = useState(false);
   const [enableSearch, setEnableSearch] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(false);
+
+  // New History State
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // Settings State
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -70,7 +75,7 @@ function DracoApp() {
 
   // Memory State (The Vault)
   const [memory, setMemory] = useState<string[]>([]);
-  const [showMemory, setShowMemory] = useState(true); // Toggle in sidebar
+  const [showMemory, setShowMemory] = useState(true);
 
   // Drag & Drop State
   const [isDragging, setIsDragging] = useState(false);
@@ -107,48 +112,81 @@ function DracoApp() {
     }
   }, []);
 
-  // Load from LocalStorage
+  // Initialize Data (Sessions, Settings, Memory)
   useEffect(() => {
-    const savedHistory = localStorage.getItem("draco_history");
+    // 1. Load Settings
     const savedSettings = localStorage.getItem("draco_settings");
-
-    if (savedHistory) {
-      try {
-        setMessages(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error("Failed to load history", e);
-      }
-    }
-
     if (savedSettings) {
-      try {
-        setSettings(JSON.parse(savedSettings));
-      } catch (e) {
-        console.error("Failed to load settings", e);
-      }
+      try { setSettings(JSON.parse(savedSettings)); } catch (e) { console.error("Failed to load settings", e); }
     }
 
+    // 2. Load Memory
     const savedMemory = localStorage.getItem("draco_memory");
     if (savedMemory) {
-      try {
-        setMemory(JSON.parse(savedMemory));
-      } catch (e) { console.error("Failed to load memory", e); }
+      try { setMemory(JSON.parse(savedMemory)); } catch (e) { console.error("Failed to load memory", e); }
+    }
+
+    // 3. Load Sessions
+    const sessions = HistoryManager.getSessions();
+    if (sessions.length > 0) {
+      // Load most recent
+      // Check if there was a specific active session saved? 
+      // For now, load 0 or create new if 0 length (handled above)
+      // Let's create a new one if none, or load first.
+      const mostRecent = sessions[0];
+      setActiveSessionId(mostRecent.id);
+      setMessages(mostRecent.messages);
+    } else {
+      createNewChat();
     }
 
     setIsLoaded(true);
   }, []);
 
-  // Save to LocalStorage with safeguards
+  // Persistence Effects
   useEffect(() => {
-    // Only save if loaded and we actually have messages handling the race condition
-    if (isLoaded && messages.length > 0) {
-      localStorage.setItem("draco_history", JSON.stringify(messages));
-    }
     if (isLoaded) {
       localStorage.setItem("draco_settings", JSON.stringify(settings));
       localStorage.setItem("draco_memory", JSON.stringify(memory));
     }
-  }, [messages, settings, memory, isLoaded]);
+  }, [settings, memory, isLoaded]);
+
+  // Session Persistance
+  useEffect(() => {
+    if (!isLoaded || !activeSessionId) return;
+
+    // Update current session in storage whenever messages change
+    const currentSession = HistoryManager.getSession(activeSessionId);
+    if (currentSession) {
+      currentSession.messages = messages;
+      currentSession.updatedAt = Date.now();
+      HistoryManager.saveSession(currentSession);
+    }
+  }, [messages, activeSessionId, isLoaded]);
+
+
+  const createNewChat = () => {
+    const newSession = HistoryManager.createSession();
+    setActiveSessionId(newSession.id);
+    setMessages([]);
+    setInput("");
+    // Close sidebar on mobile if open
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  };
+
+  const loadSession = (id: string) => {
+    if (id === activeSessionId) {
+      setSidebarOpen(false); // Just close sidebar if already active
+      return;
+    }
+
+    const session = HistoryManager.getSession(id);
+    if (session) {
+      setActiveSessionId(id);
+      setMessages(session.messages);
+      setSidebarOpen(false);
+    }
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -170,8 +208,6 @@ function DracoApp() {
     if (messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
     if (lastMsg.role === "assistant") {
-      // Regex to find the LAST code block
-      // Matches ```lang ... ```
       const codeBlockRegex = /```(\w+)\n([\s\S]*?)```/g;
       let match;
       let lastMatch = null;
@@ -184,10 +220,6 @@ function DracoApp() {
         const lang = lastMatch[1].toLowerCase();
         if (lang === 'html' || lang === 'xml' || lang === 'jsx' || lang === 'tsx') {
           setPreviewData({ code: lastMatch[2], language: lang });
-          // Only auto-open if we haven't manually closed it? For now, auto-open on first encounter could be annoying. 
-          // Let's just set data and show a "Preview Available" indicator unless forced.
-          // Actually, let's auto-open if it's the *very first* time detecting in this stream?
-          // Promoting user control: Just ensure data is there.
         }
       }
     }
@@ -197,11 +229,10 @@ function DracoApp() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const clearHistory = () => {
-    if (confirm("Clear all chat history?")) {
-      setMessages([]);
-      localStorage.removeItem("draco_history");
-      setSidebarOpen(false);
+  const clearAllHistory = () => {
+    if (confirm("Clear ALL chat history? This cannot be undone.")) {
+      HistoryManager.clearAll();
+      createNewChat();
     }
   };
 
@@ -314,7 +345,16 @@ function DracoApp() {
     const uiContent = attachment ? `${originalInput}\n\n![${attachment.name}](${attachment.url})` : originalInput;
 
     const userMsg: Message = { role: "user", content: uiContent, timestamp: new Date().toISOString() };
-    setMessages((prev) => [...prev, userMsg]);
+
+    // Update State
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+
+    // Update Session Title if first message
+    if (messages.length === 0 && activeSessionId) {
+      HistoryManager.updateTitle(activeSessionId, originalInput);
+    }
+
     setInput("");
     setAttachment(null); // Clear attachment
     setIsLoading(true);
@@ -356,10 +396,6 @@ function DracoApp() {
         }
       }
       if (originalInput.startsWith("/forget ")) {
-        const indexStr = originalInput.replace("/forget ", "").trim();
-        const index = parseInt(indexStr) - 1; // User uses 1-based index usually, or we assume they use UI
-        // Actually, let's just support clearing all or UI deletion.
-        // Command support is tricky without IDs. Let's redirect to UI.
         setMessages(prev => [...prev, { role: "assistant", content: "To forget something, please use the 'The Vault' section in the sidebar.", timestamp: new Date().toISOString() }]);
         setIsLoading(false);
         return;
@@ -367,39 +403,33 @@ function DracoApp() {
 
       // 2. Determine Model & System Prompt
       let activeModel = currentModel;
-      // Search is handled by model capabilities now
-
 
       // 3. Streaming Request
-
-      // Inject Memory into System Prompt of "messagesPayload" only, not the visible setting
       const vaultContext = memory.length > 0 ? `\n\n[THE VAULT - LONG TERM MEMORY]:\n${memory.map((m, i) => `${i + 1}. ${m}`).join("\n")}\n\n[INSTRUCTION]: Use the above memory to personalize your response if relevant.` : "";
       const finalSystemPrompt = settings.systemPrompt + vaultContext;
 
       const messagesPayload = [
         { role: "system", content: finalSystemPrompt },
-        ...messages.map((m) => ({ role: m.role, content: m.content })),
+        ...newMessages.map((m) => ({ role: m.role, content: m.content })),
       ];
 
       // Add current message. If attachment, format as multimodal.
       if (attachment) {
-        // Force visually capable model if possible, though 'openai' default is 4o which is good.
-        // activeModel = 'openai'; 
+        messagesPayload.pop(); // Remove the last text-only message we just added to state (or handled differently)
+        // Wait, 'newMessages' has the last message. 'messagesPayload' is constructed from it.
+        // But for API payload we need multimodal object format if attachment.
 
-        messagesPayload.push({
+        // Let's reconstruction last item in payload
+        const lastPayloadItem = messagesPayload[messagesPayload.length - 1];
+        messagesPayload[messagesPayload.length - 1] = {
           role: "user",
           content: [
             { type: "text", text: originalInput },
             { type: "image_url", image_url: { url: attachment.url } }
           ]
-        } as any); // Type assertion needed because simple Message interface uses string content
-      } else {
-        messagesPayload.push({ role: "user", content: originalInput });
+        } as any;
       }
 
-      // Use dynamic endpoint for better stability per model
-      // Fallback to 'openai' if model is weird, but usually model name in path works best for Pollinations
-      // Use backend API
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -419,15 +449,13 @@ function DracoApp() {
 
       const data = await response.json();
 
-      // Fix: Ensure we extract string content, not object
       let content = data.response;
       if (typeof content === 'object') {
-        content = JSON.stringify(content); // Fallback: Stringify if still object
+        content = JSON.stringify(content);
       }
 
       const provider = data.provider;
 
-      // Check for AI-triggered Image Command
       if (content.trim().startsWith("/image") || content.trim().startsWith("/draw")) {
         const prompt = content.replace(/^\/(image|draw)\s*/i, "").trim();
         const encodedPrompt = encodeURIComponent(prompt);
@@ -436,7 +464,6 @@ function DracoApp() {
         content = `Generated image for "**${prompt}**":\n\n![Generated Image](${imageUrl})`;
       }
 
-      // Update message with full content
       setMessages(prev => [...prev, {
         role: "assistant",
         content: content,
@@ -506,113 +533,24 @@ function DracoApp() {
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-900/10 rounded-full blur-[120px] animate-pulse delay-1000"></div>
       </div>
 
-      {/* Sidebar - Desktop & Mobile */}
-      <AnimatePresence>
-        {(sidebarOpen || (typeof window !== 'undefined' && window.innerWidth >= 768)) && (
-          <motion.aside
-            initial={{ x: -280 }}
-            animate={{ x: 0 }}
-            exit={{ x: -280 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className={`fixed md:relative z-50 w-[280px] h-full bg-[#161b22]/95 backdrop-blur-xl border-r border-[#2d3748] flex flex-col p-4 shadow-2xl md:shadow-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-              }`}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent font-mono">
-                <Bot className="text-indigo-500" /> Draco.AI
-              </div>
-              <button onClick={() => setSidebarOpen(false)} className="md:hidden text-gray-400 p-2 hover:bg-white/5 rounded-full">
-                <X />
-              </button>
-            </div>
-
-            <button
-              onClick={() => { setMessages([]); localStorage.removeItem("draco_history"); setInput(""); setSidebarOpen(false); }}
-              className="w-full flex items-center gap-2 bg-[#1f242d] hover:bg-[#2d3748] border border-[#2d3748] p-3 rounded-xl text-sm font-medium transition-colors mb-2 active:scale-95 duration-200"
-            >
-              <Plus size={18} /> New Chat
-            </button>
-
-            <button
-              onClick={exportChat}
-              className="w-full flex items-center gap-2 bg-[#1f242d] hover:bg-[#2d3748] border border-[#2d3748] p-3 rounded-xl text-sm font-medium transition-colors mb-4 active:scale-95 duration-200"
-            >
-              <Download size={18} /> Export Chat
-            </button>
-
-            <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">Recent</div>
-              {messages.length > 0 ? (
-                <div className="p-3 bg-[#1f242d]/50 rounded-xl text-sm text-gray-300 truncate border border-[#2d3748]/50">
-                  <MessageSquare size={14} className="inline mr-2 text-indigo-400" />
-                  {messages[0]?.content.substring(0, 20)}...
-                </div>
-              ) : (
-                <div className="p-4 text-xs text-gray-500 text-center italic">No history yet</div>
-              )}
-            </div>
-
-            <button onClick={clearHistory} className="mt-4 flex items-center justify-center gap-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 p-2 rounded-lg transition-colors text-sm">
-              <Trash2 size={14} /> Clear History
-            </button>
-
-            {/* The Vault (Memory) */}
-            <div className="mt-6 border-t border-[#2d3748] pt-4">
-              <div
-                className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-2 cursor-pointer hover:text-gray-300 transition-colors"
-                onClick={() => setShowMemory(!showMemory)}
-              >
-                <span>🧠 The Vault ({memory.length})</span>
-                <ChevronDown size={14} className={`transition-transform duration-200 ${showMemory ? "" : "-rotate-90"}`} />
-              </div>
-
-              <AnimatePresence>
-                {showMemory && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="space-y-2 overflow-hidden"
-                  >
-                    {memory.length > 0 ? (
-                      memory.map((mem, i) => (
-                        <div key={i} className="group relative p-2 bg-[#1f242d]/30 rounded-lg border border-[#2d3748]/50 text-xs text-gray-400 hover:text-gray-200 hover:border-indigo-500/30 transition-all">
-                          <div className="pr-4">{mem}</div>
-                          <button
-                            onClick={() => setMemory(prev => prev.filter((_, idx) => idx !== i))}
-                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-red-400 hover:bg-red-900/20 p-1 rounded transition-all"
-                            title="Forget"
-                          >
-                            <X size={10} />
-                          </button>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-xs text-gray-600 italic px-2">
-                        Type <code className="bg-white/5 px-1 rounded">/remember [text]</code> to add memories.
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
-
-      {/* Overlay for mobile sidebar */}
-      {sidebarOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* New Sidebar Integration */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activeSessionId={activeSessionId}
+        onSessionSelect={loadSession}
+        onNewChat={createNewChat}
+        onClearAll={clearAllHistory}
+        onExport={exportChat}
+        memoryCount={memory.length}
+        onToggleMemory={() => setShowMemory(!showMemory)}
+        showMemory={showMemory}
+        memory={memory}
+        onForgetMemory={(index) => setMemory(prev => prev.filter((_, i) => i !== index))}
+      />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-full relative w-full bg-transparent z-10">
+      <main className="flex-1 flex flex-col h-full relative w-full bg-transparent z-10 transition-all duration-300">
         {/* Header */}
         <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-black/20 backdrop-blur-xl z-30 absolute top-0 left-0 right-0">
           <div className="flex items-center gap-3 w-full">
@@ -632,8 +570,8 @@ function DracoApp() {
                   key={t}
                   onClick={() => setTheme(t)}
                   className={`px-3 py-1 rounded-full text-[10px] uppercase font-bold transition-all ${theme === t
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                     }`}
                 >
                   {t}
@@ -671,7 +609,6 @@ function DracoApp() {
               <LayoutGrid size={18} />
             </button>
 
-            {/* Search Toggle Removed */}
 
             {/* Preview Toggle (Artifacts) */}
             {previewData && (
@@ -795,35 +732,49 @@ function DracoApp() {
                       >
                         {msg.content}
                       </ReactMarkdown>
+
+                      {/* Thoughts / Chain of Thought */}
+                      {msg.thought && (
+                        <div className="mt-2 pt-2 border-t border-white/5 text-xs text-indigo-400 font-mono flex items-center gap-1">
+                          {msg.thought}
+                        </div>
+                      )}
                     </div>
 
                     {msg.role === "user" && (
-                      <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center shrink-0 border border-purple-500/30 mt-1">
-                        <User size={16} className="text-purple-400" />
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0 shadow-lg shadow-purple-500/20 mt-1">
+                        <User size={16} className="text-white" />
                       </div>
                     )}
                   </motion.div>
                 ))}
 
-                {/* Only show loading dots if we are waiting for API, NOT while streaming */}
-                {isLoading && messages[messages.length - 1]?.role === "user" && (
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30">
+                {isLoading && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex gap-4"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30 shadow-lg shadow-indigo-500/10">
                       <Bot size={16} className="text-indigo-400" />
                     </div>
-                    <div className="bg-[#1e232e]/80 border border-[#2d3748] px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-1 shadow-lg">
-                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></span>
+                    <div className="bg-[#1e232e]/50 border border-[#2d3748]/50 px-5 py-4 rounded-2xl rounded-bl-sm">
+                      <div className="flex space-x-2">
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                      </div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
+
+                {/* Scroll Anchor */}
                 <div ref={messagesEndRef} />
               </div>
             )}
           </div>
 
-          {/* Preview Pane (Split Screen) */}
+          {/* Preview Pane (Right Side) */}
           <AnimatePresence>
             {showPreview && previewData && (
               <PreviewPane
@@ -834,69 +785,108 @@ function DracoApp() {
             )}
           </AnimatePresence>
 
-        </div>
+          {/* Input Area */}
+          <div className={`absolute bottom-0 left-0 right-0 p-4 pt-10 bg-gradient-to-t from-[#0f1117] via-[#0f1117] to-transparent z-20 transition-all duration-300 ${showPreview ? "w-1/2" : "w-full"}`}>
+            <div className="max-w-3xl mx-auto relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
 
-        {/* Input Area (Modified to account for split screen?) */}
-        <div className={`absolute bottom-0 left-0 right-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-[#0f1117] via-[#0f1117]/95 to-transparent z-40 flex justify-center backdrop-blur-sm transition-all duration-300 ${showPreview ? "md:w-1/2" : "w-full"}`}>
-          <div className="w-full max-w-3xl bg-[#1f242d] border border-[#2d3748] rounded-[24px] p-2 pl-4 flex items-end gap-2 shadow-2xl shadow-black/50 focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-              placeholder={enableSearch ? "Ask Draco to search the web..." : "Message Draco (or type /image)..."}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 resize-none max-h-32 py-3 text-base md:text-sm custom-scrollbar"
-              rows={1}
-              style={{ minHeight: "44px" }}
-            />
-            {/* Attachment Preview */}
-            <AnimatePresence>
-              {attachment && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="absolute bottom-full mb-2 left-4 z-50"
-                >
-                  <div className="relative group">
-                    <img src={attachment.url} alt="Preview" className="w-24 h-24 object-cover rounded-xl border-2 border-indigo-500 shadow-xl bg-black" />
+              <div className="relative bg-[#161b22] rounded-2xl flex flex-col border border-[#2d3748] shadow-2xl focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/20 transition-all">
+                {attachment && (
+                  <div className="px-4 pt-3 flex items-center gap-2">
+                    <div className="bg-[#1f242d] px-3 py-1 rounded-lg text-xs flex items-center gap-2 text-indigo-300 border border-indigo-500/30">
+                      <FileText size={12} /> {attachment.name}
+                      <button onClick={() => setAttachment(null)} className="hover:text-white"><X size={12} /></button>
+                    </div>
+                  </div>
+                )}
+
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  disabled={isLoading}
+                  placeholder={
+                    isListening
+                      ? "Listening..."
+                      : "Ask Draco anything... (Type /image for visuals)"
+                  }
+                  className="w-full bg-transparent text-white p-4 max-h-[200px] min-h-[60px] outline-none resize-none placeholder-gray-500/50 rounded-2xl"
+                  rows={input.split("\n").length > 1 ? Math.min(input.split("\n").length, 6) : 1}
+                />
+
+                <div className="flex items-center justify-between px-2 pb-2">
+                  <div className="flex items-center gap-1">
                     <button
-                      onClick={() => setAttachment(null)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      onClick={toggleListening}
+                      className={`p-2 rounded-xl transition-all ${isListening
+                          ? "bg-red-500/10 text-red-400 animate-pulse border border-red-500/30"
+                          : "text-gray-400 hover:text-indigo-400 hover:bg-[#1f242d]"
+                        }`}
+                      title="Voice Input"
                     >
-                      <X size={12} />
+                      {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                    </button>
+
+                    {/* Attach Button (Hidden input trigger) */}
+                    <label className="p-2 rounded-xl text-gray-400 hover:text-indigo-400 hover:bg-[#1f242d] cursor-pointer transition-all">
+                      <Upload size={18} />
+                      <input type="file" className="hidden" onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          // Reuse drop handler logic logic approximately
+                          if (file.type.startsWith("image/")) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              setAttachment({ url: ev.target?.result as string, name: file.name });
+                            };
+                            reader.readAsDataURL(file);
+                          } else {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              const content = ev.target?.result as string;
+                              setInput(prev => prev + `\n\n[File: ${file.name}]\n\`\`\`\n${content}\n\`\`\`\n`);
+                            };
+                            reader.readAsText(file);
+                          }
+                        }
+                      }} />
+                    </label>
+
+                    <button
+                      onClick={() => setHandsFreeMode(!handsFreeMode)}
+                      className={`p-2 rounded-xl transition-all ${handsFreeMode
+                          ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                          : "text-gray-400 hover:text-indigo-400 hover:bg-[#1f242d]"
+                        }`}
+                      title={handsFreeMode ? "Disable Hands-Free" : "Enable Hands-Free"}
+                    >
+                      <Headphones size={18} />
                     </button>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
-            <button
-              onClick={() => setHandsFreeMode(!handsFreeMode)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all mb-0.5 shrink-0 ${handsFreeMode ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.3)] animate-pulse" : "text-gray-400 hover:text-white"}`}
-              title="Hands-Free Mode"
-            >
-              <Headphones size={20} />
-            </button>
+                  <button
+                    onClick={sendMessage}
+                    disabled={(!input.trim() && !attachment) || isLoading}
+                    className={`p-2.5 rounded-xl transition-all duration-300 ${(input.trim() || attachment) && !isLoading
+                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 active:scale-95"
+                        : "bg-[#1f242d] text-gray-500 cursor-not-allowed"
+                      }`}
+                  >
+                    <Send size={18} className={isLoading ? "animate-spin" : ""} />
+                  </button>
+                </div>
+              </div>
+            </div>
 
-            <button
-              onClick={toggleListening}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all mb-0.5 shrink-0 ${isListening ? "bg-red-500/20 text-red-400 border border-red-500/50" : "text-gray-400 hover:text-white"}`}
-            >
-              {isListening ? <AudioVisualizer isListening={true} /> : <Mic size={20} />}
-            </button>
+            <div className="text-center mt-3 text-[10px] text-gray-600 font-mono">
+              Draco V0.1 • Powered by Pollinations & SimplifAI-1
+            </div>
 
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || isLoading}
-              className="w-11 h-11 md:w-10 md:h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white flex items-center justify-center transition-all mb-0.5 shrink-0 active:scale-90"
-            >
-              <Send size={20} />
-            </button>
           </div>
         </div>
       </main>

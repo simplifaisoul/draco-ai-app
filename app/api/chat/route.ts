@@ -74,9 +74,9 @@ STYLE: Helpful, smart, and concise. Format code nicely. Do not start with JSON o
         applyRateLimitHeaders(response, rateLimit);
         return response;
 
-    } catch (error: any) {
+    } catch (error) {
         console.error('API Error:', error);
-        const errType = error.message?.includes('Rate limit') ? ErrorType.RATE_LIMIT : ErrorType.API_DOWN;
+        const errType = (error instanceof Error && error.message?.includes('Rate limit')) ? ErrorType.RATE_LIMIT : ErrorType.API_DOWN;
         const errorMsg = getErrorMessage(errType);
 
         const response = NextResponse.json(
