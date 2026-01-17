@@ -31,7 +31,7 @@ interface AIModel {
 }
 
 const MODELS: AIModel[] = [
-  { id: "openai", name: "Draco V1 (Advanced)", icon: "🧠", description: "Our smartest model" },
+  { id: "openai", name: "Draco V0.1 (Advanced)", icon: "🧠", description: "Our smartest model" },
   { id: "claude", name: "Claude 3.5 Sonnet", icon: "🎭", description: "Natural reasoning" },
   { id: "mistral", name: "Mistral Large", icon: "🌪️", description: "Open source power" },
   { id: "p1", name: "Pollinations 1", icon: "🐝", description: "Fast & General" },
@@ -393,91 +393,36 @@ export default function Home() {
 
       // Use dynamic endpoint for better stability per model
       // Fallback to 'openai' if model is weird, but usually model name in path works best for Pollinations
-      const endpoint = `https://text.pollinations.ai/${activeModel}`;
-
-      const response = await fetch(endpoint, {
+      // Use backend API
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: messagesPayload,
-          stream: true, // Enable streaming
+          model: activeModel,
         }),
       });
 
+      if (response.status === 429) {
+        setMessages(prev => [...prev, { role: "assistant", content: "⏳ Rate limit exceeded. Please wait a moment.", timestamp: new Date().toISOString() }]);
+        setIsLoading(false);
+        return;
+      }
+
       if (!response.ok) throw new Error("API Error");
 
-      // Initialize response
-      setMessages(prev => [...prev, { role: "assistant", content: "", timestamp: new Date().toISOString(), thought: "", isThinking: activeModel === 'deepseek-r1' }]);
+      const data = await response.json();
+      const content = data.response;
+      const provider = data.provider;
 
-      // Read the stream
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      let fullContent = "";
-      let fullThought = "";
-      let isThinking = activeModel === 'deepseek-r1';
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            setMessages(prev => {
-              const newHistory = [...prev];
-              const lastMsg = newHistory[newHistory.length - 1];
-              if (lastMsg && lastMsg.role === "assistant") {
-                lastMsg.isThinking = false;
-              }
-              return newHistory;
-            });
-            break;
-          }
-
-          const chunk = decoder.decode(value, { stream: true });
-          buffer += chunk;
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith("data: ")) continue;
-
-            const dataStr = trimmed.slice(6);
-            if (dataStr === "[DONE]") continue;
-
-            try {
-              const json = JSON.parse(dataStr);
-              const deltaContent = json.choices?.[0]?.delta?.content || "";
-
-              if (deltaContent) {
-                if (deltaContent.includes("<think>")) isThinking = true;
-                if (deltaContent.includes("</think>")) isThinking = false;
-
-                const cleanDelta = deltaContent.replace(/<think>|<\/think>/g, "");
-
-                if (isThinking) {
-                  fullThought += cleanDelta;
-                } else {
-                  fullContent += cleanDelta;
-                }
-
-                setMessages(prev => {
-                  const newHistory = [...prev];
-                  const lastMsg = newHistory[newHistory.length - 1];
-                  if (lastMsg && lastMsg.role === "assistant") {
-                    lastMsg.content = fullContent;
-                    lastMsg.thought = fullThought;
-                    lastMsg.isThinking = isThinking;
-                  }
-                  return newHistory;
-                });
-              }
-            } catch (e) {
-              console.error("Error parsing stream chunk", e);
-            }
-          }
-        }
-      }
+      // Update message with full content
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: content,
+        timestamp: new Date().toISOString(),
+        thought: data.cached ? "⚡ Cached Response" : undefined,
+        isThinking: false
+      }]);
     } catch (error) {
       console.error(error);
       setMessages((prev) => [

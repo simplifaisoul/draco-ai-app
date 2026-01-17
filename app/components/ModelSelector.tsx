@@ -21,6 +21,24 @@ export const ModelSelector = ({ models, selectedModelId, onSelect }: ModelSelect
 
     const selectedModel = models.find(m => m.id === selectedModelId) || models[0];
 
+    const [isHealthy, setIsHealthy] = useState(true);
+
+    useEffect(() => {
+        const checkHealth = async () => {
+            try {
+                const res = await fetch('/api/health');
+                const data = await res.json();
+                setIsHealthy(data.status !== 'down');
+            } catch (e) {
+                setIsHealthy(false);
+            }
+        };
+        checkHealth();
+        // Poll every 30s
+        const interval = setInterval(checkHealth, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
     // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -44,7 +62,7 @@ export const ModelSelector = ({ models, selectedModelId, onSelect }: ModelSelect
                 </span>
 
                 <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${selectedModelId.startsWith('p1') || selectedModelId.startsWith('openai') || selectedModelId.startsWith('searchgpt') ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse' : 'bg-emerald-500'}`} title="Online & Ready"></div>
+                    <div className={`w-2 h-2 rounded-full ${isHealthy ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse' : 'bg-red-500'}`} title={isHealthy ? "System Online" : "System Issues"}></div>
                     <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                 </div>
             </button>
