@@ -35,7 +35,7 @@ interface AIModel {
 }
 
 const MODELS: AIModel[] = [
-  { id: "openai", name: "Draco V0.1 (Neural)", icon: "🐲", description: "Primary Advanced Model" },
+  { id: "openai", name: "Draco V0.1", icon: "🐲", description: "Primary Advanced Model" },
 ];
 
 export default function Home() {
@@ -737,20 +737,16 @@ function DracoApp() {
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="bg-[var(--color-primary)]/10 p-8 rounded-full mb-8 relative group cursor-default"
+                  className="bg-[var(--color-primary)]/10 p-6 rounded-full mb-6 relative group"
                 >
-                  <div className="relative z-10">
-                    <Brain size={64} className="text-[var(--color-primary)] animate-pulse drop-shadow-[0_0_15px_rgba(var(--color-primary),0.5)]" />
-                  </div>
-                  <div className="absolute inset-0 bg-[var(--color-primary)]/30 rounded-full blur-2xl animate-pulse delay-75 group-hover:bg-[var(--color-primary)]/40 transition-all duration-500"></div>
-                  <div className="absolute -inset-4 border border-[var(--color-primary)]/20 rounded-full animate-spin-slow opacity-50 pointer-events-none"></div>
+                  <div className="text-6xl animate-pulse group-hover:scale-110 transition-transform duration-500 cursor-default">🐲</div>
+                  <div className="absolute inset-0 bg-[var(--color-primary)]/20 rounded-full blur-xl animate-pulse delay-75 pointer-events-none"></div>
                 </motion.div>
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] bg-clip-text text-transparent mb-3 bg-[length:200%_auto] animate-gradient">
                   Draco.AI
                 </h1>
                 <p className="text-[var(--color-secondary)] max-w-md text-sm md:text-base leading-relaxed mb-8">
-                  Your premium AI companion. <br />
-                  <span className="text-[var(--color-primary)]">Streaming • Voice • Persistent • Artifacts</span>
+                  <span className="text-[var(--color-primary)] font-medium">Image Generation • Real-Time Search • Advanced Reasoning</span>
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
