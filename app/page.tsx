@@ -130,9 +130,6 @@ function DracoApp() {
     const sessions = HistoryManager.getSessions();
     if (sessions.length > 0) {
       // Load most recent
-      // Check if there was a specific active session saved? 
-      // For now, load 0 or create new if 0 length (handled above)
-      // Let's create a new one if none, or load first.
       const mostRecent = sessions[0];
       setActiveSessionId(mostRecent.id);
       setMessages(mostRecent.messages);
@@ -484,7 +481,7 @@ function DracoApp() {
 
   return (
     <div
-      className="flex h-[100dvh] bg-[#0f1117] text-[#f8fafc] font-sans overflow-hidden relative"
+      className="flex h-[100dvh] bg-[var(--background)] text-[var(--foreground)] font-sans overflow-hidden relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -496,11 +493,11 @@ function DracoApp() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[100] bg-indigo-500/20 backdrop-blur-sm border-4 border-indigo-500 border-dashed m-4 rounded-3xl flex flex-col items-center justify-center pointer-events-none"
+            className="absolute inset-0 z-[100] bg-[var(--color-primary)]/20 backdrop-blur-sm border-4 border-[var(--color-primary)] border-dashed m-4 rounded-3xl flex flex-col items-center justify-center pointer-events-none"
           >
-            <Upload size={64} className="text-indigo-400 mb-4 animate-bounce" />
-            <h2 className="text-3xl font-bold text-white drop-shadow-lg">Drop text files here</h2>
-            <p className="text-indigo-200 mt-2">I can read code and text files!</p>
+            <Upload size={64} className="text-[var(--color-primary)] mb-4 animate-bounce" />
+            <h2 className="text-3xl font-bold text-[var(--foreground)] drop-shadow-lg">Drop text files here</h2>
+            <p className="text-[var(--color-secondary)] mt-2">I can read code and text files!</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -552,9 +549,9 @@ function DracoApp() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-full relative w-full bg-transparent z-10 transition-all duration-300">
         {/* Header */}
-        <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-black/20 backdrop-blur-xl z-30 absolute top-0 left-0 right-0">
+        <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-[var(--background)]/50 backdrop-blur-xl z-30 absolute top-0 left-0 right-0">
           <div className="flex items-center gap-3 w-full">
-            <button onClick={() => setSidebarOpen(true)} className="md:hidden text-gray-400 p-2 hover:bg-white/5 rounded-lg active:scale-95">
+            <button onClick={() => setSidebarOpen(true)} className="md:hidden text-[var(--color-secondary)] p-2 hover:bg-white/5 rounded-lg active:scale-95">
               <Menu />
             </button>
 
@@ -564,14 +561,14 @@ function DracoApp() {
             </div>
 
             {/* Scene Selector */}
-            <div className="hidden md:flex items-center gap-1 bg-[#1f242d]/80 p-1 rounded-full border border-white/10 mr-4">
+            <div className="hidden md:flex items-center gap-1 bg-[var(--input-bg)]/80 p-1 rounded-full border border-[var(--border-color)] mr-4">
               {(['cosmic', 'corporate', 'neural'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTheme(t)}
                   className={`px-3 py-1 rounded-full text-[10px] uppercase font-bold transition-all ${theme === t
-                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] text-white shadow-lg'
+                    : 'text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-white/5'
                     }`}
                 >
                   {t}
@@ -580,7 +577,7 @@ function DracoApp() {
             </div>
 
             <div className="relative group flex-1 md:flex-none max-w-[200px]">
-              <div className="absolute -top-3 left-0 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-500/30">
+              <div className="absolute -top-3 left-0 bg-[var(--color-primary)]/20 text-[var(--color-primary)] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[var(--color-primary)]/30">
                 OPEN BETA
               </div>
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -589,7 +586,7 @@ function DracoApp() {
               <select
                 value={currentModel}
                 onChange={(e) => setCurrentModel(e.target.value)}
-                className="w-full appearance-none bg-[#1f242d] border border-[#2d3748] text-white py-2 pl-12 pr-8 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 cursor-pointer hover:bg-[#2d3748] transition-colors shadow-lg"
+                className="w-full appearance-none bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--foreground)] py-2 pl-12 pr-8 rounded-lg text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] cursor-pointer hover:bg-[var(--border-color)] transition-colors shadow-lg"
               >
                 {MODELS.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -597,13 +594,13 @@ function DracoApp() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-secondary)] pointer-events-none" size={14} />
             </div>
 
             {/* Search Toggle */}
             <button
               onClick={() => setDashboardOpen(true)}
-              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors border border-transparent hidden md:block" // Hidden on mobile to save space? or not?
+              className="p-2 rounded-lg text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-white/5 transition-colors border border-transparent hidden md:block" // Hidden on mobile to save space? or not?
               title="Dashboard"
             >
               <LayoutGrid size={18} />
@@ -627,7 +624,7 @@ function DracoApp() {
             {/* Settings Toggle */}
             <button
               onClick={() => setSettingsOpen(true)}
-              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors border border-transparent"
+              className="p-2 rounded-lg text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-white/5 transition-colors border border-transparent"
               title="Settings"
             >
               <SettingsIcon size={18} />
@@ -645,17 +642,17 @@ function DracoApp() {
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="bg-indigo-500/10 p-6 rounded-full mb-6 relative group"
+                  className="bg-[var(--color-primary)]/10 p-6 rounded-full mb-6 relative group"
                 >
                   <div className="text-6xl animate-pulse group-hover:scale-110 transition-transform duration-500">🐉</div>
-                  <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-xl animate-pulse delay-75"></div>
+                  <div className="absolute inset-0 bg-[var(--color-primary)]/20 rounded-full blur-xl animate-pulse delay-75"></div>
                 </motion.div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mb-3 bg-[length:200%_auto] animate-gradient">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] bg-clip-text text-transparent mb-3 bg-[length:200%_auto] animate-gradient">
                   Draco.AI
                 </h1>
-                <p className="text-gray-400 max-w-md text-sm md:text-base leading-relaxed mb-8">
+                <p className="text-[var(--color-secondary)] max-w-md text-sm md:text-base leading-relaxed mb-8">
                   Your premium AI companion. <br />
-                  <span className="text-indigo-400">Streaming • Voice • Persistent • Artifacts</span>
+                  <span className="text-[var(--color-primary)]">Streaming • Voice • Persistent • Artifacts</span>
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
@@ -665,11 +662,11 @@ function DracoApp() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.1 }}
-                      className="bg-[#1f242d]/60 backdrop-blur-sm border border-[#2d3748] p-4 rounded-xl text-left hover:border-indigo-500/50 hover:bg-[#1f242d]/80 transition-all cursor-pointer group active:scale-[0.98] shadow-lg"
+                      className="bg-[var(--input-bg)]/60 backdrop-blur-sm border border-[var(--border-color)] p-4 rounded-xl text-left hover:border-[var(--color-primary)]/50 hover:bg-[var(--input-bg)]/80 transition-all cursor-pointer group active:scale-[0.98] shadow-lg"
                       onClick={() => setCurrentModel(m.id)}
                     >
                       <div className="text-2xl mb-2 group-hover:scale-110 transition-transform origin-left">{m.icon}</div>
-                      <div className="font-semibold text-sm text-gray-200">{m.name}</div>
+                      <div className="font-semibold text-sm text-[var(--foreground)]">{m.name}</div>
                     </motion.div>
                   ))}
                 </div>
@@ -685,12 +682,12 @@ function DracoApp() {
                   >
                     {msg.role === "assistant" && (
                       <div className="flex flex-col items-center gap-1">
-                        <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30 mt-1 shadow-lg shadow-indigo-500/10">
-                          <Bot size={16} className="text-indigo-400" />
+                        <div className="w-8 h-8 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center shrink-0 border border-[var(--color-primary)]/30 mt-1 shadow-lg shadow-[var(--color-primary)]/10">
+                          <Bot size={16} className="text-[var(--color-primary)]" />
                         </div>
                         <button
                           onClick={() => toggleSpeech(msg.content, i)}
-                          className={`p-1 rounded-full hover:bg-white/5 transition-colors ${speakingMsgId === i ? "text-indigo-400" : "text-gray-500"}`}
+                          className={`p-1 rounded-full hover:bg-white/5 transition-colors ${speakingMsgId === i ? "text-[var(--color-primary)]" : "text-[var(--color-secondary)]"}`}
                           title="Read Aloud"
                         >
                           {speakingMsgId === i ? <Volume2 size={14} /> : <VolumeX size={14} className="opacity-50 hover:opacity-100" />}
@@ -699,8 +696,8 @@ function DracoApp() {
                     )}
 
                     <div className={`max-w-[90%] md:max-w-[85%] rounded-2xl px-4 py-3 md:px-5 md:py-4 text-sm md:text-base leading-relaxed backdrop-blur-sm transition-all duration-300 ${msg.role === "user"
-                      ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-br-sm shadow-lg shadow-indigo-900/20"
-                      : "bg-[#1e232e]/90 border border-[#2d3748] text-gray-100 rounded-bl-sm shadow-xl shadow-indigo-500/10 hover:shadow-indigo-500/20"
+                      ? "bg-[image:var(--message-user-bg)] text-white rounded-br-sm shadow-lg shadow-[var(--color-primary)]/20"
+                      : "bg-[var(--message-ai-bg)]/90 border border-[var(--border-color)] text-[var(--foreground)] rounded-bl-sm shadow-xl shadow-[var(--color-primary)]/10 hover:shadow-[var(--color-primary)]/20"
                       }`}>
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
@@ -713,20 +710,20 @@ function DracoApp() {
                                 value={String(children).replace(/\n$/, "")}
                               />
                             ) : (
-                              <code className="bg-black/30 px-1.5 py-0.5 rounded font-mono text-xs text-indigo-200 border border-white/5" {...props}>
+                              <code className="bg-black/30 px-1.5 py-0.5 rounded font-mono text-xs text-[var(--color-primary)] border border-white/5" {...props}>
                                 {children}
                               </code>
                             )
                           },
                           table: ({ node, ...props }: any) => (
-                            <div className="overflow-x-auto my-4 border border-[#2d3748] rounded-lg">
-                              <table className="min-w-full divide-y divide-[#2d3748] text-sm text-left" {...props} />
+                            <div className="overflow-x-auto my-4 border border-[var(--border-color)] rounded-lg">
+                              <table className="min-w-full divide-y divide-[var(--border-color)] text-sm text-left" {...props} />
                             </div>
                           ),
-                          thead: ({ node, ...props }: any) => <thead className="bg-[#1f242d] text-gray-200" {...props} />,
+                          thead: ({ node, ...props }: any) => <thead className="bg-[var(--input-bg)] text-[var(--foreground)]" {...props} />,
                           th: ({ node, ...props }: any) => <th className="px-4 py-3 text-left font-medium uppercase tracking-wider" {...props} />,
-                          tbody: ({ node, ...props }: any) => <tbody className="bg-[#161b22] divide-y divide-[#2d3748] text-gray-300" {...props} />,
-                          tr: ({ node, ...props }: any) => <tr className="hover:bg-[#1f242d]/50 transition-colors" {...props} />,
+                          tbody: ({ node, ...props }: any) => <tbody className="bg-[var(--sidebar-bg)] divide-y divide-[var(--border-color)] text-[var(--foreground)]" {...props} />,
+                          tr: ({ node, ...props }: any) => <tr className="hover:bg-[var(--input-bg)]/50 transition-colors" {...props} />,
                           td: ({ node, ...props }: any) => <td className="px-4 py-3 whitespace-nowrap" {...props} />,
                         }}
                       >
@@ -735,7 +732,7 @@ function DracoApp() {
 
                       {/* Thoughts / Chain of Thought */}
                       {msg.thought && (
-                        <div className="mt-2 pt-2 border-t border-white/5 text-xs text-indigo-400 font-mono flex items-center gap-1">
+                        <div className="mt-2 pt-2 border-t border-white/5 text-xs text-[var(--color-primary)] font-mono flex items-center gap-1">
                           {msg.thought}
                         </div>
                       )}
@@ -755,10 +752,10 @@ function DracoApp() {
                     animate={{ opacity: 1 }}
                     className="flex gap-4"
                   >
-                    <div className="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0 border border-indigo-500/30 shadow-lg shadow-indigo-500/10">
-                      <Bot size={16} className="text-indigo-400" />
+                    <div className="w-8 h-8 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center shrink-0 border border-[var(--color-primary)]/30 shadow-lg shadow-[var(--color-primary)]/10">
+                      <Bot size={16} className="text-[var(--color-primary)]" />
                     </div>
-                    <div className="bg-[#1e232e]/50 border border-[#2d3748]/50 px-5 py-4 rounded-2xl rounded-bl-sm">
+                    <div className="bg-[var(--message-ai-bg)]/50 border border-[var(--border-color)]/50 px-5 py-4 rounded-2xl rounded-bl-sm">
                       <div className="flex space-x-2">
                         <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
                         <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
@@ -786,16 +783,16 @@ function DracoApp() {
           </AnimatePresence>
 
           {/* Input Area */}
-          <div className={`absolute bottom-0 left-0 right-0 p-4 pt-10 bg-gradient-to-t from-[#0f1117] via-[#0f1117] to-transparent z-20 transition-all duration-300 ${showPreview ? "w-1/2" : "w-full"}`}>
+          <div className={`absolute bottom-0 left-0 right-0 p-4 pt-10 bg-gradient-to-t from-[var(--background)] via-[var(--background)] to-transparent z-20 transition-all duration-300 ${showPreview ? "w-1/2" : "w-full"}`}>
             <div className="max-w-3xl mx-auto relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
 
-              <div className="relative bg-[#161b22] rounded-2xl flex flex-col border border-[#2d3748] shadow-2xl focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/20 transition-all">
+              <div className="relative bg-[var(--sidebar-bg)] rounded-2xl flex flex-col border border-[var(--border-color)] shadow-2xl focus-within:border-[var(--color-primary)]/50 focus-within:ring-1 focus-within:ring-[var(--color-primary)]/20 transition-all">
                 {attachment && (
                   <div className="px-4 pt-3 flex items-center gap-2">
-                    <div className="bg-[#1f242d] px-3 py-1 rounded-lg text-xs flex items-center gap-2 text-indigo-300 border border-indigo-500/30">
+                    <div className="bg-[var(--input-bg)] px-3 py-1 rounded-lg text-xs flex items-center gap-2 text-[var(--color-primary)] border border-[var(--color-primary)]/30">
                       <FileText size={12} /> {attachment.name}
-                      <button onClick={() => setAttachment(null)} className="hover:text-white"><X size={12} /></button>
+                      <button onClick={() => setAttachment(null)} className="hover:text-[var(--foreground)]"><X size={12} /></button>
                     </div>
                   </div>
                 )}
@@ -815,7 +812,7 @@ function DracoApp() {
                       ? "Listening..."
                       : "Ask Draco anything... (Type /image for visuals)"
                   }
-                  className="w-full bg-transparent text-white p-4 max-h-[200px] min-h-[60px] outline-none resize-none placeholder-gray-500/50 rounded-2xl"
+                  className="w-full bg-transparent text-[var(--foreground)] p-4 max-h-[200px] min-h-[60px] outline-none resize-none placeholder-[var(--color-secondary)]/50 rounded-2xl"
                   rows={input.split("\n").length > 1 ? Math.min(input.split("\n").length, 6) : 1}
                 />
 
@@ -824,8 +821,8 @@ function DracoApp() {
                     <button
                       onClick={toggleListening}
                       className={`p-2 rounded-xl transition-all ${isListening
-                          ? "bg-red-500/10 text-red-400 animate-pulse border border-red-500/30"
-                          : "text-gray-400 hover:text-indigo-400 hover:bg-[#1f242d]"
+                        ? "bg-red-500/10 text-red-400 animate-pulse border border-red-500/30"
+                        : "text-[var(--color-secondary)] hover:text-[var(--color-primary)] hover:bg-[var(--input-bg)]"
                         }`}
                       title="Voice Input"
                     >
@@ -833,7 +830,7 @@ function DracoApp() {
                     </button>
 
                     {/* Attach Button (Hidden input trigger) */}
-                    <label className="p-2 rounded-xl text-gray-400 hover:text-indigo-400 hover:bg-[#1f242d] cursor-pointer transition-all">
+                    <label className="p-2 rounded-xl text-[var(--color-secondary)] hover:text-[var(--color-primary)] hover:bg-[var(--input-bg)] cursor-pointer transition-all">
                       <Upload size={18} />
                       <input type="file" className="hidden" onChange={(e) => {
                         const file = e.target.files?.[0];
@@ -860,8 +857,8 @@ function DracoApp() {
                     <button
                       onClick={() => setHandsFreeMode(!handsFreeMode)}
                       className={`p-2 rounded-xl transition-all ${handsFreeMode
-                          ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                          : "text-gray-400 hover:text-indigo-400 hover:bg-[#1f242d]"
+                        ? "bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/30"
+                        : "text-[var(--color-secondary)] hover:text-[var(--color-primary)] hover:bg-[var(--input-bg)]"
                         }`}
                       title={handsFreeMode ? "Disable Hands-Free" : "Enable Hands-Free"}
                     >
@@ -873,8 +870,8 @@ function DracoApp() {
                     onClick={sendMessage}
                     disabled={(!input.trim() && !attachment) || isLoading}
                     className={`p-2.5 rounded-xl transition-all duration-300 ${(input.trim() || attachment) && !isLoading
-                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 active:scale-95"
-                        : "bg-[#1f242d] text-gray-500 cursor-not-allowed"
+                        ? "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] text-white shadow-lg shadow-[var(--color-primary)]/30 hover:shadow-[var(--color-primary)]/50 hover:scale-105 active:scale-95"
+                        : "bg-[var(--input-bg)] text-[var(--color-secondary)] cursor-not-allowed"
                       }`}
                   >
                     <Send size={18} className={isLoading ? "animate-spin" : ""} />
@@ -883,7 +880,7 @@ function DracoApp() {
               </div>
             </div>
 
-            <div className="text-center mt-3 text-[10px] text-gray-600 font-mono">
+            <div className="text-center mt-3 text-[10px] text-[var(--color-secondary)] font-mono">
               Draco V0.1 • Powered by Pollinations & SimplifAI-1
             </div>
 

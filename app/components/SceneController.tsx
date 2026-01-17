@@ -30,8 +30,7 @@ export function SceneController({ children }: { children: ReactNode }) {
 
     return (
         <SceneContext.Provider value={{ theme, setTheme: handleSetTheme }}>
-            <div className={`relative w-full h-full transition-colors duration-700 ${theme === "corporate" ? "text-slate-800" : "text-white"
-                }`}>
+            <div className={`relative w-full h-full transition-colors duration-700 ${theme}`}>
                 {/* Dynamic Background Layer */}
                 <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden transition-colors duration-1000">
                     <AnimatePresence mode="wait">
@@ -96,10 +95,7 @@ export function BrandLink() {
             href="https://simplifai-1.com"
             target="_blank"
             rel="noopener noreferrer"
-            className={`text-[10px] font-bold tracking-widest uppercase transition-colors px-3 py-1 rounded-full border ${theme === 'corporate'
-                    ? 'text-purple-600 border-purple-200 hover:bg-purple-50'
-                    : 'text-gray-400 border-white/10 hover:bg-white/5 hover:text-white'
-                }`}
+            className="text-[10px] font-bold tracking-widest uppercase transition-colors px-3 py-1 rounded-full border text-[var(--color-secondary)] border-[var(--border-color)] hover:bg-[var(--foreground)]/5 hover:text-[var(--foreground)]"
         >
             Made by SimplifAI-1
         </a>
