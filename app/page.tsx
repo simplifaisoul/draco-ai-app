@@ -341,7 +341,7 @@ function DracoApp() {
         };
         reader.readAsText(file);
       } else {
-        console.log("Ignored non-text/non-image file:", file.name);
+        // Ignored non-text/non-image file
       }
     });
   }, []);
@@ -834,20 +834,6 @@ function DracoApp() {
                         <div className="w-8 h-8 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center shrink-0 border border-[var(--color-primary)]/30 mt-1 shadow-lg shadow-[var(--color-primary)]/10">
                           <Bot size={16} className="text-[var(--color-primary)]" />
                         </div>
-                        <button
-                          onClick={() => copyMessage(msg.content, i)}
-                          className={`p-1 rounded-full hover:bg-white/5 transition-colors ${copiedMessageId === i ? "text-green-400" : "text-[var(--color-secondary)]"}`}
-                          title="Copy Message"
-                        >
-                          {copiedMessageId === i ? <Check size={14} /> : <Copy size={14} className="opacity-50 hover:opacity-100" />}
-                        </button>
-                        <button
-                          onClick={() => toggleSpeech(msg.content, i)}
-                          className={`p-1 rounded-full hover:bg-white/5 transition-colors ${speakingMsgId === i ? "text-[var(--color-primary)]" : "text-[var(--color-secondary)]"}`}
-                          title="Read Aloud"
-                        >
-                          {speakingMsgId === i ? <Volume2 size={14} /> : <VolumeX size={14} className="opacity-50 hover:opacity-100" />}
-                        </button>
                       </div>
                     )}
 
@@ -901,6 +887,43 @@ function DracoApp() {
                         {msg.content}
                       </ReactMarkdown>
 
+                      {/* Action Buttons for AI Messages */}
+                      {msg.role === "assistant" && (
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border-color)]/30">
+                          <button
+                            onClick={() => copyMessage(msg.content, i)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${copiedMessageId === i
+                              ? "bg-green-500/20 text-green-400 border border-green-500/50"
+                              : "bg-[var(--input-bg)] text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--border-color)] border border-transparent"
+                              }`}
+                            title="Copy Message"
+                          >
+                            {copiedMessageId === i ? (
+                              <>
+                                <Check size={14} />
+                                <span>Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={14} />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => toggleSpeech(msg.content, i)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${speakingMsgId === i
+                              ? "bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/50"
+                              : "bg-[var(--input-bg)] text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--border-color)] border border-transparent"
+                              }`}
+                            title="Read Aloud"
+                          >
+                            {speakingMsgId === i ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                            <span>{speakingMsgId === i ? "Stop" : "Listen"}</span>
+                          </button>
+                        </div>
+                      )}
+
                       {/* Thoughts / Chain of Thought */}
                       {/* Thoughts moved to top */}
                     </div>
@@ -949,8 +972,8 @@ function DracoApp() {
             )}
           </AnimatePresence>
 
-          {/* Input Area */}
-          <div className={`absolute bottom-0 left-0 right-0 p-4 pt-10 bg-gradient-to-t from-[var(--background)] via-[var(--background)] to-transparent z-20 transition-all duration-300 ${showPreview ? "w-1/2" : "w-full"}`}>
+          {/* Input Area - Fixed positioning for mobile */}
+          <div className={`fixed bottom-0 left-0 right-0 p-3 md:p-4 pt-8 md:pt-10 bg-gradient-to-t from-[var(--background)] via-[var(--background)] to-transparent z-20 transition-all duration-300 ${showPreview ? "md:w-1/2" : "w-full"}`}>
             <div className="max-w-3xl mx-auto relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
 

@@ -19,7 +19,7 @@ export class ProviderManager {
             if (!provider.isAvailable) continue;
 
             try {
-                console.log(`[Manager] Trying ${provider.name}...`);
+                // console.log(`[Manager] Trying ${provider.name}...`);
                 const content = await provider.call(messages, options);
                 // @ts-ignore
                 return { provider: provider.name, content };
