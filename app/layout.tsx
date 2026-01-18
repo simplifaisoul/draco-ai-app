@@ -21,8 +21,8 @@ export const metadata: Metadata = {
   keywords: ["AI", "Chatbot", "GPT", "Draco", "Neural", "Voice AI", "Pollinations", "Groq"],
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/icon.png", sizes: "any" }
+      { url: "/favicon.png", sizes: "any" },
+      { url: "/icon.png", sizes: "512x512" }
     ],
     apple: "/icon.png",
   },
