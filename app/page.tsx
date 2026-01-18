@@ -862,15 +862,15 @@ function DracoApp() {
                             )
                           },
                           table: ({ node, ...props }: any) => (
-                            <div className="overflow-x-auto my-4 border border-[var(--border-color)] rounded-lg">
-                              <table className="min-w-full divide-y divide-[var(--border-color)] text-sm text-left" {...props} />
+                            <div className="overflow-x-auto my-4 border border-[var(--border-color)] rounded-lg max-w-full">
+                              <table className="w-full divide-y divide-[var(--border-color)] text-sm text-left" {...props} />
                             </div>
                           ),
                           thead: ({ node, ...props }: any) => <thead className="bg-[var(--input-bg)] text-[var(--foreground)]" {...props} />,
-                          th: ({ node, ...props }: any) => <th className="px-4 py-3 text-left font-medium uppercase tracking-wider" {...props} />,
+                          th: ({ node, ...props }: any) => <th className="px-3 py-2 text-left font-medium uppercase tracking-wider text-xs" {...props} />,
                           tbody: ({ node, ...props }: any) => <tbody className="bg-[var(--sidebar-bg)] divide-y divide-[var(--border-color)] text-[var(--foreground)]" {...props} />,
                           tr: ({ node, ...props }: any) => <tr className="hover:bg-[var(--input-bg)]/50 transition-colors" {...props} />,
-                          td: ({ node, ...props }: any) => <td className="px-4 py-3 whitespace-nowrap" {...props} />,
+                          td: ({ node, ...props }: any) => <td className="px-3 py-2 break-words" {...props} />,
                           p: ({ node, ...props }: any) => <p className="mb-4 leading-7 last:mb-0" {...props} />,
                           ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
                           ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
