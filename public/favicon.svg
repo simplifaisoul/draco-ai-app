@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Clean, professional "D" lettermark -->
+  <path d="M 8 6 L 8 26 L 16 26 C 20 26 24 24 24 16 C 24 8 20 6 16 6 Z M 12 10 L 16 10 C 18 10 20 11 20 16 C 20 21 18 22 16 22 L 12 22 Z" fill="url(#grad)"/>
+</svg>
