@@ -41,11 +41,9 @@ export function SceneController({ children }: { children: ReactNode }) {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 transition={{ duration: 1 }}
-                                className="absolute inset-0 bg-[#0f1117]"
+                                className="absolute inset-0 bg-[#000000]"
                             >
-                                <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-900/30 rounded-full blur-[120px] animate-pulse" />
-                                <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-900/20 rounded-full blur-[120px] animate-pulse delay-1000" />
-                                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5"></div>
+                                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02]"></div>
                             </motion.div>
                         )}
                         {theme === "corporate" && (

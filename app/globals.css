@@ -2,26 +2,26 @@
 
 :root,
 .cosmic {
-  /* Epic Purple & Black (Default) */
-  --background: #0a0a0f;
-  /* Deep black with slight purple tint */
-  --foreground: #e8e8f0;
-  /* Soft white */
-  --color-primary: #a855f7;
-  /* Vibrant purple */
-  --color-secondary: #c084fc;
-  /* Lighter purple */
-  --sidebar-bg: #0f0f18;
-  /* Slightly lighter black */
-  --chat-bg: #0a0a0f;
-  --input-bg: #1a1a28;
-  /* Dark purple-tinted gray */
-  --border-color: #2d2d40;
-  /* Purple-tinted border */
-  --message-user-bg: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
-  /* Epic purple gradient */
-  --message-ai-bg: #14141f;
-  /* Dark purple-black */
+  /* Epic Black Experience (Default) */
+  --background: #000000;
+  /* Pure black */
+  --foreground: #ffffff;
+  /* Pure white for maximum contrast */
+  --color-primary: #9333ea;
+  /* Deep vibrant purple */
+  --color-secondary: #7e22ce;
+  /* Darker purple accent */
+  --sidebar-bg: #0a0a0a;
+  /* Near black */
+  --chat-bg: #000000;
+  --input-bg: #0f0f0f;
+  /* Very dark gray */
+  --border-color: #1a1a1a;
+  /* Subtle dark border */
+  --message-user-bg: linear-gradient(135deg, #6b21a8 0%, #9333ea 50%, #a855f7 100%);
+  /* Deep purple gradient */
+  --message-ai-bg: #0a0a0a;
+  /* Near black with subtle depth */
 }
 
 .corporate {
