@@ -1,29 +1,45 @@
 @import "tailwindcss";
 
-:root, .cosmic {
-  /* Neon Dragon (Default) */
-  --background: #0f1117;
-  --foreground: #f8fafc;
-  --color-primary: #6366f1;
-  --color-secondary: #8b5cf6;
-  --sidebar-bg: #161b22;
-  --chat-bg: #0f1117;
-  --input-bg: #1f242d;
-  --border-color: #2d3748;
-  --message-user-bg: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  --message-ai-bg: #1e232e;
+:root,
+.cosmic {
+  /* Epic Purple & Black (Default) */
+  --background: #0a0a0f;
+  /* Deep black with slight purple tint */
+  --foreground: #e8e8f0;
+  /* Soft white */
+  --color-primary: #a855f7;
+  /* Vibrant purple */
+  --color-secondary: #c084fc;
+  /* Lighter purple */
+  --sidebar-bg: #0f0f18;
+  /* Slightly lighter black */
+  --chat-bg: #0a0a0f;
+  --input-bg: #1a1a28;
+  /* Dark purple-tinted gray */
+  --border-color: #2d2d40;
+  /* Purple-tinted border */
+  --message-user-bg: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
+  /* Epic purple gradient */
+  --message-ai-bg: #14141f;
+  /* Dark purple-black */
 }
 
 .corporate {
   /* Day / Professional */
-  --background: #f8fafc; /* Slate 50 */
-  --foreground: #0f172a; /* Slate 900 */
-  --color-primary: #3b82f6; /* Blue 500 */
-  --color-secondary: #64748b; /* Slate 500 */
+  --background: #f8fafc;
+  /* Slate 50 */
+  --foreground: #0f172a;
+  /* Slate 900 */
+  --color-primary: #3b82f6;
+  /* Blue 500 */
+  --color-secondary: #64748b;
+  /* Slate 500 */
   --sidebar-bg: #ffffff;
   --chat-bg: #f8fafc;
-  --input-bg: #f1f5f9; /* Slate 100 */
-  --border-color: #e2e8f0; /* Slate 200 */
+  --input-bg: #f1f5f9;
+  /* Slate 100 */
+  --border-color: #e2e8f0;
+  /* Slate 200 */
   --message-user-bg: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   --message-ai-bg: #ffffff;
 }
@@ -31,13 +47,18 @@
 .neural {
   /* Night / Matrix */
   --background: #050505;
-  --foreground: #e2e8f0; /* Slate 200 */
-  --color-primary: #10b981; /* Emerald 500 */
-  --color-secondary: #059669; /* Emerald 600 */
+  --foreground: #e2e8f0;
+  /* Slate 200 */
+  --color-primary: #10b981;
+  /* Emerald 500 */
+  --color-secondary: #059669;
+  /* Emerald 600 */
   --sidebar-bg: #0a0a0a;
   --chat-bg: #000000;
-  --input-bg: #171717; /* Neutral 900 */
-  --border-color: #262626; /* Neutral 800 */
+  --input-bg: #171717;
+  /* Neutral 900 */
+  --border-color: #262626;
+  /* Neutral 800 */
   --message-user-bg: linear-gradient(135deg, #059669 0%, #10b981 100%);
   --message-ai-bg: #111111;
 }
