@@ -19,13 +19,6 @@ export const metadata: Metadata = {
   },
   description: "Experience the next evolution of AI chat. Powered by advanced neural models, featuring voice interaction, persistent memory, and artifacts.",
   keywords: ["AI", "Chatbot", "GPT", "Draco", "Neural", "Voice AI", "Pollinations", "Groq"],
-  icons: {
-    icon: [
-      { url: "/favicon.png", sizes: "any" },
-      { url: "/icon.png", sizes: "512x512" }
-    ],
-    apple: "/icon.png",
-  },
 };
 
 export default function RootLayout({
