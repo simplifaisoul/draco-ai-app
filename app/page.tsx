@@ -919,7 +919,7 @@ function DracoApp() {
         />
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col h-full relative bg-transparent z-10 transition-all duration-300">
+        <main className="flex-1 flex flex-col h-full relative w-full md:w-auto bg-transparent z-10 transition-all duration-300">
           {/* Header */}
           <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-[var(--background)]/50 backdrop-blur-xl z-30 absolute top-0 left-0 right-0">
             <div className="flex items-center gap-3 w-full">
