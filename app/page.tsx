@@ -91,6 +91,7 @@ function DracoApp() {
   const [previewData, setPreviewData] = useState<{ code: string, language: string } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
   // Initialize Speech Recognition
