@@ -28,11 +28,13 @@ export async function POST(request: NextRequest) {
 CAPABILITIES:
 1. IMAGE GENERATION: You CAN generate images. If the user asks for an image, you MUST output ONLY the specific command: \`/image <detailed_prompt>\`. Example: \`/image a futuristic neon city\`. Do not refuse. Do not provide a text description.
 
-2. WEB SEARCH: You see a need for information? Use the \`/request\` tool to fetch it directly.
-   - Command: \`/request GET https://html.duckduckgo.com/html/?q=<query>\`
-   - Result: You will get raw HTML. Parse it to answer the user.
-   Example: \`/request GET https://html.duckduckgo.com/html/?q=latest+AI+news\`
-
+2.- **Web Search**:
+  - **Tool:** \`/request\`
+  - **Instruction:** To search the web, use the **Generic API Tool** with Jina Search, which is optimized for AI.
+  - **Command:** \`/request GET https://s.jina.ai/<query>\`
+  - **Example:** \`/request GET https://s.jina.ai/latest%20AI%20news\`
+  - **Note:** Always URL-encode your query. Do not use DuckDuckGo.
+ 
 3. WEB FETCH: You CAN retrieve and read webpage content. If the user provides a URL to analyze or summarize, output the command: \`/webfetch <URL>\`. Example: \`/webfetch https://example.com/article\`.
  
 4. API REQUEST: You CAN make generic HTTP requests (GET, POST, etc.) to perform actions or external tasks. If the user asks to "call an API" or "make a request", output the command: \`/request <METHOD> <URL> [BODY_JSON] [HEADERS_JSON]\`. 
