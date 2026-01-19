@@ -96,8 +96,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent font-mono">
-                                <Bot className="text-[var(--color-primary)]" /> Draco.AI
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent font-mono">
+                                    <Bot className="text-[var(--color-primary)]" /> Draco V0.2
+                                </div>
+                                <span className="hidden md:inline-block px-1.5 py-0.5 rounded bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 text-[9px] text-[var(--color-primary)] font-mono tracking-wider">
+                                    AGENTIC
+                                </span>
                             </div>
                             <button onClick={onClose} className="md:hidden text-gray-400 p-2 hover:bg-white/5 rounded-full">
                                 <X />
@@ -248,8 +253,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 </div>
                             </div>
 
-                            <div className="text-[10px] text-center text-[var(--color-secondary)] pt-2 flex items-center justify-center gap-1">
-                                Developed by SimplifAI-1
+                            <div className="mt-2 pt-3 border-t border-[var(--border-color)]">
+                                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-[var(--color-secondary)] opacity-80 mb-3">
+                                    <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" /> Systems Stable</div>
+                                    <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.3)]" /> Serper Active</div>
+                                    <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.3)]" /> Proxy Ready</div>
+                                    <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.3)]" /> Deep Fetch</div>
+                                </div>
+                                <div className="text-[10px] text-center text-[var(--color-secondary)] opacity-50 hover:opacity-100 transition-opacity">
+                                    Built by SimplifAI-1
+                                </div>
                             </div>
 
                         </div>

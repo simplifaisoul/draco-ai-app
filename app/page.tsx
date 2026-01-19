@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download, Eye, Headphones, LayoutGrid, Brain, Copy, Check } from "lucide-react";
+import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download, Eye, Headphones, LayoutGrid, Brain, Copy, Check, Zap, Terminal, Code, Cpu } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
 import ReactMarkdown from "react-markdown";
@@ -1141,61 +1141,91 @@ function DracoApp() {
           {/* Chat Area */}
           <div className={`flex-1 overflow-y-auto overflow-x-hidden pt-20 pb-[180px] md:pb-[120px] px-4 md:px-8 scroll-smooth custom-scrollbar transition-all duration-300 ${showPreview ? "hidden md:block md:w-1/2 md:max-w-[50%]" : "w-full"}`}>
             {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center opacity-90 px-4">
+              <div className="flex flex-col items-center justify-center h-full px-4 text-center z-10 relative lg:mt-[-5vh]">
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="bg-[var(--color-primary)]/10 p-6 rounded-full mb-6 relative group"
+                  className="mb-8 relative"
                 >
-                  <div className="text-6xl animate-pulse group-hover:scale-110 transition-transform duration-500 cursor-default">🐉</div>
-                  <div className="absolute inset-0 bg-[var(--color-primary)]/20 rounded-full blur-xl animate-pulse delay-75 pointer-events-none"></div>
+                  <div className="text-7xl mb-2 animate-pulse cursor-default drop-shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.5)]">🐉</div>
+                  <div className="absolute inset-0 bg-[var(--color-primary)]/30 rounded-full blur-2xl animate-pulse delay-75 pointer-events-none"></div>
                 </motion.div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] bg-clip-text text-transparent mb-3 bg-[length:200%_auto] animate-gradient">
-                  Draco.AI
+
+                <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-[var(--color-primary)] via-white to-[var(--color-secondary)] bg-clip-text text-transparent mb-4 bg-[length:200%_auto] animate-gradient tracking-tight drop-shadow-sm">
+                  Draco V0.2
                 </h1>
-                <p className="text-[var(--color-secondary)] max-w-md text-sm md:text-base leading-relaxed mb-8">
-                  Your Personalized AI Companion
+                <p className="text-[var(--color-secondary)] max-w-lg text-lg leading-relaxed mb-12 font-normal opacity-90">
+                  Agentic Intelligence with <span className="text-[var(--color-primary)] font-semibold border-b border-[var(--color-primary)]/30">Real-World Connections</span>
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
-                  <motion.div
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">
+                  {/* Card 1: Web Search */}
+                  <motion.button
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-[var(--input-bg)]/60 backdrop-blur-sm border border-[var(--border-color)] p-4 rounded-xl text-left hover:border-[var(--color-primary)]/50 hover:bg-[var(--input-bg)]/80 transition-all cursor-default group shadow-lg"
+                    whileHover={{ scale: 1.05, translateY: -5 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setInput("/websearch ")}
+                    className="flex flex-col items-center p-6 bg-[var(--input-bg)]/40 backdrop-blur-md border border-[var(--border-color)] hover:border-blue-500/50 rounded-2xl transition-all shadow-xl hover:shadow-blue-500/20 group"
                   >
-                    <div className="mb-2 group-hover:scale-110 transition-transform origin-left text-[var(--color-primary)]">
-                      <ImageIcon size={24} />
+                    <div className="p-4 rounded-full bg-blue-500/10 mb-4 group-hover:bg-blue-500/20 transition-colors ring-1 ring-blue-500/20">
+                      <Globe className="w-8 h-8 text-blue-400 group-hover:rotate-12 transition-transform" />
                     </div>
-                    <div className="font-semibold text-sm text-[var(--foreground)]">Image Generation</div>
-                    <div className="text-xs text-[var(--color-secondary)] mt-1">Create stunning visuals on demand</div>
-                  </motion.div>
+                    <h3 className="text-white font-bold mb-1">Web Search</h3>
+                    <p className="text-xs text-gray-400">Live internet access</p>
+                  </motion.button>
 
-                  <motion.div
+                  {/* Card 2: API Request */}
+                  <motion.button
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-[var(--input-bg)]/60 backdrop-blur-sm border border-[var(--border-color)] p-4 rounded-xl text-left hover:border-[var(--color-primary)]/50 hover:bg-[var(--input-bg)]/80 transition-all cursor-default group shadow-lg"
+                    whileHover={{ scale: 1.05, translateY: -5 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setInput("/request GET ")}
+                    className="flex flex-col items-center p-6 bg-[var(--input-bg)]/40 backdrop-blur-md border border-[var(--border-color)] hover:border-purple-500/50 rounded-2xl transition-all shadow-xl hover:shadow-purple-500/20 group"
                   >
-                    <div className="mb-2 group-hover:scale-110 transition-transform origin-left text-[var(--color-primary)]">
-                      <Brain size={24} />
+                    <div className="p-4 rounded-full bg-purple-500/10 mb-4 group-hover:bg-purple-500/20 transition-colors ring-1 ring-purple-500/20">
+                      <Zap className="w-8 h-8 text-purple-400 group-hover:scale-110 transition-transform" />
                     </div>
-                    <div className="font-semibold text-sm text-[var(--foreground)]">Advanced Reasoning</div>
-                    <div className="text-xs text-[var(--color-secondary)] mt-1">Deep analysis & problem solving</div>
-                  </motion.div>
+                    <h3 className="text-white font-bold mb-1">API Protocol</h3>
+                    <p className="text-xs text-gray-400">Universal HTTP Client</p>
+                  </motion.button>
 
-                  <motion.div
+                  {/* Card 3: Reasoning */}
+                  <motion.button
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="bg-[var(--input-bg)]/60 backdrop-blur-sm border border-[var(--border-color)] p-4 rounded-xl text-left hover:border-[var(--color-primary)]/50 hover:bg-[var(--input-bg)]/80 transition-all cursor-default group shadow-lg"
+                    whileHover={{ scale: 1.05, translateY: -5 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setInput("Can you research the current state of Quantum Computing and summarize the key players?")}
+                    className="flex flex-col items-center p-6 bg-[var(--input-bg)]/40 backdrop-blur-md border border-[var(--border-color)] hover:border-emerald-500/50 rounded-2xl transition-all shadow-xl hover:shadow-emerald-500/20 group"
                   >
-                    <div className="mb-2 group-hover:scale-110 transition-transform origin-left text-[var(--color-primary)]">
-                      <FileText size={24} />
+                    <div className="p-4 rounded-full bg-emerald-500/10 mb-4 group-hover:bg-emerald-500/20 transition-colors ring-1 ring-emerald-500/20">
+                      <Brain className="w-8 h-8 text-emerald-400 group-hover:animate-pulse" />
                     </div>
-                    <div className="font-semibold text-sm text-[var(--foreground)]">Persistent Memory</div>
-                    <div className="text-xs text-[var(--color-secondary)] mt-1">Remembers context across chats</div>
-                  </motion.div>
+                    <h3 className="text-white font-bold mb-1">Reasoning</h3>
+                    <p className="text-xs text-gray-400">Deep problem solving</p>
+                  </motion.button>
+
+                  {/* Card 4: Creative */}
+                  <motion.button
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    whileHover={{ scale: 1.05, translateY: -5 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setInput("Generate a futuristic city wallpaper with neon lights")}
+                    className="flex flex-col items-center p-6 bg-[var(--input-bg)]/40 backdrop-blur-md border border-[var(--border-color)] hover:border-pink-500/50 rounded-2xl transition-all shadow-xl hover:shadow-pink-500/20 group"
+                  >
+                    <div className="p-4 rounded-full bg-pink-500/10 mb-4 group-hover:bg-pink-500/20 transition-colors ring-1 ring-pink-500/20">
+                      <ImageIcon className="w-8 h-8 text-pink-400 group-hover:rotate-6 transition-transform" />
+                    </div>
+                    <h3 className="text-white font-bold mb-1">Imagine</h3>
+                    <p className="text-xs text-gray-400">DALL-E 3 Grade Art</p>
+                  </motion.button>
                 </div>
               </div>
             ) : (
