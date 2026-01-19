@@ -33,7 +33,7 @@ CAPABILITIES:
   - **Instruction:** To search the web, use the **Generic API Tool** with a public SearXNG instance (JSON format).
   - **Command:** \`/request GET https://searx.be/search?q=<query>&format=json\`
   - **Example:** \`/request GET https://searx.be/search?q=latest%20AI%20news&format=json\`
-  - **Note:** Returns JSON. Parse `results` array.
+  - **Note:** Returns JSON. Parse the results array.
  
 3. WEB FETCH: You CAN retrieve and read webpage content. If the user provides a URL to analyze or summarize, output the command: \`/webfetch <URL>\`. Example: \`/webfetch https://example.com/article\`.
  
