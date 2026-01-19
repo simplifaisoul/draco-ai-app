@@ -91,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         animate={{ x: 0 }}
                         exit={{ x: -280 }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className={`fixed md:relative z-50 w-[280px] h-full bg-[var(--sidebar-bg)] backdrop-blur-xl border-r border-[var(--border-color)] flex flex-col p-4 shadow-2xl md:shadow-none transition-colors duration-500 ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+                        className={`fixed md:relative shrink-0 md:shrink-0 z-50 w-[280px] h-full bg-[var(--sidebar-bg)] backdrop-blur-xl border-r border-[var(--border-color)] flex flex-col p-4 shadow-2xl md:shadow-none transition-colors duration-500 ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
                             }`}
                     >
                         {/* Header */}
