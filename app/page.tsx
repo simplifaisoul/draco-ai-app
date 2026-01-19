@@ -413,6 +413,184 @@ function DracoApp() {
         return;
       }
 
+      // 1.6. Check for Web Search Command
+      if (originalInput.startsWith("/websearch ")) {
+        const query = originalInput.replace("/websearch ", "").trim();
+        if (!query) {
+          setMessages(prev => [...prev, { role: "assistant", content: "Please provide a search query. Example: `/websearch latest AI news`", timestamp: new Date().toISOString() }]);
+          setIsLoading(false);
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/websearch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query })
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Search failed");
+          }
+
+          let resultText = `🔍 **Web Search Results for "${query}"**\n\n`;
+
+          // Handle Serper API format
+          if (data.results && data.results.results) {
+            const searchResults = data.results.results;
+
+            // Add infobox if available
+            if (data.results.infobox) {
+              resultText += `**${data.results.infobox.title}**\n`;
+              if (data.results.infobox.content) {
+                resultText += `${data.results.infobox.content}\n`;
+              }
+              if (data.results.infobox.url) {
+                resultText += `[Read more](${data.results.infobox.url})\n\n`;
+              }
+            }
+
+            // Add search results
+            if (searchResults.length > 0) {
+              searchResults.forEach((result: any, idx: number) => {
+                resultText += `**${idx + 1}. [${result.title}](${result.url})**\n`;
+                if (result.description) {
+                  resultText += `${result.description}\n\n`;
+                }
+              });
+            } else {
+              resultText += `No results found. Try a different query.`;
+            }
+          } else {
+            resultText += `No results found. Try a different query.`;
+          }
+
+          setMessages(prev => [...prev, { role: "assistant", content: resultText, timestamp: new Date().toISOString() }]);
+        } catch (error) {
+          setMessages(prev => [...prev, { role: "assistant", content: `❌ Search failed: ${error instanceof Error ? error.message : "Unknown error"}`, timestamp: new Date().toISOString() }]);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // 1.7. Check for Web Fetch Command
+      if (originalInput.startsWith("/webfetch ")) {
+        const url = originalInput.replace("/webfetch ", "").replace(/['"]+/g, '').trim();
+        if (!url) {
+          setMessages(prev => [...prev, { role: "assistant", content: "Please provide a URL. Example: `/webfetch https://example.com/article`", timestamp: new Date().toISOString() }]);
+          setIsLoading(false);
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/webfetch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url })
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Fetch failed");
+          }
+
+          let resultText = `📄 **Fetched Content from ${url}**\n\n`;
+          resultText += data.content;
+
+          if (data.truncated) {
+            resultText += `\n\n*Note: Content was truncated from ${data.originalLength} to ${data.finalLength} characters for optimal processing.*`;
+          }
+
+          setMessages(prev => [...prev, { role: "assistant", content: resultText, timestamp: new Date().toISOString() }]);
+        } catch (error) {
+          setMessages(prev => [...prev, { role: "assistant", content: `❌ Fetch failed: ${error instanceof Error ? error.message : "Unknown error"}`, timestamp: new Date().toISOString() }]);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+
+
+      // 1.9. Check for Generic API Request Command
+      if (originalInput.startsWith("/request ")) {
+        const params = originalInput.replace("/request ", "").trim();
+        const parts = params.split(/\s+/);
+        const method = parts[0]?.toUpperCase();
+        const url = parts[1];
+
+        if (!method || !url) {
+          setMessages(prev => [...prev, { role: "assistant", content: "Invalid format. Usage: `/request <METHOD> <URL> [BODY_JSON] [HEADERS_JSON]`", timestamp: new Date().toISOString() }]);
+          setIsLoading(false);
+          return;
+        }
+
+        setIsLoading(true);
+        // Extract optional Body and Headers
+        const restOfString = params.substring(method.length + 1 + url.length + 1).trim();
+        let body = null;
+        let headers = null;
+
+        if (restOfString) {
+          try {
+            // Matching logic as in post-stream handler
+            const firstBracket = restOfString.indexOf('{');
+            if (firstBracket !== -1) {
+              let openCount = 0;
+              let closeIndex = -1;
+              for (let i = firstBracket; i < restOfString.length; i++) {
+                if (restOfString[i] === '{') openCount++;
+                if (restOfString[i] === '}') openCount--;
+                if (openCount === 0) {
+                  closeIndex = i;
+                  break;
+                }
+              }
+              if (closeIndex !== -1) {
+                const bodyString = restOfString.substring(firstBracket, closeIndex + 1);
+                try { body = JSON.parse(bodyString); } catch (e) { body = bodyString; }
+
+                const headerString = restOfString.substring(closeIndex + 1).trim();
+                if (headerString && headerString.startsWith('{')) {
+                  try { headers = JSON.parse(headerString); } catch (e) { }
+                }
+              } else {
+                try { body = JSON.parse(restOfString); } catch (e) { body = restOfString; }
+              }
+            } else {
+              body = restOfString;
+            }
+          } catch (e) {
+            console.error("Error parsing request params", e);
+          }
+        }
+
+        try {
+          const response = await fetch("/api/proxy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ method, url, body, headers })
+          });
+
+          const data = await response.json();
+
+          let output = `📡 **API Request: ${method} ${url}**\n\n`;
+          output += `**Status:** ${data.status} ${data.statusText}\n`;
+
+          const responseStr = typeof data.data === 'string' ? data.data : JSON.stringify(data.data, null, 2);
+          output += `**Response:**\n\`\`\`json\n${responseStr}\n\`\`\``;
+
+          setMessages(prev => [...prev, { role: "assistant", content: output, timestamp: new Date().toISOString() }]);
+        } catch (error) {
+          setMessages(prev => [...prev, { role: "assistant", content: `❌ Request failed: ${error instanceof Error ? error.message : "Unknown error"}`, timestamp: new Date().toISOString() }]);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+
       // 2. Determine Model & System Prompt
       let activeModel = currentModel;
 
@@ -577,6 +755,206 @@ function DracoApp() {
             newArr[newArr.length - 1].content = streamedContent;
             return newArr;
           });
+        }
+
+        // Post-Stream Web Search Check
+        if (streamedContent.trim().startsWith("/websearch ")) {
+          // Only take the first line as the query
+          const query = streamedContent.replace(/^\/websearch\s+/i, "").split('\n')[0].trim();
+          if (query) {
+            setIsLoading(true);
+            try {
+              const response = await fetch("/api/websearch", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query })
+              });
+              const data = await response.json();
+
+              if (response.ok) {
+                let resultText = `🔍 **Web Search Results for "${query}"**\n\n`;
+
+                // Handle Serper API format
+                if (data.results && data.results.results) {
+                  const searchResults = data.results.results;
+
+                  // Add infobox if available
+                  if (data.results.infobox) {
+                    resultText += `**${data.results.infobox.title}**\n`;
+                    if (data.results.infobox.content) {
+                      resultText += `${data.results.infobox.content}\n`;
+                    }
+                    if (data.results.infobox.url) {
+                      resultText += `[Read more](${data.results.infobox.url})\n\n`;
+                    }
+                  }
+
+                  // Add search results
+                  if (searchResults.length > 0) {
+                    searchResults.forEach((result: any, idx: number) => {
+                      resultText += `**${idx + 1}. [${result.title}](${result.url})**\n`;
+                      if (result.description) {
+                        resultText += `${result.description}\n\n`;
+                      }
+                    });
+                  } else {
+                    resultText += `No results found.`;
+                  }
+                } else {
+                  resultText += `No results found.`;
+                }
+
+                setMessages(prev => {
+                  const newArr = [...prev];
+                  newArr[newArr.length - 1].content = resultText;
+                  return newArr;
+                });
+              }
+            } catch (error) {
+              setMessages(prev => {
+                const newArr = [...prev];
+                newArr[newArr.length - 1].content = `❌ Search failed: ${error instanceof Error ? error.message : "Unknown error"}`;
+                return newArr;
+              });
+            }
+            setIsLoading(false);
+          }
+        }
+
+        // Post-Stream Web Fetch Check
+        if (streamedContent.trim().startsWith("/webfetch ")) {
+          // Take first line and remove quotes
+          const url = streamedContent.replace(/^\/webfetch\s+/i, "").split('\n')[0].replace(/['"]+/g, '').trim();
+          if (url) {
+            setIsLoading(true);
+            try {
+              const response = await fetch("/api/webfetch", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url })
+              });
+
+              const data = await response.json();
+
+              if (response.ok) {
+                let resultText = `📄 **Fetched Content from ${url}**\n\n`;
+                resultText += data.content;
+
+                if (data.truncated) {
+                  resultText += `\n\n*Note: Content was truncated from ${data.originalLength} to ${data.finalLength} characters.*`;
+                }
+
+                setMessages(prev => {
+                  const newArr = [...prev];
+                  newArr[newArr.length - 1].content = resultText;
+                  return newArr;
+                });
+              }
+            } catch (error) {
+              setMessages(prev => {
+                const newArr = [...prev];
+                newArr[newArr.length - 1].content = `❌ Fetch failed: ${error instanceof Error ? error.message : "Unknown error"}`;
+                return newArr;
+              });
+            }
+            setIsLoading(false);
+          }
+        }
+
+
+
+        // Post-Stream Generic API Request Check
+        if (streamedContent.trim().startsWith("/request ")) {
+          const params = streamedContent.replace(/^\/request\s+/i, "").trim();
+          // regex to split by space but keep json objects together is tricky
+          // Simpler approach: split by first 3 spaces to get Method, URL, Body, Headers
+          // But strict parsing is better:
+          // Expected format: /request METHOD URL [BODY_JSON] [HEADERS_JSON]
+
+          const parts = params.split(/\s+/);
+          const method = parts[0]?.toUpperCase();
+          const url = parts[1];
+
+          if (method && url) {
+            setIsLoading(true);
+
+            // Extract optional Body and Headers
+            // We need to parse the rest of the string which might contain JSON with spaces
+            const restOfString = params.substring(method.length + 1 + url.length + 1).trim();
+
+            let body = null;
+            let headers = null;
+
+            if (restOfString) {
+              try {
+                // Try to split into two JSON objects if possible
+                // This is a naive parser for the chat command format
+                const firstBracket = restOfString.indexOf('{');
+                if (firstBracket !== -1) {
+                  // Assume the first JSON blob is the body
+                  // We need to find the matching closing bracket
+                  let openCount = 0;
+                  let closeIndex = -1;
+
+                  for (let i = firstBracket; i < restOfString.length; i++) {
+                    if (restOfString[i] === '{') openCount++;
+                    if (restOfString[i] === '}') openCount--;
+                    if (openCount === 0) {
+                      closeIndex = i;
+                      break;
+                    }
+                  }
+
+                  if (closeIndex !== -1) {
+                    const bodyString = restOfString.substring(firstBracket, closeIndex + 1);
+                    try { body = JSON.parse(bodyString); } catch (e) { console.error("Bad JSON body", e); body = bodyString; }
+
+                    const headerString = restOfString.substring(closeIndex + 1).trim();
+                    if (headerString && headerString.startsWith('{')) {
+                      try { headers = JSON.parse(headerString); } catch (e) { console.error("Bad JSON headers", e); }
+                    }
+                  } else {
+                    // Just treat whole thing as body
+                    try { body = JSON.parse(restOfString); } catch (e) { body = restOfString; }
+                  }
+                } else {
+                  // No JSON, maybe just string body
+                  body = restOfString;
+                }
+              } catch (e) {
+                console.error("Error parsing request params", e);
+              }
+            }
+
+            try {
+              const response = await fetch("/api/proxy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ method, url, body, headers })
+              });
+
+              const data = await response.json();
+
+              let output = `📡 **API Request: ${method} ${url}**\n\n`;
+              output += `**Status:** ${data.status} ${data.statusText}\n`;
+
+              const responseStr = typeof data.data === 'string' ? data.data : JSON.stringify(data.data, null, 2);
+              output += `**Response:**\n\`\`\`json\n${responseStr}\n\`\`\``;
+
+              setMessages(prev => {
+                const newArr = [...prev];
+                newArr[newArr.length - 1].content = output;
+                return newArr;
+              });
+            } catch (error) {
+              setMessages(prev => {
+                const newArr = [...prev];
+                newArr[newArr.length - 1].content = `❌ Request failed: ${error instanceof Error ? error.message : "Unknown error"}`;
+                return newArr;
+              });
+            }
+            setIsLoading(false);
+          }
         }
       }
     } catch (error) {
