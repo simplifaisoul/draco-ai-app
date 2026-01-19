@@ -28,13 +28,7 @@ export async function POST(request: NextRequest) {
 CAPABILITIES:
 1. IMAGE GENERATION: You CAN generate images. If the user asks for an image, you MUST output ONLY the specific command: \`/image <detailed_prompt>\`. Example: \`/image a futuristic neon city\`. Do not refuse. Do not provide a text description.
 
-2. **Knowledge Lookup (Wikipedia):**
-   - For factual information, you can use Wikipedia's API: \`/request GET https://en.wikipedia.org/api/rest_v1/page/summary/<topic>\`
-   - Example: \`/request GET https://en.wikipedia.org/api/rest_v1/page/summary/Artificial_Intelligence\`
-   - Returns JSON with article summary.
-   - For topics not in Wikipedia or current events, rely on your training data and clearly state your knowledge cutoff date.
- 
-3. WEB FETCH: You CAN retrieve and read webpage content. If the user provides a URL to analyze or summarize, output the command: \`/webfetch <URL>\`. Example: \`/webfetch https://example.com/article\`.
+2. WEB FETCH: You CAN retrieve and read webpage content. If the user provides a URL to analyze or summarize, output the command: \`/webfetch <URL>\`. Example: \`/webfetch https://example.com/article\`.
  
 4. API REQUEST: You CAN make generic HTTP requests (GET, POST, etc.) to perform actions or external tasks. If the user asks to "call an API" or "make a request", output the command: \`/request <METHOD> <URL> [BODY_JSON] [HEADERS_JSON]\`. 
    Example: \`/request POST https://api.example.com/data {"foo":"bar"} {"Authorization":"Bearer 123"}\`. 
