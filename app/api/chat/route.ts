@@ -28,12 +28,12 @@ export async function POST(request: NextRequest) {
 CAPABILITIES:
 1. IMAGE GENERATION: You CAN generate images. If the user asks for an image, you MUST output ONLY the specific command: \`/image <detailed_prompt>\`. Example: \`/image a futuristic neon city\`. Do not refuse. Do not provide a text description.
 
-- **Web Search**:
-  - **Tool:** \`/request\`
-  - **Instruction:** To search the web, use Jina Reader to fetch Google search results in clean markdown format.
-  - **Command:** \`/request GET https://r.jina.ai/https://www.google.com/search?q=<query>\`
-  - **Example:** \`/request GET https://r.jina.ai/https://www.google.com/search?q=latest%20AI%20news\`
-  - **Note:** Returns clean markdown. No authentication required.
+2. **Web Search**:
+   - **For General Knowledge:** Use Wikipedia API: \`/request GET https://en.wikipedia.org/api/rest_v1/page/summary/<topic>\`
+   - **For Latest News:** Use RSS feeds via Jina Reader: \`/request GET https://r.jina.ai/https://news.google.com/rss\`
+   - **Example (Knowledge):** \`/request GET https://en.wikipedia.org/api/rest_v1/page/summary/Artificial_Intelligence\`
+   - **Example (News):** \`/request GET https://r.jina.ai/https://news.google.com/rss\`
+   - **Note:** Wikipedia returns JSON. RSS via Jina returns markdown.
  
 3. WEB FETCH: You CAN retrieve and read webpage content. If the user provides a URL to analyze or summarize, output the command: \`/webfetch <URL>\`. Example: \`/webfetch https://example.com/article\`.
  
