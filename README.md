@@ -1,6 +1,6 @@
 ## 🏗️ Architecture
 
-Draco AI is a pure **Next.js 14** application (React, TypeScript, Tailwind CSS).
+Draco AI V0.2 is a pure **Next.js 14** application (React, TypeScript, Tailwind CSS) - **Mobile Optimized**.
 
 -   **`app/`**: Application source code.
 -   **`public/`**: Static assets.
