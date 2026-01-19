@@ -1,99 +1,62 @@
+
 import { NextRequest, NextResponse } from 'next/server';
+import * as cheerio from 'cheerio';
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { query } = body;
 
-        if (!query || typeof query !== 'string') {
-            return NextResponse.json(
-                { error: 'Query parameter is required' },
-                { status: 400 }
-            );
+        if (!query) {
+            return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 });
         }
 
-        // Use Serper.dev API (2,500 free queries/month, no credit card required)
-        const SERPER_API_KEY = process.env.SERPER_API_KEY;
+        console.log(`[WebSearch] Scraping DuckDuckGo for: ${query}`);
 
-        console.log('Serper API Key exists:', !!SERPER_API_KEY);
-        console.log('Searching for:', query);
-
-        if (!SERPER_API_KEY) {
-            console.error('SERPER_API_KEY not found in environment variables');
-            return NextResponse.json({
-                success: true,
-                query,
-                results: {
-                    query,
-                    results: [{
-                        title: "API Key Missing",
-                        url: "https://serper.dev",
-                        description: "Please add SERPER_API_KEY to your .env.local file. Get a free API key at serper.dev (2,500 free searches/month)"
-                    }],
-                    infobox: null
-                },
-                source: 'error'
-            });
-        }
-
-        const response = await fetch('https://google.serper.dev/search', {
-            method: 'POST',
+        // Scrape DuckDuckGo HTML (Keyless)
+        // Note: This is a fallback method since standard APIs require keys.
+        const response = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
             headers: {
-                'X-API-KEY': SERPER_API_KEY,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                q: query,
-                num: 5
-            })
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
         });
 
-        console.log('Serper response status:', response.status);
-
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Serper API error:', errorText);
-            throw new Error(`Serper API returned ${response.status}: ${errorText}`);
+            throw new Error(`DuckDuckGo returned ${response.status}`);
         }
 
-        const data = await response.json();
-        console.log('Serper response:', JSON.stringify(data).substring(0, 200));
+        const html = await response.text();
+        const $ = cheerio.load(html);
+        const results: any[] = [];
 
-        // Extract organic results
-        const results = (data.organic || []).slice(0, 5).map((item: any) => ({
-            title: item.title,
-            url: item.link,
-            description: item.snippet || ''
-        }));
+        $('.result').each((i, element) => {
+            if (i >= 5) return false;
+            const title = $(element).find('.result__title').text().trim();
+            const url = $(element).find('.result__a').attr('href');
+            const description = $(element).find('.result__snippet').text().trim();
 
-        // Extract knowledge graph if available
-        const infobox = data.knowledgeGraph ? {
-            title: data.knowledgeGraph.title || '',
-            content: data.knowledgeGraph.description || '',
-            url: data.knowledgeGraph.website || data.knowledgeGraph.descriptionLink || ''
-        } : null;
+            if (title && url) {
+                results.push({ title, url, description });
+            }
+        });
 
-        console.log('Returning', results.length, 'results');
+        console.log(`[WebSearch] Found ${results.length} results`);
 
         return NextResponse.json({
             success: true,
             query,
             results: {
-                query,
                 results,
-                infobox
+                infobox: null // Scraping doesn't easily get infoboxes reliably
             },
-            source: 'serper'
+            source: 'duckduckgo-scrape'
         });
 
     } catch (error) {
         console.error('Web Search Error:', error);
-        return NextResponse.json(
-            {
-                error: 'Failed to perform web search',
-                details: error instanceof Error ? error.message : 'Unknown error'
-            },
-            { status: 500 }
-        );
+        return NextResponse.json({
+            error: 'Failed to perform web search',
+            details: error instanceof Error ? error.message : 'Unknown'
+        }, { status: 500 });
     }
 }
