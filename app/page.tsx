@@ -413,67 +413,7 @@ function DracoApp() {
         return;
       }
 
-      // 1.6. Check for Web Search Command
-      if (originalInput.startsWith("/websearch ")) {
-        const query = originalInput.replace("/websearch ", "").trim();
-        if (!query) {
-          setMessages(prev => [...prev, { role: "assistant", content: "Please provide a search query. Example: `/websearch latest AI news`", timestamp: new Date().toISOString() }]);
-          setIsLoading(false);
-          return;
-        }
 
-        try {
-          const response = await fetch("/api/websearch", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query })
-          });
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.error || "Search failed");
-          }
-
-          let resultText = `🔍 **Web Search Results for "${query}"**\n\n`;
-
-          // Handle Serper API format
-          if (data.results && data.results.results) {
-            const searchResults = data.results.results;
-
-            // Add infobox if available
-            if (data.results.infobox) {
-              resultText += `**${data.results.infobox.title}**\n`;
-              if (data.results.infobox.content) {
-                resultText += `${data.results.infobox.content}\n`;
-              }
-              if (data.results.infobox.url) {
-                resultText += `[Read more](${data.results.infobox.url})\n\n`;
-              }
-            }
-
-            // Add search results
-            if (searchResults.length > 0) {
-              searchResults.forEach((result: any, idx: number) => {
-                resultText += `**${idx + 1}. [${result.title}](${result.url})**\n`;
-                if (result.description) {
-                  resultText += `${result.description}\n\n`;
-                }
-              });
-            } else {
-              resultText += `No results found. Try a different query.`;
-            }
-          } else {
-            resultText += `No results found. Try a different query.`;
-          }
-
-          setMessages(prev => [...prev, { role: "assistant", content: resultText, timestamp: new Date().toISOString() }]);
-        } catch (error) {
-          setMessages(prev => [...prev, { role: "assistant", content: `❌ Search failed: ${error instanceof Error ? error.message : "Unknown error"}`, timestamp: new Date().toISOString() }]);
-        }
-        setIsLoading(false);
-        return;
-      }
 
       // 1.7. Check for Web Fetch Command
       if (originalInput.startsWith("/webfetch ")) {
@@ -759,69 +699,7 @@ function DracoApp() {
           });
         }
 
-        // Post-Stream Web Search Check
-        if (streamedContent.trim().startsWith("/websearch ")) {
-          // Only take the first line as the query
-          const query = streamedContent.replace(/^\/websearch\s+/i, "").split('\n')[0].trim();
-          if (query) {
-            setIsLoading(true);
-            try {
-              const response = await fetch("/api/websearch", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query })
-              });
-              const data = await response.json();
 
-              if (response.ok) {
-                let resultText = `🔍 **Web Search Results for "${query}"**\n\n`;
-
-                // Handle Serper API format
-                if (data.results && data.results.results) {
-                  const searchResults = data.results.results;
-
-                  // Add infobox if available
-                  if (data.results.infobox) {
-                    resultText += `**${data.results.infobox.title}**\n`;
-                    if (data.results.infobox.content) {
-                      resultText += `${data.results.infobox.content}\n`;
-                    }
-                    if (data.results.infobox.url) {
-                      resultText += `[Read more](${data.results.infobox.url})\n\n`;
-                    }
-                  }
-
-                  // Add search results
-                  if (searchResults.length > 0) {
-                    searchResults.forEach((result: any, idx: number) => {
-                      resultText += `**${idx + 1}. [${result.title}](${result.url})**\n`;
-                      if (result.description) {
-                        resultText += `${result.description}\n\n`;
-                      }
-                    });
-                  } else {
-                    resultText += `No results found.`;
-                  }
-                } else {
-                  resultText += `No results found.`;
-                }
-
-                setMessages(prev => {
-                  const newArr = [...prev];
-                  newArr[newArr.length - 1].content = resultText;
-                  return newArr;
-                });
-              }
-            } catch (error) {
-              setMessages(prev => {
-                const newArr = [...prev];
-                newArr[newArr.length - 1].content = `❌ Search failed: ${error instanceof Error ? error.message : "Unknown error"}`;
-                return newArr;
-              });
-            }
-            setIsLoading(false);
-          }
-        }
 
         // Post-Stream Web Fetch Check
         if (streamedContent.trim().startsWith("/webfetch ")) {
@@ -1041,7 +919,7 @@ function DracoApp() {
         />
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col h-full relative w-full bg-transparent z-10 transition-all duration-300">
+        <main className="flex-1 flex flex-col h-full relative bg-transparent z-10 transition-all duration-300">
           {/* Header */}
           <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-[var(--background)]/50 backdrop-blur-xl z-30 absolute top-0 left-0 right-0">
             <div className="flex items-center gap-3 w-full">
@@ -1169,7 +1047,7 @@ function DracoApp() {
                       transition={{ delay: 0.1 }}
                       whileHover={{ scale: 1.05, translateY: -5 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => setInput("/websearch ")}
+                      onClick={() => setInput("Search for ")}
                       className="flex flex-col items-center p-6 bg-[var(--input-bg)]/40 backdrop-blur-md border border-[var(--border-color)] hover:border-blue-500/50 rounded-2xl transition-all shadow-xl hover:shadow-blue-500/20 group"
                     >
                       <div className="p-4 rounded-full bg-blue-500/10 mb-4 group-hover:bg-blue-500/20 transition-colors ring-1 ring-blue-500/20">
@@ -1384,7 +1262,7 @@ function DracoApp() {
             </AnimatePresence>
 
             {/* Input Area - Fixed positioning for mobile */}
-            <div className={`fixed bottom-0 left-0 right-0 p-3 md:p-4 pt-8 md:pt-10 bg-gradient-to-t from-[var(--background)] via-[var(--background)] to-transparent z-20 transition-all duration-300 ${showPreview ? "md:w-1/2" : "w-full"}`}>
+            <div className={`absolute bottom-0 w-full p-3 md:p-4 pt-8 md:pt-10 bg-gradient-to-t from-[var(--background)] via-[var(--background)] to-transparent z-20 transition-all duration-300 ${showPreview ? "md:w-1/2" : ""}`}>
               <div className="max-w-3xl mx-auto relative group">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
 
