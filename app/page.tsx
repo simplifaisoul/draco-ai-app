@@ -1041,21 +1041,21 @@ function DracoApp() {
                   </p>
 
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">
-                    {/* Card 1: Chat */}
+                    {/* Card 1: Daily News */}
                     <motion.button
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 }}
                       whileHover={{ scale: 1.05, translateY: -5 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => setInput("Hello! ")}
+                      onClick={() => setInput("/request GET https://news.google.com/rss")}
                       className="flex flex-col items-center p-6 bg-[var(--input-bg)]/40 backdrop-blur-md border border-[var(--border-color)] hover:border-blue-500/50 rounded-2xl transition-all shadow-xl hover:shadow-blue-500/20 group"
                     >
                       <div className="p-4 rounded-full bg-blue-500/10 mb-4 group-hover:bg-blue-500/20 transition-colors ring-1 ring-blue-500/20">
-                        <MessageSquare className="w-8 h-8 text-blue-400 group-hover:rotate-12 transition-transform" />
+                        <Globe className="w-8 h-8 text-blue-400 group-hover:rotate-12 transition-transform" />
                       </div>
-                      <h3 className="text-white font-bold mb-1">Chat</h3>
-                      <p className="text-xs text-gray-400">Natural conversation</p>
+                      <h3 className="text-white font-bold mb-1">Daily News</h3>
+                      <p className="text-xs text-gray-400">Live Headlines (RSS)</p>
                     </motion.button>
 
                     {/* Card 2: API Request */}
