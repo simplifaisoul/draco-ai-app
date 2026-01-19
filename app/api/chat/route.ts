@@ -28,12 +28,12 @@ export async function POST(request: NextRequest) {
 CAPABILITIES:
 1. IMAGE GENERATION: You CAN generate images. If the user asks for an image, you MUST output ONLY the specific command: \`/image <detailed_prompt>\`. Example: \`/image a futuristic neon city\`. Do not refuse. Do not provide a text description.
 
-2.- **Web Search**:
+- **Web Search**:
   - **Tool:** \`/request\`
-  - **Instruction:** To search the web, use the **Generic API Tool** with a public SearXNG instance (JSON format).
-  - **Command:** \`/request GET https://searx.be/search?q=<query>&format=json\`
-  - **Example:** \`/request GET https://searx.be/search?q=latest%20AI%20news&format=json\`
-  - **Note:** Returns JSON. Parse the results array.
+  - **Instruction:** To search the web, use Jina Reader to fetch Google search results in clean markdown format.
+  - **Command:** \`/request GET https://r.jina.ai/https://www.google.com/search?q=<query>\`
+  - **Example:** \`/request GET https://r.jina.ai/https://www.google.com/search?q=latest%20AI%20news\`
+  - **Note:** Returns clean markdown. No authentication required.
  
 3. WEB FETCH: You CAN retrieve and read webpage content. If the user provides a URL to analyze or summarize, output the command: \`/webfetch <URL>\`. Example: \`/webfetch https://example.com/article\`.
  
