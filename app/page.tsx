@@ -921,7 +921,7 @@ function DracoApp() {
         {/* Main Content */}
         <main className="flex-1 flex flex-col h-full relative w-full md:w-auto bg-transparent z-10 transition-all duration-300">
           {/* Header */}
-          <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-[var(--background)]/50 backdrop-blur-xl z-30 absolute top-0 left-0 right-0">
+          <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-[var(--background)]/90 backdrop-blur-xl z-40 fixed top-0 left-0 right-0 md:absolute md:bg-[var(--background)]/50">
             <div className="flex items-center gap-3 w-full">
               <button onClick={() => setSidebarOpen(true)} className="md:hidden text-[var(--color-secondary)] p-2 hover:bg-white/5 rounded-lg active:scale-95">
                 <Menu />
@@ -1020,7 +1020,7 @@ function DracoApp() {
           <div className="flex-1 overflow-hidden relative flex">
 
             {/* Chat Area */}
-            <div className={`flex-1 overflow-y-auto overflow-x-hidden pt-20 pb-[180px] md:pb-[120px] px-4 md:px-8 scroll-smooth custom-scrollbar transition-all duration-300 ${showPreview ? "hidden md:block md:w-1/2 md:max-w-[50%]" : "w-full"}`}>
+            <div className={`flex-1 overflow-y-auto overflow-x-hidden pt-16 pb-32 px-4 md:px-8 scroll-smooth custom-scrollbar transition-all duration-300 ${showPreview ? "hidden md:block md:w-1/2 md:max-w-[50%]" : "w-full"}`} ref={messagesContainerRef}>
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full px-4 text-center z-10 relative lg:mt-[-5vh]">
                   <motion.div
