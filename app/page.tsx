@@ -16,17 +16,11 @@ import { Dashboard } from "./components/Dashboard";
 import { TermsModal } from "./components/TermsModal";
 import { SceneController, BrandLink, useScene } from "./components/SceneController";
 import { Sidebar } from "./components/Sidebar"; // New Import
-import { HistoryManager, ChatSession } from "./lib/history"; // New Import
-import { ToolStatus } from "./components/ToolStatus"; // New Import
+import { HistoryManager, ChatSession, Message } from "./lib/history"; // Updated Import
+import { ToolStatus } from "./components/ToolStatus";
 
 // Types
-interface Message {
-  role: "user" | "assistant" | "system";
-  content: string;
-  timestamp: string;
-  thought?: string; // New field for Chain of Thought
-  isThinking?: boolean; // State during generation
-}
+// Message interface removed (imported from lib/history)
 
 interface AIModel {
   id: string;
