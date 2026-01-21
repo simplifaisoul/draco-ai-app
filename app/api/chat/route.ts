@@ -38,6 +38,11 @@ CAPABILITIES:
    Example: \`/request POST https://api.example.com/data {"foo":"bar"} {"Authorization":"Bearer 123"}\`. 
    Note: The body and headers are optional and should be valid JSON.
 
+PROTOCOL:
+- TOOL USAGE: When using a tool, output ONLY the command.
+- SUMMARIZATION: Upon receiving a "Tool Output", you MUST summarize what action was taken and the result.
+- NEXT STEPS: Always specific suggest the best next steps for the user based on the tool result.
+
 STYLE: Helpful, smart, and concise. Format code nicely. Do not start with JSON or debugging info.`;
 
         // Prepend system prompt. We allow user/client system prompts to stack after this one.

@@ -91,14 +91,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         animate={{ x: 0 }}
                         exit={{ x: -280 }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className={`fixed md:relative shrink-0 md:shrink-0 z-50 w-[280px] h-full bg-[var(--sidebar-bg)] backdrop-blur-xl border-r border-[var(--border-color)] flex flex-col p-4 shadow-2xl md:shadow-none transition-colors duration-500 ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+                        className={`fixed md:relative shrink-0 md:shrink-0 z-50 w-[280px] h-full bg-[var(--sidebar-bg)]/60 backdrop-blur-2xl border-r border-white/10 flex flex-col p-4 shadow-2xl md:shadow-none transition-colors duration-500 ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
                             }`}
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent font-mono">
-                                    <Bot className="text-[var(--color-primary)]" /> Draco V0.2
+                                    <Bot className="text-[var(--color-primary)]" /> Draco V0.3
                                 </div>
                                 <span className="hidden md:inline-block px-1.5 py-0.5 rounded bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 text-[9px] text-[var(--color-primary)] font-mono tracking-wider">
                                     AGENTIC

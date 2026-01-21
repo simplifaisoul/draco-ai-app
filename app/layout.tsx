@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Draco V0.2 - Agentic AI",
-  description: "Advanced AI with Agentic Capabilities: Web Search, API Proxy, and Deep Analysis.",
-  keywords: ["AI", "Chatbot", "GPT", "Draco", "Neural", "Voice AI", "Pollinations", "Groq"],
+  title: "Draco V0.3 - Agentic AI",
+  description: "Draco V0.3: Advanced Agentic AI with distinct personalities (The Architect, The Explorer), Glassmorphic UI, and recursive research capabilities.",
+  keywords: ["AI", "Chatbot", "GPT", "Draco", "Neural", "Voice AI", "Pollinations", "SimplifAI-1", "Agentic"],
 };
 
 export const viewport: Viewport = {

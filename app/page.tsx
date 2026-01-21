@@ -17,6 +17,7 @@ import { TermsModal } from "./components/TermsModal";
 import { SceneController, BrandLink, useScene } from "./components/SceneController";
 import { Sidebar } from "./components/Sidebar"; // New Import
 import { HistoryManager, ChatSession } from "./lib/history"; // New Import
+import { ToolStatus } from "./components/ToolStatus"; // New Import
 
 // Types
 interface Message {
@@ -35,7 +36,9 @@ interface AIModel {
 }
 
 const MODELS: AIModel[] = [
-  { id: "openai", name: "Draco V0.2", icon: "🐲", description: "Primary Advanced Model" },
+  { id: "draco-prime", name: "Draco Prime", icon: "🐲", description: "Balanced & Versatile Assistant" },
+  { id: "draco-architect", name: "The Architect", icon: "📐", description: "Code & Engineering Expert" },
+  { id: "draco-explorer", name: "The Explorer", icon: "🧭", description: "Deep Research & Analysis" },
 ];
 
 export default function Home() {
@@ -51,7 +54,7 @@ function DracoApp() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [currentModel, setCurrentModel] = useState("openai");
+  const [currentModel, setCurrentModel] = useState("draco-prime");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [enableSearch, setEnableSearch] = useState(false);
@@ -229,7 +232,13 @@ function DracoApp() {
   }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      const { scrollHeight, clientHeight } = messagesContainerRef.current;
+      messagesContainerRef.current.scrollTo({
+        top: scrollHeight - clientHeight,
+        behavior: "smooth"
+      });
+    }
   };
 
   const clearAllHistory = () => {
@@ -347,506 +356,294 @@ function DracoApp() {
     });
   }, []);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  // --- Command Execution Helper ---
+  const executeToolCommand = async (commandLine: string): Promise<string | null> => {
+    const line = commandLine.trim();
 
-    window.speechSynthesis.cancel(); // Stop speaking if user interrupts
-    setSpeakingMsgId(null);
-
-    const originalInput = input.trim();
-    // For UI display, if there's an attachment, append it as markdown image
-    const uiContent = attachment ? `${originalInput}\n\n![${attachment.name}](${attachment.url})` : originalInput;
-
-    const userMsg: Message = { role: "user", content: uiContent, timestamp: new Date().toISOString() };
-
-    // Update State
-    const newMessages = [...messages, userMsg];
-    setMessages(newMessages);
-
-    // Update Session Title if first message
-    if (messages.length === 0 && activeSessionId) {
-      HistoryManager.updateTitle(activeSessionId, originalInput);
+    // 1. Web Fetch
+    if (line.startsWith("/webfetch ")) {
+      const url = line.replace("/webfetch ", "").split('\n')[0].replace(/['"]+/g, '').trim();
+      if (!url) return "Error: No URL provided";
+      try {
+        const response = await fetch("/api/webfetch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          let res = `Fetched Content from ${url}:\n${data.content}`;
+          if (data.truncated) res += `\n(Truncated)`;
+          return res;
+        } else {
+          return `Error fetching ${url}: ${data.error}`;
+        }
+      } catch (e: any) {
+        return `Error executing webfetch: ${e.message}`;
+      }
     }
 
-    setInput("");
-    setAttachment(null); // Clear attachment
-    setIsLoading(true);
+    // 2. Generic Request
+    if (line.startsWith("/request ")) {
+      const params = line.replace("/request ", "").trim();
+      const parts = params.split(/\s+/);
+      const method = parts[0]?.toUpperCase();
+      const url = parts[1];
+      if (!method || !url) return "Error: Invalid request format. Usage: /request METHOD URL [BODY] [HEADERS]";
 
-    try {
-      // 1. Check for Image Command
-      if (originalInput.startsWith("/image") || originalInput.startsWith("/draw")) {
-        const prompt = originalInput.replace(/^\/(image|draw)\s*/i, "").trim();
-        if (!prompt) {
-          setMessages(prev => [...prev, { role: "assistant", content: "Please provide a description for the image. Example: `/image neon dragon`", timestamp: new Date().toISOString() }]);
-          setIsLoading(false);
-          return;
-        }
+      const restOfString = params.substring(method.length + 1 + url.length + 1).trim();
+      let body = null;
+      let headers = null;
 
-        const encodedPrompt = encodeURIComponent(prompt);
-        const randomSeed = Math.floor(Math.random() * 10000);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
-
-        await new Promise(r => setTimeout(r, 600));
-
-        const imageMsg: Message = {
-          role: "assistant",
-          content: `Here is your generated image for "**${prompt}**":\n\n![Generated Image](${imageUrl})`,
-          timestamp: new Date().toISOString()
-        };
-        setMessages(prev => [...prev, imageMsg]);
-        setIsLoading(false);
-        return;
-      }
-
-      // 1.5. Check for Memory Commands
-      if (originalInput.startsWith("/remember ")) {
-        const textToRemember = originalInput.replace("/remember ", "").trim();
-        if (textToRemember) {
-          setMemory(prev => [...prev, textToRemember]);
-          setMessages(prev => [...prev, { role: "assistant", content: `🧠 I've stored that in The Vault: "${textToRemember}"`, timestamp: new Date().toISOString() }]);
-          setIsLoading(false);
-          return;
-        }
-      }
-      if (originalInput.startsWith("/forget ")) {
-        setMessages(prev => [...prev, { role: "assistant", content: "To forget something, please use the 'The Vault' section in the sidebar.", timestamp: new Date().toISOString() }]);
-        setIsLoading(false);
-        return;
-      }
-
-
-
-      // 1.7. Check for Web Fetch Command
-      if (originalInput.startsWith("/webfetch ")) {
-        const url = originalInput.replace("/webfetch ", "").replace(/['"]+/g, '').trim();
-        if (!url) {
-          setMessages(prev => [...prev, { role: "assistant", content: "Please provide a URL. Example: `/webfetch https://example.com/article`", timestamp: new Date().toISOString() }]);
-          setIsLoading(false);
-          return;
-        }
-
+      if (restOfString) {
         try {
-          const response = await fetch("/api/webfetch", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url })
-          });
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.error || "Fetch failed");
-          }
-
-          let resultText = `📄 **Fetched Content from ${url}**\n\n`;
-          resultText += data.content;
-
-          if (data.truncated) {
-            resultText += `\n\n*Note: Content was truncated from ${data.originalLength} to ${data.finalLength} characters for optimal processing.*`;
-          }
-
-          setMessages(prev => [...prev, { role: "assistant", content: resultText, timestamp: new Date().toISOString() }]);
-        } catch (error) {
-          setMessages(prev => [...prev, { role: "assistant", content: `❌ Fetch failed: ${error instanceof Error ? error.message : "Unknown error"}`, timestamp: new Date().toISOString() }]);
-        }
-        setIsLoading(false);
-        return;
-      }
-
-
-
-
-
-      // 1.9. Check for Generic API Request Command
-      if (originalInput.startsWith("/request ")) {
-        const params = originalInput.replace("/request ", "").trim();
-        const parts = params.split(/\s+/);
-        const method = parts[0]?.toUpperCase();
-        const url = parts[1];
-
-        if (!method || !url) {
-          setMessages(prev => [...prev, { role: "assistant", content: "Invalid format. Usage: `/request <METHOD> <URL> [BODY_JSON] [HEADERS_JSON]`", timestamp: new Date().toISOString() }]);
-          setIsLoading(false);
-          return;
-        }
-
-        setIsLoading(true);
-        // Extract optional Body and Headers
-        const restOfString = params.substring(method.length + 1 + url.length + 1).trim();
-        let body = null;
-        let headers = null;
-
-        if (restOfString) {
-          try {
-            // Matching logic as in post-stream handler
-            const firstBracket = restOfString.indexOf('{');
-            if (firstBracket !== -1) {
-              let openCount = 0;
-              let closeIndex = -1;
-              for (let i = firstBracket; i < restOfString.length; i++) {
-                if (restOfString[i] === '{') openCount++;
-                if (restOfString[i] === '}') openCount--;
-                if (openCount === 0) {
-                  closeIndex = i;
-                  break;
-                }
-              }
-              if (closeIndex !== -1) {
-                const bodyString = restOfString.substring(firstBracket, closeIndex + 1);
-                try { body = JSON.parse(bodyString); } catch (e) { body = bodyString; }
-
-                const headerString = restOfString.substring(closeIndex + 1).trim();
-                if (headerString && headerString.startsWith('{')) {
-                  try { headers = JSON.parse(headerString); } catch (e) { }
-                }
-              } else {
-                try { body = JSON.parse(restOfString); } catch (e) { body = restOfString; }
+          const firstBracket = restOfString.indexOf('{');
+          if (firstBracket !== -1) {
+            let openCount = 0;
+            let closeIndex = -1;
+            for (let i = firstBracket; i < restOfString.length; i++) {
+              if (restOfString[i] === '{') openCount++;
+              if (restOfString[i] === '}') openCount--;
+              if (openCount === 0) { closeIndex = i; break; }
+            }
+            if (closeIndex !== -1) {
+              const bodyString = restOfString.substring(firstBracket, closeIndex + 1);
+              try { body = JSON.parse(bodyString); } catch { body = bodyString; }
+              const headerString = restOfString.substring(closeIndex + 1).trim();
+              if (headerString && headerString.startsWith('{')) {
+                try { headers = JSON.parse(headerString); } catch { }
               }
             } else {
-              body = restOfString;
+              try { body = JSON.parse(restOfString); } catch { body = restOfString; }
             }
-          } catch (e) {
-            console.error("Error parsing request params", e);
+          } else {
+            body = restOfString;
           }
-        }
-
-        try {
-          const response = await fetch("/api/proxy", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ method, url, body, headers })
-          });
-
-          const data = await response.json();
-
-          let output = `📡 **API Request: ${method} ${url}**\n\n`;
-          output += `**Status:** ${data.status} ${data.statusText}\n`;
-
-          const responseStr = typeof data.data === 'string' ? data.data : JSON.stringify(data.data, null, 2);
-          output += `**Response:**\n\`\`\`json\n${responseStr}\n\`\`\``;
-
-          setMessages(prev => [...prev, { role: "assistant", content: output, timestamp: new Date().toISOString() }]);
-        } catch (error) {
-          setMessages(prev => [...prev, { role: "assistant", content: `❌ Request failed: ${error instanceof Error ? error.message : "Unknown error"}`, timestamp: new Date().toISOString() }]);
-        }
-        setIsLoading(false);
-        return;
+        } catch (e) { console.error("Params parse error", e); }
       }
 
-
-      // 2. Determine Model & System Prompt
-      let activeModel = currentModel;
-
-      // 3. Streaming Request
-      const vaultContext = memory.length > 0 ? `\n\n[THE VAULT - LONG TERM MEMORY]:\n${memory.map((m, i) => `${i + 1}. ${m}`).join("\n")}\n\n[INSTRUCTION]: Use the above memory to personalize your response if relevant.` : "";
-      const finalSystemPrompt = settings.systemPrompt + vaultContext;
-
-      const messagesPayload = [
-        { role: "system", content: finalSystemPrompt },
-        ...newMessages.map((m) => ({ role: m.role, content: m.content })),
-      ];
-
-      // Add current message. If attachment, format as multimodal.
-      if (attachment) {
-        messagesPayload.pop(); // Remove the last text-only message we just added to state (or handled differently)
-        // Wait, 'newMessages' has the last message. 'messagesPayload' is constructed from it.
-        // But for API payload we need multimodal object format if attachment.
-
-        // Let's reconstruction last item in payload
-        const lastPayloadItem = messagesPayload[messagesPayload.length - 1];
-        messagesPayload[messagesPayload.length - 1] = {
-          role: "user",
-          content: [
-            { type: "text", text: originalInput },
-            { type: "image_url", image_url: { url: attachment.url } }
-          ]
-        } as any;
+      try {
+        const response = await fetch("/api/proxy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ method, url, body, headers })
+        });
+        const data = await response.json();
+        const responseStr = typeof data.data === 'string' ? data.data : JSON.stringify(data.data, null, 2);
+        return `API Request ${method} ${url} Result:\nStatus: ${data.status} ${data.statusText}\nResponse:\n${responseStr}`;
+      } catch (e: any) {
+        return `Error executing request: ${e.message}`;
       }
+    }
 
+    return null;
+  };
+
+  // --- Recursive Turn Processor ---
+  const processTurn = async (currentHistory: Message[], depth: number = 0) => {
+    if (depth > 5) {
+      setMessages(prev => [...prev, { role: "system", content: "⚠️ Max conversation turns reached (Loop protection).", timestamp: new Date().toISOString() }]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    const vaultContext = memory.length > 0 ? `\n\n[THE VAULT - LONG TERM MEMORY]:\n${memory.map((m, i) => `${i + 1}. ${m}`).join("\n")}\n\n[INSTRUCTION]: Use the above memory to personalize your response if relevant.` : "";
+
+    // Dynamic System Prompt for Recursion
+    let systemPromptExtras = "";
+    if (depth > 0) {
+      systemPromptExtras = "\n\n[SYSTEM UPDATE]: You have just received the output of a tool you executed. Please ANALYZE the 'Tool Output', SUMMARIZE what it tells us, and propose the BEST NEXT STEP or answer the user's question completely.";
+    }
+
+    const finalSystemPrompt = settings.systemPrompt + vaultContext + systemPromptExtras;
+
+    const messagesPayload = [
+      { role: "system", content: finalSystemPrompt },
+      ...currentHistory.map(m => ({ role: m.role, content: m.content }))
+    ];
+
+    try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: messagesPayload,
-          model: activeModel,
-        }),
+        body: JSON.stringify({ messages: messagesPayload, model: currentModel }),
       });
 
-      if (response.status === 429) {
-        setMessages(prev => [...prev, { role: "assistant", content: "⏳ Rate limit exceeded. Please wait a moment.", timestamp: new Date().toISOString() }]);
+      if (!response.ok) throw new Error("API Error: " + response.statusText);
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No stream reader");
+
+      // Add Assistant Message Placeholder
+      const newMsgId = Date.now();
+      setMessages(prev => [...prev, { role: "assistant", content: "", timestamp: new Date().toISOString(), isThinking: false }]);
+
+      const decoder = new TextDecoder();
+      let done = false;
+      let streamedContent = "";
+      let streamedThought = "";
+      let buffer = "";
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunkValue = decoder.decode(value, { stream: true });
+        buffer += chunkValue;
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || "";
+
+        let hasNewContent = false;
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data: ")) continue;
+          const dataStr = trimmed.slice(6);
+          if (dataStr === "[DONE]") continue;
+
+          try {
+            const json = JSON.parse(dataStr);
+            const contentChunk = json.choices?.[0]?.delta?.content;
+            const reasoningChunk = json.choices?.[0]?.delta?.reasoning_content;
+
+            if (contentChunk) { streamedContent += contentChunk; hasNewContent = true; }
+            if (reasoningChunk) { streamedThought += reasoningChunk; hasNewContent = true; }
+          } catch { }
+        }
+
+        if (hasNewContent) {
+          setMessages(prev => {
+            const newArr = [...prev];
+            const lastMsg = newArr[newArr.length - 1];
+            lastMsg.content = streamedContent;
+            if (streamedThought) {
+              lastMsg.thought = streamedThought;
+              lastMsg.isThinking = !streamedContent;
+            }
+            return newArr;
+          });
+        }
+      }
+
+      // --- Post-Processing & Recursion Check ---
+
+      // 1. Image Check (Legacy display logic, no loop needed usually unless requested)
+      if (streamedContent.trim().startsWith("/image") || streamedContent.trim().startsWith("/draw")) {
+        const prompt = streamedContent.replace(/^\/(image|draw)\s*/i, "").trim();
+        const encodedPrompt = encodeURIComponent(prompt);
+        const randomSeed = Math.floor(Math.random() * 10000);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
+        streamedContent = `Generated image for "**${prompt}**":\n\n![Generated Image](${imageUrl})`;
+
+        // Update the message with the image markdown
+        setMessages(prev => {
+          const newArr = [...prev];
+          newArr[newArr.length - 1].content = streamedContent;
+          return newArr;
+        });
+        // End of turn for images
         setIsLoading(false);
         return;
       }
 
-      if (!response.ok) throw new Error("API Error");
-
-      // Check if response is JSON (legacy/fallback) or Stream
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const data = await response.json();
-        let content = data.response;
-        if (typeof content === 'object') content = JSON.stringify(content);
-
-        // Image Check (for legacy path)
-        if (content.trim().startsWith("/image") || content.trim().startsWith("/draw")) {
-          const prompt = content.replace(/^\/(image|draw)\s*/i, "").trim();
-          const encodedPrompt = encodeURIComponent(prompt);
-          const randomSeed = Math.floor(Math.random() * 10000);
-          const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
-          content = `Generated image for "**${prompt}**":\n\n![Generated Image](${imageUrl})`;
-        }
-
-        setMessages(prev => [...prev, {
-          role: "assistant",
-          content: content,
-          timestamp: new Date().toISOString(),
-          thought: data.cached ? "⚡ Cached Response" : undefined,
-          isThinking: false
-        }]);
-      } else {
-        // Handle Streaming Response
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error("No reader available");
-
-        // Add initial empty assistant message
-        setMessages(prev => [...prev, {
-          role: "assistant",
-          content: "",
-          timestamp: new Date().toISOString(),
-          isThinking: false
-        }]);
-
-        const decoder = new TextDecoder();
-        let done = false;
-        let streamedContent = "";
-        let streamedThought = "";
-        let buffer = ""; // Buffer for handling split chunks
-
-        while (!done) {
-          const { value, done: doneReading } = await reader.read();
-          done = doneReading;
-          const chunkValue = decoder.decode(value, { stream: true });
-          buffer += chunkValue;
-
-          // Process buffer line by line
-          const lines = buffer.split('\n');
-          // Keep the last line in buffer as it might be incomplete
-          buffer = lines.pop() || "";
-
-          let hasNewContent = false;
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-
-            if (trimmed.startsWith("data: ")) {
-              const dataStr = trimmed.slice(6);
-              if (dataStr === "[DONE]") continue;
-
-              try {
-                const json = JSON.parse(dataStr);
-                // Extract content from OpenAI-style chunk
-                const contentChunk = json.choices?.[0]?.delta?.content;
-                // Optional: usage of reasoning_content if available (e.g. DeepSeek)
-                const reasoningChunk = json.choices?.[0]?.delta?.reasoning_content;
-
-                if (contentChunk) {
-                  streamedContent += contentChunk;
-                  hasNewContent = true;
-                }
-
-                if (reasoningChunk) {
-                  streamedThought += reasoningChunk;
-                  hasNewContent = true;
-                }
-              } catch (e) {
-                // If parse fails, ignore (it might be a keepalive or garbage)
-                // console.warn("Failed to parse SSE JSON", e);
-              }
-            } else {
-              // Non-SSE line? 
-              // If we are strictly in SSE mode, we ignore. 
-              // If the provider sends raw text mixed in (unlikely for Pollinations), we might lose it.
-              // But given the logs, it IS SSE. So stricter parsing is better to avoid "data: ..." text.
-            }
-          }
-
-          if (hasNewContent) {
-            setMessages(prev => {
-              const newArr = [...prev];
-              const lastMsg = newArr[newArr.length - 1];
-              lastMsg.content = streamedContent;
-              if (streamedThought) {
-                lastMsg.thought = streamedThought;
-                lastMsg.isThinking = !streamedContent; // If we have thought but no content yet, we are "thinking"
-              }
-              return newArr;
-            });
-          }
-        }
-
-        // Post-Stream Image Check
-        if (streamedContent.trim().startsWith("/image") || streamedContent.trim().startsWith("/draw")) {
-          const prompt = streamedContent.replace(/^\/(image|draw)\s*/i, "").trim();
-          const encodedPrompt = encodeURIComponent(prompt);
-          const randomSeed = Math.floor(Math.random() * 10000);
-          const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
-          streamedContent = `Generated image for "**${prompt}**":\n\n![Generated Image](${imageUrl})`;
-
-          setMessages(prev => {
-            const newArr = [...prev];
-            newArr[newArr.length - 1].content = streamedContent;
-            return newArr;
-          });
-        }
-
-
-
-        // Post-Stream Web Fetch Check
-        if (streamedContent.trim().startsWith("/webfetch ")) {
-          // Take first line and remove quotes
-          const url = streamedContent.replace(/^\/webfetch\s+/i, "").split('\n')[0].replace(/['"]+/g, '').trim();
-          if (url) {
-            setIsLoading(true);
-            try {
-              const response = await fetch("/api/webfetch", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url })
-              });
-
-              const data = await response.json();
-
-              if (response.ok) {
-                let resultText = `📄 **Fetched Content from ${url}**\n\n`;
-                resultText += data.content;
-
-                if (data.truncated) {
-                  resultText += `\n\n*Note: Content was truncated from ${data.originalLength} to ${data.finalLength} characters.*`;
-                }
-
-                setMessages(prev => {
-                  const newArr = [...prev];
-                  newArr[newArr.length - 1].content = resultText;
-                  return newArr;
-                });
-              }
-            } catch (error) {
-              setMessages(prev => {
-                const newArr = [...prev];
-                newArr[newArr.length - 1].content = `❌ Fetch failed: ${error instanceof Error ? error.message : "Unknown error"}`;
-                return newArr;
-              });
-            }
-            setIsLoading(false);
-          }
-        }
-
-
-
-        // Post-Stream Generic API Request Check
-        if (streamedContent.trim().startsWith("/request ")) {
-          const params = streamedContent.replace(/^\/request\s+/i, "").trim();
-          // regex to split by space but keep json objects together is tricky
-          // Simpler approach: split by first 3 spaces to get Method, URL, Body, Headers
-          // But strict parsing is better:
-          // Expected format: /request METHOD URL [BODY_JSON] [HEADERS_JSON]
-
-          const parts = params.split(/\s+/);
-          const method = parts[0]?.toUpperCase();
-          const url = parts[1];
-
-          if (method && url) {
-            setIsLoading(true);
-
-            // Extract optional Body and Headers
-            // We need to parse the rest of the string which might contain JSON with spaces
-            const restOfString = params.substring(method.length + 1 + url.length + 1).trim();
-
-            let body = null;
-            let headers = null;
-
-            if (restOfString) {
-              try {
-                // Try to split into two JSON objects if possible
-                // This is a naive parser for the chat command format
-                const firstBracket = restOfString.indexOf('{');
-                if (firstBracket !== -1) {
-                  // Assume the first JSON blob is the body
-                  // We need to find the matching closing bracket
-                  let openCount = 0;
-                  let closeIndex = -1;
-
-                  for (let i = firstBracket; i < restOfString.length; i++) {
-                    if (restOfString[i] === '{') openCount++;
-                    if (restOfString[i] === '}') openCount--;
-                    if (openCount === 0) {
-                      closeIndex = i;
-                      break;
-                    }
-                  }
-
-                  if (closeIndex !== -1) {
-                    const bodyString = restOfString.substring(firstBracket, closeIndex + 1);
-                    try { body = JSON.parse(bodyString); } catch (e) { console.error("Bad JSON body", e); body = bodyString; }
-
-                    const headerString = restOfString.substring(closeIndex + 1).trim();
-                    if (headerString && headerString.startsWith('{')) {
-                      try { headers = JSON.parse(headerString); } catch (e) { console.error("Bad JSON headers", e); }
-                    }
-                  } else {
-                    // Just treat whole thing as body
-                    try { body = JSON.parse(restOfString); } catch (e) { body = restOfString; }
-                  }
-                } else {
-                  // No JSON, maybe just string body
-                  body = restOfString;
-                }
-              } catch (e) {
-                console.error("Error parsing request params", e);
-              }
-            }
-
-            try {
-              const response = await fetch("/api/proxy", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ method, url, body, headers })
-              });
-
-              const data = await response.json();
-
-              let output = `📡 **API Request: ${method} ${url}**\n\n`;
-              output += `**Status:** ${data.status} ${data.statusText}\n`;
-
-              const responseStr = typeof data.data === 'string' ? data.data : JSON.stringify(data.data, null, 2);
-              output += `**Response:**\n\`\`\`json\n${responseStr}\n\`\`\``;
-
-              setMessages(prev => {
-                const newArr = [...prev];
-                newArr[newArr.length - 1].content = output;
-                return newArr;
-              });
-            } catch (error) {
-              setMessages(prev => {
-                const newArr = [...prev];
-                newArr[newArr.length - 1].content = `❌ Request failed: ${error instanceof Error ? error.message : "Unknown error"}`;
-                return newArr;
-              });
-            }
-            setIsLoading(false);
-          }
+      // 2. Tool Command Check for Loop
+      let foundCommand = "";
+      // Simple line scan for commands
+      const contentLines = streamedContent.split('\n');
+      for (const line of contentLines) {
+        const t = line.trim();
+        if (t.startsWith("/webfetch ") || t.startsWith("/request ")) {
+          foundCommand = t;
+          break; // Execute first found command
         }
       }
+
+      if (foundCommand) {
+        // Execute Tool
+        const result = await executeToolCommand(foundCommand);
+        if (result) {
+          // Add Tool Output to History as 'system' role
+          const toolMsg: Message = {
+            role: "system",
+            content: `🛠️ **Tool Output:**\n\`\`\`\n${result.substring(0, 500)}${result.length > 500 ? "..." : ""}\n\`\`\``,
+            timestamp: new Date().toISOString()
+          };
+
+          setMessages(prev => [...prev, toolMsg]);
+
+          // Construct full history for next turn
+          // We need the AI message we just generated + the tool message
+          const aiMsg: Message = { role: "assistant", content: streamedContent, timestamp: new Date().toISOString() };
+          const toolMsgForHistory: Message = { role: "system", content: `Tool Output: ${result}`, timestamp: new Date().toISOString() };
+          const nextHistory = [...currentHistory, aiMsg, toolMsgForHistory]; // Full result for AI
+
+          // Recurse
+          await processTurn(nextHistory, depth + 1);
+        } else {
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
+      }
+
     } catch (error) {
       console.error(error);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "⚠️ Error connecting to AI. Please try again.", timestamp: new Date().toISOString() },
-      ]);
-    } finally {
+      setMessages(prev => [...prev, { role: "assistant", content: "⚠️ Connection Error", timestamp: new Date().toISOString() }]);
       setIsLoading(false);
     }
+  };
+
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    window.speechSynthesis.cancel();
+    setSpeakingMsgId(null);
+
+    const originalInput = input.trim();
+    const uiContent = attachment ? `${originalInput}\n\n![${attachment.name}](${attachment.url})` : originalInput;
+    const userMsg: Message = { role: "user", content: uiContent, timestamp: new Date().toISOString() };
+
+    setMessages(prev => [...prev, userMsg]);
+    setInput("");
+    setAttachment(null);
+    setIsLoading(true);
+
+    // Check for client-side legacy commands
+    if (originalInput.startsWith("/remember ")) {
+      const textToRemember = originalInput.replace("/remember ", "").trim();
+      setMemory(prev => [...prev, textToRemember]);
+      setMessages(prev => [...prev, { role: "assistant", content: `🧠 Remembered: "${textToRemember}"`, timestamp: new Date().toISOString() }]);
+      setIsLoading(false);
+      return;
+    }
+
+    if (originalInput.startsWith("/forget ")) {
+      setMessages(prev => [...prev, { role: "assistant", content: "To forget, use The Vault in sidebar.", timestamp: new Date().toISOString() }]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Direct Client Command (Legacy Support / Override)
+    if (originalInput.startsWith("/webfetch ") || originalInput.startsWith("/request ") || originalInput.startsWith("/image ") || originalInput.startsWith("/draw ")) {
+      if (originalInput.startsWith("/image") || originalInput.startsWith("/draw")) {
+        const prompt = originalInput.replace(/^\/(image|draw)\s*/i, "").trim();
+        const encodedPrompt = encodeURIComponent(prompt);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${Math.floor(Math.random() * 10000)}&width=1024&height=768&nologo=true`;
+        await new Promise(r => setTimeout(r, 600));
+        setMessages(prev => [...prev, { role: "assistant", content: `Generated: "**${prompt}**"\n\n![Image](${imageUrl})`, timestamp: new Date().toISOString() }]);
+        setIsLoading(false);
+        return;
+      }
+
+      const result = await executeToolCommand(originalInput);
+      setMessages(prev => [...prev, { role: "assistant", content: result || "Command Failed", timestamp: new Date().toISOString() }]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Default: Start Agent Loop
+    await processTurn([...messages, userMsg]);
   };
 
   return (
@@ -1029,12 +826,12 @@ function DracoApp() {
                     animate={{ scale: 1, opacity: 1 }}
                     className="mb-8 relative"
                   >
-                    <div className="text-7xl mb-2 animate-pulse cursor-default drop-shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.5)]">🐉</div>
+                    <img src="/dragon_final.png" alt="Draco" className="w-24 h-24 mb-2 animate-pulse cursor-default drop-shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.5)] object-contain" />
                     <div className="absolute inset-0 bg-[var(--color-primary)]/30 rounded-full blur-2xl animate-pulse delay-75 pointer-events-none"></div>
                   </motion.div>
 
                   <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-[var(--color-primary)] via-white to-[var(--color-secondary)] bg-clip-text text-transparent mb-4 bg-[length:200%_auto] animate-gradient tracking-tight drop-shadow-sm">
-                    Draco V0.2
+                    Draco V0.3
                   </h1>
                   <p className="text-[var(--color-secondary)] max-w-lg text-lg leading-relaxed mb-12 font-normal opacity-90">
                     Agentic Intelligence with <span className="text-[var(--color-primary)] font-semibold border-b border-[var(--color-primary)]/30">Real-World Connections</span>
@@ -1117,112 +914,114 @@ function DracoApp() {
                       key={i}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`flex gap-3 md:gap-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                      className={`flex w-full ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}
                     >
-                      {msg.role === "assistant" && (
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="w-8 h-8 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center shrink-0 border border-[var(--color-primary)]/30 mt-1 shadow-lg shadow-[var(--color-primary)]/10">
-                            <Bot size={16} className="text-[var(--color-primary)]" />
+                      {/* Icon removed for cleaner look, handled in caption */}
+
+                      {msg.role === "system" ? (
+                        <ToolStatus content={msg.content} />
+                      ) : (
+                        <div className={`relative max-w-[85%] sm:max-w-[75%] p-4 rounded-2xl shadow-sm text-sm md:text-base leading-relaxed
+                        ${msg.role === "user"
+                            ? "bg-[var(--message-user-bg)] text-white rounded-br-none shadow-[0_4px_15px_rgba(var(--color-primary-rgb),0.3)] border border-white/10 text-right"
+                            : "bg-[var(--message-ai-bg)] text-[var(--foreground)] rounded-bl-none border border-[var(--border-color)] shadow-[0_2px_10px_rgba(0,0,0,0.1)]"
+                          }
+                      `}>
+                          {/* Role Icon Caption */}
+                          <div className={`absolute -bottom-6 ${msg.role === "user" ? "-right-2" : "-left-2"} flex items-center gap-1 opacity-60 text-xs`}>
+                            {msg.role === "user" ? <span className="font-semibold">You</span> : <span className="font-semibold text-[var(--color-primary)]">Draco</span>}
+                            <span>•</span>
+                            <span>{new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
+
+                          {/* Chain of Thought UI */}
+                          {showChainOfThought && <ThinkingProcess thought={msg.thought || ""} isThinking={msg.isThinking || false} />}
+
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              code({ node, inline, className, children, ...props }: any) {
+                                const match = /language-(\w+)/.exec(className || "");
+                                return !inline && match ? (
+                                  <CodeBlock
+                                    language={match[1]}
+                                    value={String(children).replace(/\n$/, "")}
+                                  />
+                                ) : (
+                                  <code className="bg-black/30 px-1.5 py-0.5 rounded font-mono text-xs text-[var(--color-primary)] border border-white/5" {...props}>
+                                    {children}
+                                  </code>
+                                )
+                              },
+                              table: ({ node, ...props }: any) => (
+                                <div className="overflow-x-auto my-4 border border-[var(--border-color)] rounded-lg max-w-full">
+                                  <table className="w-full divide-y divide-[var(--border-color)] text-sm text-left" {...props} />
+                                </div>
+                              ),
+                              thead: ({ node, ...props }: any) => <thead className="bg-[var(--input-bg)] text-[var(--foreground)]" {...props} />,
+                              th: ({ node, ...props }: any) => <th className="px-3 py-2 text-left font-medium uppercase tracking-wider text-xs" {...props} />,
+                              tbody: ({ node, ...props }: any) => <tbody className="bg-[var(--sidebar-bg)] divide-y divide-[var(--border-color)] text-[var(--foreground)]" {...props} />,
+                              tr: ({ node, ...props }: any) => <tr className="hover:bg-[var(--input-bg)]/50 transition-colors" {...props} />,
+                              td: ({ node, ...props }: any) => <td className="px-3 py-2 break-words" {...props} />,
+                              p: ({ node, ...props }: any) => <p className="mb-4 leading-7 last:mb-0" {...props} />,
+                              ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
+                              ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
+                              li: ({ node, ...props }: any) => <li className="pl-1" {...props} />,
+                              h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mb-4 mt-6 first:mt-0 pb-2 border-b border-[var(--border-color)]" {...props} />,
+                              h2: ({ node, ...props }: any) => <h2 className="text-xl font-bold mb-3 mt-5 pb-1 border-b border-[var(--border-color)]/50" {...props} />,
+                              h3: ({ node, ...props }: any) => <h3 className="text-lg font-bold mb-2 mt-4" {...props} />,
+                              blockquote: ({ node, ...props }: any) => <blockquote className="border-l-4 border-[var(--color-primary)] pl-4 py-1 my-4 bg-[var(--input-bg)]/30 rounded-r italic" {...props} />,
+                              a: ({ node, ...props }: any) => <a className="text-[var(--color-primary)] hover:underline underline-offset-4" target="_blank" rel="noopener noreferrer" {...props} />,
+                              img: ({ ...props }: any) => <img className="rounded-lg shadow-lg my-4 max-w-full h-auto border border-[var(--border-color)]" {...props} />,
+                              hr: ({ ...props }: any) => <hr className="my-6 border-[var(--border-color)]" {...props} />,
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+
+                          {/* Action Buttons for AI Messages */}
+                          {msg.role === "assistant" && (
+                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border-color)]/30">
+                              <button
+                                onClick={() => copyMessage(msg.content, i)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${copiedMessageId === i
+                                  ? "bg-green-500/20 text-green-400 border border-green-500/50"
+                                  : "bg-[var(--input-bg)] text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--border-color)] border border-transparent"
+                                  }`}
+                                title="Copy Message"
+                              >
+                                {copiedMessageId === i ? (
+                                  <>
+                                    <Check size={14} />
+                                    <span>Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={14} />
+                                    <span>Copy</span>
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => toggleSpeech(msg.content, i)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${speakingMsgId === i
+                                  ? "bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/50"
+                                  : "bg-[var(--input-bg)] text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--border-color)] border border-transparent"
+                                  }`}
+                                title="Read Aloud"
+                              >
+                                {speakingMsgId === i ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                                <span>{speakingMsgId === i ? "Stop" : "Listen"}</span>
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Thoughts / Chain of Thought */}
+                          {/* Thoughts moved to top */}
                         </div>
                       )}
 
-                      <div className={`max-w-[90%] md:max-w-[85%] rounded-2xl px-4 py-3 md:px-5 md:py-4 text-sm md:text-base leading-relaxed backdrop-blur-sm transition-all duration-300 ${msg.role === "user"
-                        ? "bg-[image:var(--message-user-bg)] text-white rounded-br-sm shadow-lg shadow-[var(--color-primary)]/20"
-                        : "bg-[var(--message-ai-bg)]/90 border border-[var(--border-color)] text-[var(--foreground)] rounded-bl-sm shadow-xl shadow-[var(--color-primary)]/10 hover:shadow-[var(--color-primary)]/20"
-                        }`}>
 
-                        {/* Chain of Thought UI */}
-                        {showChainOfThought && <ThinkingProcess thought={msg.thought || ""} isThinking={msg.isThinking || false} />}
-
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            code({ node, inline, className, children, ...props }: any) {
-                              const match = /language-(\w+)/.exec(className || "");
-                              return !inline && match ? (
-                                <CodeBlock
-                                  language={match[1]}
-                                  value={String(children).replace(/\n$/, "")}
-                                />
-                              ) : (
-                                <code className="bg-black/30 px-1.5 py-0.5 rounded font-mono text-xs text-[var(--color-primary)] border border-white/5" {...props}>
-                                  {children}
-                                </code>
-                              )
-                            },
-                            table: ({ node, ...props }: any) => (
-                              <div className="overflow-x-auto my-4 border border-[var(--border-color)] rounded-lg max-w-full">
-                                <table className="w-full divide-y divide-[var(--border-color)] text-sm text-left" {...props} />
-                              </div>
-                            ),
-                            thead: ({ node, ...props }: any) => <thead className="bg-[var(--input-bg)] text-[var(--foreground)]" {...props} />,
-                            th: ({ node, ...props }: any) => <th className="px-3 py-2 text-left font-medium uppercase tracking-wider text-xs" {...props} />,
-                            tbody: ({ node, ...props }: any) => <tbody className="bg-[var(--sidebar-bg)] divide-y divide-[var(--border-color)] text-[var(--foreground)]" {...props} />,
-                            tr: ({ node, ...props }: any) => <tr className="hover:bg-[var(--input-bg)]/50 transition-colors" {...props} />,
-                            td: ({ node, ...props }: any) => <td className="px-3 py-2 break-words" {...props} />,
-                            p: ({ node, ...props }: any) => <p className="mb-4 leading-7 last:mb-0" {...props} />,
-                            ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
-                            ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
-                            li: ({ node, ...props }: any) => <li className="pl-1" {...props} />,
-                            h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mb-4 mt-6 first:mt-0 pb-2 border-b border-[var(--border-color)]" {...props} />,
-                            h2: ({ node, ...props }: any) => <h2 className="text-xl font-bold mb-3 mt-5 pb-1 border-b border-[var(--border-color)]/50" {...props} />,
-                            h3: ({ node, ...props }: any) => <h3 className="text-lg font-bold mb-2 mt-4" {...props} />,
-                            blockquote: ({ node, ...props }: any) => <blockquote className="border-l-4 border-[var(--color-primary)] pl-4 py-1 my-4 bg-[var(--input-bg)]/30 rounded-r italic" {...props} />,
-                            a: ({ node, ...props }: any) => <a className="text-[var(--color-primary)] hover:underline underline-offset-4" target="_blank" rel="noopener noreferrer" {...props} />,
-                            img: ({ ...props }: any) => <img className="rounded-lg shadow-lg my-4 max-w-full h-auto border border-[var(--border-color)]" {...props} />,
-                            hr: ({ ...props }: any) => <hr className="my-6 border-[var(--border-color)]" {...props} />,
-                          }}
-                        >
-                          {msg.content}
-                        </ReactMarkdown>
-
-                        {/* Action Buttons for AI Messages */}
-                        {msg.role === "assistant" && (
-                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border-color)]/30">
-                            <button
-                              onClick={() => copyMessage(msg.content, i)}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${copiedMessageId === i
-                                ? "bg-green-500/20 text-green-400 border border-green-500/50"
-                                : "bg-[var(--input-bg)] text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--border-color)] border border-transparent"
-                                }`}
-                              title="Copy Message"
-                            >
-                              {copiedMessageId === i ? (
-                                <>
-                                  <Check size={14} />
-                                  <span>Copied!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy size={14} />
-                                  <span>Copy</span>
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={() => toggleSpeech(msg.content, i)}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${speakingMsgId === i
-                                ? "bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/50"
-                                : "bg-[var(--input-bg)] text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--border-color)] border border-transparent"
-                                }`}
-                              title="Read Aloud"
-                            >
-                              {speakingMsgId === i ? <Volume2 size={14} /> : <VolumeX size={14} />}
-                              <span>{speakingMsgId === i ? "Stop" : "Listen"}</span>
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Thoughts / Chain of Thought */}
-                        {/* Thoughts moved to top */}
-                      </div>
-
-                      {msg.role === "user" && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0 shadow-lg shadow-purple-500/20 mt-1">
-                          <User size={16} className="text-white" />
-                        </div>
-                      )}
                     </motion.div>
                   ))}
 
@@ -1361,7 +1160,7 @@ function DracoApp() {
               </div>
 
               <div className="text-center mt-3 text-[10px] text-[var(--color-secondary)] font-mono">
-                Draco V0.2 • Powered by Pollinations & SimplifAI-1
+                Draco V0.3 • Powered by Pollinations & SimplifAI-1
               </div>
 
             </div>
