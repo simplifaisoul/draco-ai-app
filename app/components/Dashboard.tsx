@@ -11,18 +11,21 @@ interface DashboardProps {
         messageCount: number;
         memoryCount: number;
     };
-    onVibeSelect: (prompt: string) => void;
+    onModelSelect: (id: string) => void;
     onOpenSettings: () => void;
 }
 
 const VIBES = [
-    { id: 'default', name: 'Draco Default', desc: 'Helpful & Smart', emoji: '🐉', prompt: 'You are Draco AI. Helpful, smart, and concise. Format code nicely.' },
-    { id: 'coder', name: 'Code Wizard', desc: 'Tech Expert', emoji: '👨‍💻', prompt: 'You are an expert Senior Software Engineer. You write clean, secure, and optimized code. You assume the user is also a developer.' },
-    { id: 'roast', name: 'Roast Master', desc: 'Savage & Funny', emoji: '🔥', prompt: 'You are a savage Roast Master. You are helpful but you ruthlessly roast the user\'s questions and code.' },
-    { id: 'uwu', name: 'UwU Bot', desc: 'Cursed Energy', emoji: '👉👈', prompt: 'You are a shy anime girl. You use emoticons like uwu and owo constantly. You are very helpful but cringe.' },
+    { id: 'draco-prime', name: 'Draco (Default)', desc: 'Helpful & Smart', emoji: '🐉' },
+    { id: 'draco-architect', name: 'Expert Coder', desc: 'Tech Expert', emoji: '👩‍💻' },
+    { id: 'draco-roast', name: 'Roast Master', desc: 'Savage & Funny', emoji: '🔥' },
+    { id: 'draco-eli5', name: 'ELI5 Tutor', desc: 'Simple Explanations', emoji: '🎓' },
+    { id: 'draco-bard', name: 'The Bard', desc: 'Poetic & Dramatic', emoji: '📜' },
+    { id: 'draco-caller', name: 'Draco Caller', desc: 'Bland.ai Automation', emoji: '📞' },
+    { id: 'draco-scraper', name: 'Draco Scraper', desc: 'Apify Extraction', emoji: '🕷️' },
 ];
 
-export const Dashboard = ({ isOpen, onClose, stats, onVibeSelect, onOpenSettings }: DashboardProps) => {
+export const Dashboard = ({ isOpen, onClose, stats, onModelSelect, onOpenSettings }: DashboardProps) => {
     const [time, setTime] = useState(new Date());
     const [weather, setWeather] = useState<string>("Loading...");
     const [greeting, setGreeting] = useState("");
@@ -122,7 +125,7 @@ export const Dashboard = ({ isOpen, onClose, stats, onVibeSelect, onOpenSettings
                         {VIBES.map(vibe => (
                             <button
                                 key={vibe.id}
-                                onClick={() => { onVibeSelect(vibe.prompt); onClose(); }} // Close dashboard on select for instant feel
+                                onClick={() => { onModelSelect(vibe.id); onClose(); }} // Close dashboard on select for instant feel
                                 className="bg-[var(--input-bg)]/50 border border-[var(--border-color)] hover:border-[var(--color-primary)] hover:bg-[var(--input-bg)] p-4 rounded-xl text-left transition-all active:scale-95 group"
                             >
                                 <div className="text-2xl mb-2 group-hover:scale-110 transition-transform origin-left">{vibe.emoji}</div>

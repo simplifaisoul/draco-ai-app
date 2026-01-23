@@ -30,9 +30,13 @@ interface AIModel {
 }
 
 const MODELS: AIModel[] = [
-  { id: "draco-prime", name: "Draco Prime", icon: "🐲", description: "Balanced & Versatile Assistant" },
-  { id: "draco-architect", name: "The Architect", icon: "📐", description: "Code & Engineering Expert" },
-  { id: "draco-explorer", name: "The Explorer", icon: "🧭", description: "Deep Research & Analysis" },
+  { id: "draco-prime", name: "Draco (Default)", icon: "🐲", description: "Balanced & Versatile Assistant" },
+  { id: "draco-architect", name: "Expert Coder", icon: "👩‍💻", description: "The Architect - Tech Expert" },
+  { id: "draco-caller", name: "Draco Caller", icon: "📞", description: "Bland.ai Phone Automation" },
+  { id: "draco-scraper", name: "Draco Scraper", icon: "🕷️", description: "Apify Data Extraction" },
+  { id: "draco-roast", name: "Roast Master", icon: "🔥", description: "Savage & Funny" },
+  { id: "draco-eli5", name: "ELI5 Tutor", icon: "🎓", description: "Explain Like I'm 5" },
+  { id: "draco-bard", name: "The Bard", icon: "📜", description: "Poetic & Dramatic" },
 ];
 
 export default function Home() {
@@ -679,7 +683,7 @@ function DracoApp() {
             isOpen={dashboardOpen}
             onClose={() => setDashboardOpen(false)}
             stats={{ messageCount: messages.length, memoryCount: memory.length }}
-            onVibeSelect={(prompt) => setSettings(prev => ({ ...prev, systemPrompt: prompt }))}
+            onModelSelect={(id) => { setCurrentModel(id); setDashboardOpen(false); }}
             onOpenSettings={() => setSettingsOpen(true)}
           />
         )}
@@ -956,8 +960,8 @@ function DracoApp() {
                               th: ({ node, ...props }: any) => <th className="px-3 py-2 text-left font-medium uppercase tracking-wider text-xs" {...props} />,
                               tbody: ({ node, ...props }: any) => <tbody className="bg-[var(--sidebar-bg)] divide-y divide-[var(--border-color)] text-[var(--foreground)]" {...props} />,
                               tr: ({ node, ...props }: any) => <tr className="hover:bg-[var(--input-bg)]/50 transition-colors" {...props} />,
-                              td: ({ node, ...props }: any) => <td className="px-3 py-2 break-words" {...props} />,
-                              p: ({ node, ...props }: any) => <p className="mb-4 leading-7 last:mb-0" {...props} />,
+                              td: ({ node, ...props }: any) => <td className="px-3 py-2 break-all whitespace-pre-wrap" {...props} />,
+                              p: ({ node, ...props }: any) => <p className={`mb-4 leading-7 last:mb-0 ${msg.content.startsWith("/") ? "font-mono text-xs opacity-70 bg-black/20 p-2 rounded border border-white/5 break-all" : "break-words whitespace-pre-wrap"}`} {...props} />,
                               ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
                               ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
                               li: ({ node, ...props }: any) => <li className="pl-1" {...props} />,
