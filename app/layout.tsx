@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Draco V0.3 - Agentic AI",
-  description: "Draco V0.3: Advanced Agentic AI with distinct personalities (The Architect, The Explorer), Glassmorphic UI, and recursive research capabilities.",
+  title: "Draco V0.4 - Agentic AI",
+  description: "Draco V0.4: Advanced Agentic AI with multi-model support, glassmorphic UI, and real-world API integrations. Created by SimplifAI-1.",
   keywords: ["AI", "Chatbot", "GPT", "Draco", "Neural", "Voice AI", "Pollinations", "SimplifAI-1", "Agentic"],
 };
 

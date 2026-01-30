@@ -18,6 +18,7 @@ interface SidebarProps {
     onForgetMemory: (index: number) => void;
     currentTheme: 'cosmic' | 'corporate' | 'neural';
     onSetTheme: (theme: 'cosmic' | 'corporate' | 'neural') => void;
+    onJoinBeta: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -34,7 +35,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     memory,
     onForgetMemory,
     currentTheme,
-    onSetTheme
+    onSetTheme,
+    onJoinBeta
 }) => {
     const [sessions, setSessions] = useState<ChatSession[]>([]);
 
@@ -98,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent font-mono">
-                                    <Bot className="text-[var(--color-primary)]" /> Draco V0.3
+                                    <Bot className="text-[var(--color-primary)]" /> Draco V0.4
                                 </div>
                                 <span className="hidden md:inline-block px-1.5 py-0.5 rounded bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 text-[9px] text-[var(--color-primary)] font-mono tracking-wider">
                                     AGENTIC
@@ -110,12 +112,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         </div>
 
                         {/* Actions */}
-                        <button
-                            onClick={onNewChat}
-                            className="w-full flex items-center gap-2 bg-[var(--input-bg)] hover:bg-[var(--border-color)] border border-[var(--border-color)] p-3 rounded-xl text-sm font-medium transition-colors mb-2 active:scale-95 duration-200 shadow-lg shadow-black/5 text-[var(--foreground)]"
-                        >
-                            <Plus size={18} className="text-[var(--color-primary)]" /> New Chat
-                        </button>
+                        <div className="space-y-2 mb-4">
+                            <button
+                                onClick={onNewChat}
+                                className="w-full flex items-center gap-2 bg-[var(--input-bg)] hover:bg-[var(--border-color)] border border-[var(--border-color)] p-3 rounded-xl text-sm font-medium transition-colors active:scale-95 duration-200 shadow-lg shadow-black/5 text-[var(--foreground)]"
+                            >
+                                <Plus size={18} className="text-[var(--color-primary)]" /> New Chat
+                            </button>
+
+                            {/* Agent Mode Trigger */}
+                            <button
+                                onClick={onJoinBeta}
+                                className="w-full relative overflow-hidden group flex items-center gap-2 bg-gradient-to-br from-purple-900/20 to-black border border-purple-500/20 p-3 rounded-xl text-sm font-medium transition-all hover:border-purple-500/50 active:scale-95 duration-200 text-purple-200"
+                            >
+                                <div className="absolute inset-0 bg-purple-500/5 group-hover:bg-purple-500/10 transition-colors" />
+                                <div className="relative flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-purple-400">⚡</span> Agent Mode
+                                    </div>
+                                    <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/20">
+                                        LOCKED
+                                    </span>
+                                </div>
+                            </button>
+                        </div>
 
                         {/* History List */}
                         <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-1">

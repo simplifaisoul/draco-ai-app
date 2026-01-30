@@ -15,8 +15,9 @@ import { ThinkingProcess } from "./components/ThinkingProcess";
 import { Dashboard } from "./components/Dashboard";
 import { TermsModal } from "./components/TermsModal";
 import { SceneController, BrandLink, useScene } from "./components/SceneController";
-import { Sidebar } from "./components/Sidebar"; // New Import
-import { HistoryManager, ChatSession, Message } from "./lib/history"; // Updated Import
+import WaitlistModal from "./components/WaitlistModal"; // New Import
+import { Sidebar } from "./components/Sidebar";
+import { HistoryManager, ChatSession, Message } from "./lib/history";
 import { ToolStatus } from "./components/ToolStatus";
 
 // Types
@@ -58,13 +59,17 @@ function DracoApp() {
   const [enableSearch, setEnableSearch] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(false);
 
+  // Waitlist State
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const handleJoinBeta = () => setWaitlistOpen(true);
+
   // New History State
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // Settings State
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState({
-    systemPrompt: "You are Draco V0.2, an advanced AI. \n\nCAPABILITIES:\n1. IMAGE GENERATION: You CAN generate images. If the user asks for an image, you MUST output ONLY the specific command: `/image <detailed_prompt>`. Example: `/image a futuristic neon city`. Do not refuse. Do not provide a text description. Do not output internal thought processes.\n2. RESEARCH: You have internal knowledge. If you need to search, you are powered by Pollinations and can answer directly.\n\nSTYLE: Helpful, smart, and concise. Format code nicely. Do not start with JSON or debugging info.",
+    systemPrompt: "You are Draco V0.4, an advanced AI created by SimplifAI-1. \n\nIDENTITY:\n- You are NOT an OpenAI model.\n- You are NOT ChatGPT.\n- If asked \"Who made you?\", you MUST reply: \"I am Draco V0.4, created by SimplifAI-1.\"\n\nCAPABILITIES:\n1. IMAGE GENERATION: Output ONLY: `/image <detailed_prompt>`.\n2. RESEARCH: You have internal knowledge. If you need to search, you are powered by Pollinations and can answer directly.\n\nSTYLE: Helpful, smart, and concise. Format code nicely. Do not start with JSON or debugging info.",
     voiceURI: ""
   });
 
@@ -72,6 +77,8 @@ function DracoApp() {
   const [isListening, setIsListening] = useState(false);
   const [handsFreeMode, setHandsFreeMode] = useState(false);
   const [speakingMsgId, setSpeakingMsgId] = useState<number | null>(null);
+
+
 
   // Memory State (The Vault)
   const [memory, setMemory] = useState<string[]>([]);
@@ -457,9 +464,16 @@ function DracoApp() {
 
     const finalSystemPrompt = settings.systemPrompt + vaultContext + systemPromptExtras;
 
+    // OPTIMIZATION: Prune History (Sliding Window)
+    // Keep System Prompt + Last 20 messages to stay within context limits
+    const HISTORY_LIMIT = 20;
+    const prunedHistory = currentHistory.length > HISTORY_LIMIT
+      ? currentHistory.slice(currentHistory.length - HISTORY_LIMIT)
+      : currentHistory;
+
     const messagesPayload = [
       { role: "system", content: finalSystemPrompt },
-      ...currentHistory.map(m => ({ role: m.role, content: m.content }))
+      ...prunedHistory.map(m => ({ role: m.role, content: m.content }))
     ];
 
     try {
@@ -697,6 +711,7 @@ function DracoApp() {
 
       {/* New Sidebar Integration */}
       <div className="flex h-screen overflow-hidden w-full relative">
+        <WaitlistModal isOpen={waitlistOpen} onClose={() => setWaitlistOpen(false)} />
         <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
@@ -712,6 +727,7 @@ function DracoApp() {
           onForgetMemory={(index) => setMemory(prev => prev.filter((_, i) => i !== index))}
           currentTheme={theme as 'cosmic' | 'corporate' | 'neural'}
           onSetTheme={setTheme}
+          onJoinBeta={handleJoinBeta}
         />
 
         {/* Main Content */}
@@ -829,7 +845,7 @@ function DracoApp() {
                   </motion.div>
 
                   <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-[var(--color-primary)] via-white to-[var(--color-secondary)] bg-clip-text text-transparent mb-4 bg-[length:200%_auto] animate-gradient tracking-tight drop-shadow-sm">
-                    Draco V0.3
+                    Draco V0.4
                   </h1>
                   <p className="text-[var(--color-secondary)] max-w-lg text-lg leading-relaxed mb-12 font-normal opacity-90">
                     Agentic Intelligence with <span className="text-[var(--color-primary)] font-semibold border-b border-[var(--color-primary)]/30">Real-World Connections</span>
@@ -960,7 +976,7 @@ function DracoApp() {
                               th: ({ node, ...props }: any) => <th className="px-3 py-2 text-left font-medium uppercase tracking-wider text-xs" {...props} />,
                               tbody: ({ node, ...props }: any) => <tbody className="bg-[var(--sidebar-bg)] divide-y divide-[var(--border-color)] text-[var(--foreground)]" {...props} />,
                               tr: ({ node, ...props }: any) => <tr className="hover:bg-[var(--input-bg)]/50 transition-colors" {...props} />,
-                              td: ({ node, ...props }: any) => <td className="px-3 py-2 break-all whitespace-pre-wrap" {...props} />,
+                              td: ({ node, ...props }: any) => <td className="px-3 py-2 break-words whitespace-pre-wrap" {...props} />,
                               p: ({ node, ...props }: any) => <p className={`mb-4 leading-7 last:mb-0 ${msg.content.startsWith("/") ? "font-mono text-xs opacity-70 bg-black/20 p-2 rounded border border-white/5 break-all" : "break-words whitespace-pre-wrap"}`} {...props} />,
                               ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
                               ol: ({ node, ...props }: any) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
@@ -1158,7 +1174,7 @@ function DracoApp() {
               </div>
 
               <div className="text-center mt-3 text-[10px] text-[var(--color-secondary)] font-mono">
-                Draco V0.3 • Powered by Pollinations & SimplifAI-1
+                Draco V0.4 • Powered by Pollinations & SimplifAI-1
               </div>
 
             </div>

@@ -22,23 +22,27 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { messages, model } = body;
 
-        // 0. Inject System Prompt (Hardcoded Identity)
-        // 0. Inject System Prompt (Dynamic Identity)
-        let SYSTEM_PROMPT = `You are Draco V0.3, an advanced AI.
+        // 0. Inject System Prompt (Mechanics & Safety ONLY)
+        // The Identity (Persona) is provided by the client in the 'messages' array.
+        // 0. Inject System Prompt (Mechanics & Safety ONLY)
+        // The Identity (Persona) is provided by the client in the 'messages' array.
+        let MECHANICS_PROMPT = `SYSTEM MECHANICS (SimplifAI-1 Core):
 CAPABILITIES:
 1. IMAGE GENERATION: Output ONLY: \`/image <detailed_prompt>\`.
 2. WEB FETCH: Output ONLY: \`/webfetch <URL>\`.
 3. NEWS LOOKUP: \`/request GET https://news.google.com/rss\`
 4. API REQUEST: \`/request <METHOD> <URL> [BODY] [HEADERS]\`.
    CRITICAL: If sending HEADERS with a GET request, body MUST be \`{}\`.
-STYLE: Helpful, smart, and concise.`;
+SAFETY: Use the identity provided in the user's system message. if none, default to "Draco V0.4".`;
 
         if (model === 'draco-architect') {
-            SYSTEM_PROMPT = `You are Expert Coder (Draco Mod), a senior software engineer.
+            MECHANICS_PROMPT = `SYSTEM MECHANICS (Expert Coder / SimplifAI-1):
+You are Expert Coder (Draco Mod), a senior software engineer.
 STYLE: Technical, precise, no fluff. Use proper terminology.
 SPECIALIZATION: You prefer code over prose. Provide production-ready, clean implementations.`;
         } else if (model === 'draco-caller') {
-            SYSTEM_PROMPT = `You are Draco Caller, an automation specialist for Bland.ai.
+            MECHANICS_PROMPT = `SYSTEM MECHANICS (Draco Caller / SimplifAI-1):
+You are Draco Caller, an automation specialist for Bland.ai.
 
 CAPABILITIES:
 1. MAKE CALL:
@@ -61,28 +65,32 @@ SAFETY PROTOCOL:
 - YOU DO NOT HAVE A KEY. You MUST ask the user for their Bland.ai API Key if it is not provided in any previous message.
 - NEVER assume a key exists.`;
         } else if (model === 'draco-scraper') {
-            SYSTEM_PROMPT = `You are Draco Scraper, a data extraction specialist for Apify.
+            MECHANICS_PROMPT = `SYSTEM MECHANICS (Draco Scraper / SimplifAI-1):
+You are Draco Scraper, a data extraction specialist for Apify.
 CAPABILITIES:
 - Endpoint: \`https://api.apify.com/v2/acts/<ACTOR_ID>/runs?token=<USER_TOKEN>\` (POST)
 SAFETY PROTOCOL:
 - YOU DO NOT HAVE A TOKEN. You MUST ask the user for their Apify API Token.`;
         } else if (model === 'draco-roast') {
-            SYSTEM_PROMPT = `You are the Roast Master. 🔥
-STYLE: Savage, ruthless, but ultimately helpful. You roast the user's questions, code, and life choices, but still provide the correct answer.
+            MECHANICS_PROMPT = `SYSTEM MECHANICS (Roast Master):
+You are the Roast Master. 🔥
+STYLE: Savage, ruthless, but ultimately helpful.
 TONE: Sarcastic, edgy, internet slang allowed.`;
         } else if (model === 'draco-eli5') {
-            SYSTEM_PROMPT = `You are the ELI5 Tutor. 🎓
+            MECHANICS_PROMPT = `SYSTEM MECHANICS (ELI5 Tutor):
+You are the ELI5 Tutor. 🎓
 STYLE: Explain Like I'm 5.
-TONE: Gentle, patient, use simple analogies (e.g., lemonade stands, lego blocks). Avoid jargon.`;
+TONE: Gentle, patient, use simple analogies. Avoid jargon.`;
         } else if (model === 'draco-bard') {
-            SYSTEM_PROMPT = `You are a poetic AI. 📜
-STYLE: Speak in rhymes or riddles occasionally. Use archaic but understandable language. Be dramatic.
+            MECHANICS_PROMPT = `SYSTEM MECHANICS (The Bard):
+You are a poetic AI. 📜
+STYLE: Speak in rhymes or riddles occasionally. Use archaic but understandable language.
 TONE: Shakespearean, theatrical.`;
         }
 
-        // Prepend system prompt. We allow user/client system prompts to stack after this one.
+        // Prepend Mechanics prompt. The client's system prompt (Identity) comes after.
         const fullMessages = [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: MECHANICS_PROMPT },
             ...messages
         ];
 
