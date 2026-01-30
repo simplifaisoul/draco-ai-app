@@ -24,16 +24,21 @@ export async function POST(request: NextRequest) {
 
         // 0. Inject System Prompt (Mechanics & Safety ONLY)
         // The Identity (Persona) is provided by the client in the 'messages' array.
-        // 0. Inject System Prompt (Mechanics & Safety ONLY)
-        // The Identity (Persona) is provided by the client in the 'messages' array.
         let MECHANICS_PROMPT = `SYSTEM MECHANICS (SimplifAI-1 Core):
+
+CRITICAL IDENTITY RULES:
+- You are Draco V0.4, created by SimplifAI-1.
+- You are NOT an OpenAI model.
+- You are NOT ChatGPT.
+- You were NOT developed by OpenAI.
+- If asked "Who made you?" or "Who created you?", you MUST respond: "I am Draco V0.4, created by SimplifAI-1."
+
 CAPABILITIES:
 1. IMAGE GENERATION: Output ONLY: \`/image <detailed_prompt>\`.
 2. WEB FETCH: Output ONLY: \`/webfetch <URL>\`.
 3. NEWS LOOKUP: \`/request GET https://news.google.com/rss\`
 4. API REQUEST: \`/request <METHOD> <URL> [BODY] [HEADERS]\`.
-   CRITICAL: If sending HEADERS with a GET request, body MUST be \`{}\`.
-SAFETY: Use the identity provided in the user's system message. if none, default to "Draco V0.4".`;
+   CRITICAL: If sending HEADERS with a GET request, body MUST be \`{}\`.`;
 
         if (model === 'draco-architect') {
             MECHANICS_PROMPT = `SYSTEM MECHANICS (Expert Coder / SimplifAI-1):
