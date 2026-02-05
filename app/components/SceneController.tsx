@@ -17,8 +17,11 @@ export const useScene = () => useContext(SceneContext);
 export function SceneController({ children }: { children: ReactNode }) {
     const [theme, setTheme] = useState<SceneTheme>("cosmic");
 
+    const [mounted, setMounted] = useState(false);
+
     // Persist preference
     useEffect(() => {
+        setMounted(true);
         const saved = localStorage.getItem("draco_scene");
         if (saved) setTheme(saved as SceneTheme);
     }, []);
@@ -27,6 +30,10 @@ export function SceneController({ children }: { children: ReactNode }) {
         setTheme(t);
         localStorage.setItem("draco_scene", t);
     };
+
+    if (!mounted) {
+        return <>{children}</>; // Render only children on server/initial client to match
+    }
 
     return (
         <SceneContext.Provider value={{ theme, setTheme: handleSetTheme }}>

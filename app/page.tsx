@@ -57,8 +57,11 @@ function DracoApp() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState("draco-prime");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [enableSearch, setEnableSearch] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false); // Used for hydration check
+
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
   const [dashboardOpen, setDashboardOpen] = useState(false);
 
   // Waitlist State
