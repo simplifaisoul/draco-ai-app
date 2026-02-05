@@ -1,8 +1,51 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getRateLimitKey, applyRateLimitHeaders } from '@/app/lib/rateLimit';
-import { getErrorMessage, ErrorType } from '@/app/lib/errorMessages';
-import { getCachedResponse, setCachedResponse } from '@/app/lib/cache';
-import { providerManager } from '@/app/lib/providers/manager';
+const { messages } = body; // Simplified destructure, model not needed if hardcoded logic is removed or simplified. Or keep model if used for other provider logic. 
+// Actually, looking at the code, 'model' is used for conditional prompts.
+// But the user wants ONLY Pollinations. Pollinations handles "openai" model ID usually.
+// Let's keep 'model' for now to support the other personas (Draco Caller etc) but remove Groq specific bits if any exist. 
+// Checking the file content... There is NO specific block for model === 'grok-2' in the MECHANICS_PROMPT section I viewed. 
+// It seems 'grok-2' was only used in the GroqProvider implementation which I deleted.
+// Wait, looking at the previous file view of route.ts...
+// Lines 43-47: model === 'draco-architect'
+// ...
+// There is no explicit 'grok' check in the mechanics prompt. 
+// However, I should make sure the valid models list in `page.tsx` reflects this change eventually, but for now I am focusing on the backend.
+// The backend `route.ts` seems fine as is regarding the `MECHANICS_PROMPT`.
+// I will just leave it if there's no direct reference to 'grok' or 'xai'.
+
+// Wait, I should verify if I need to change the default model in `page.tsx`.
+// The user said "use pollination remove groq".
+// Pollinations supports 'openai' model ID.
+// GroqProvider used 'grok-2-1212'.
+// If the frontend sends 'grok-2', Pollinations might ignore it or fail if it expects 'openai'.
+// But `PollinationsProvider` (which I edited) hardcodes `const modelId = 'openai';` on line 10.
+// So whatever the frontend sends, PollinationsProvider sends 'openai' to the Pollinations API.
+// So `route.ts` logic for `MECHANICS_PROMPT` customization based on `model` (architect, caller, etc) is still valid for personas.
+
+// So actually, `route.ts` might not need changes if it doesn't reference Groq explicitly.
+// Scanning `route.ts`...
+// It imports `GroqProvider`? No, that was `manager.ts`.
+// `route.ts` imports `providerManager`.
+// So `route.ts` is likely clean.
+
+// I will double check the `page.tsx` default model though.
+// `page.tsx` has `const [currentModel, setCurrentModel] = useState("draco-prime");`.
+// `draco-prime` likely maps to... well, `manager.ts` receives the model.
+// `PollinationsProvider` hardcodes 'openai'. 
+// So the `model` param passed to `callWithFallback` is effectively ignored by `PollinationsProvider` implementation.
+// This is fine.
+
+// One thing: The `route.ts` had a comment: 
+// "let MECHANICS_PROMPT = ... CRITICAL IDENTITY RULES ... - You are NOT an OpenAI model."
+// Pollinations uses OpenAI models behind the scenes often.
+// So the identity prompt is accurate enough ("Created by SimplifAI-1").
+
+// I will skip editing `route.ts` if it has no Groq imports.
+// Let me re-read the import section of `route.ts` just to be super safe.
+// Line 5: `import { providerManager } from '@/app/lib/providers/manager';`
+// No direct Groq import.
+
+// So the task is just to verify and push.
+// I'll update `task.md` instead.
 
 export async function POST(request: NextRequest) {
     const ip = getRateLimitKey(request);

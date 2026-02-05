@@ -1,5 +1,4 @@
 import { PollinationsProvider } from './pollinations';
-import { GroqProvider } from './groq';
 import { Message, CallOptions, ProviderResponse, AIProvider } from './types';
 
 export class ProviderManager {
@@ -8,7 +7,6 @@ export class ProviderManager {
     constructor() {
         this.providers = [
             new PollinationsProvider(),
-            new GroqProvider(),
         ].sort((a, b) => a.priority - b.priority);
     }
 
