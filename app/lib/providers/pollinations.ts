@@ -6,20 +6,24 @@ export class PollinationsProvider implements AIProvider {
     priority = 1;
 
     async call(messages: Message[], options?: CallOptions): Promise<string | ReadableStream> {
-        // Use standard 'openai' endpoint for stability (maps to GPT-4o typically)
-        // Use standard 'openai' endpoint for stability (maps to GPT-4o typically)
-        // const modelId = 'openai'; // Deprecated/Fixed: Suffix causes 502. Use root.
-        const endpoint = `https://text.pollinations.ai/`;
+        // Use the new authenticated gen.pollinations.ai endpoint
+        const endpoint = `https://gen.pollinations.ai/v1/chat/completions`;
+        const apiKey = process.env.POLLINATIONS_API_KEY;
+
+        if (!apiKey) {
+            throw new Error('POLLINATIONS_API_KEY environment variable is required. Get your key at https://enter.pollinations.ai');
+        }
 
         try {
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
                     messages: messages.map(m => ({ role: m.role, content: m.content })), // Sanitize: Only send role/content
+                    model: 'openai', // Default model
                     stream: true // ENABLE STREAMING
                 }),
                 signal: AbortSignal.timeout(30000),
@@ -27,30 +31,24 @@ export class PollinationsProvider implements AIProvider {
 
             if (!response.ok) {
                 const text = await response.text();
-                console.error(`Pollinations API error raw: ${text}`);
+                console.error(`Pollinations API error: ${response.status} - ${text}`);
                 throw new Error(`Pollinations API error: ${response.status} - ${text}`);
             }
 
-            // If streaming is supported/requested, return the body stream
+            // Return the stream directly
             if (response.body) {
                 return response.body;
             }
 
-            // Fallback to text if no body (unlikely)
-            return await response.text();
-
+            throw new Error('No response body from Pollinations');
         } catch (error) {
-            console.error('[Pollinations] Error:', error);
+            console.error('Pollinations call failed:', error);
             throw error;
         }
     }
 
     async health(): Promise<boolean> {
-        try {
-            const response = await fetch('https://text.pollinations.ai/');
-            return response.ok;
-        } catch {
-            return false;
-        }
+        // Simple check - if API key exists, assume healthy
+        return !!process.env.POLLINATIONS_API_KEY;
     }
 }
