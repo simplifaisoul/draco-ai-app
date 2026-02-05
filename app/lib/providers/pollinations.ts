@@ -15,7 +15,7 @@ export class PollinationsProvider implements AIProvider {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    messages: messages,
+                    messages: messages.map(m => ({ role: m.role, content: m.content })), // Sanitize: Only send role/content
                     stream: true // ENABLE STREAMING
                 }),
                 signal: AbortSignal.timeout(30000),

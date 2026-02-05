@@ -21,7 +21,7 @@ export class GroqProvider implements AIProvider {
                 },
                 body: JSON.stringify({
                     model: 'grok-2-1212', // Latest Grok Beta
-                    messages: messages,
+                    messages: messages.map(m => ({ role: m.role, content: m.content })), // Sanitize
                     temperature: 0.7,
                     stream: true, // Enable Streaming
                 }),
