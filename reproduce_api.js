@@ -9,21 +9,16 @@ async function testPollinations() {
     // Testing root endpoint instead of /modelId, passing model in body if needed (though Pollinations often infers or uses path)
     // Actually, Pollinations documentation says GET /:prompt or POST body. 
     // Let's try the root endpoint.
-    const endpoint = `https://text.pollinations.ai/`;
+    const endpoint = `https://text.pollinations.ai/Test`;
 
     console.log(`Testing endpoint: ${endpoint}`);
 
     try {
         const response = await fetch(endpoint, {
-            method: 'POST',
+            method: 'GET',
             headers: {
-                'Content-Type': 'application/json',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             },
-            body: JSON.stringify({
-                messages: messages,
-                stream: false // Testing non-streaming first
-            }),
             timeout: 30000
         });
 
