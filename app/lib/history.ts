@@ -8,6 +8,7 @@ export interface Message {
     timestamp: string;
     thought?: string;
     isThinking?: boolean;
+    reasoning_content?: string;
 }
 
 export interface ChatSession {

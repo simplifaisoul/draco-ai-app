@@ -18,6 +18,8 @@ import { SceneController, BrandLink, useScene } from "./components/SceneControll
 import WaitlistModal from "./components/WaitlistModal"; // New Import
 import { Sidebar } from "./components/Sidebar";
 import { HistoryManager, ChatSession, Message } from "./lib/history";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ToolStatus } from "./components/ToolStatus";
 
 // Types

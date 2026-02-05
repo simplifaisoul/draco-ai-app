@@ -1,6 +1,10 @@
 export interface Message {
     role: 'system' | 'user' | 'assistant';
     content: string;
+    timestamp?: string;
+    thought?: string;
+    isThinking?: boolean;
+    reasoning_content?: string;
 }
 
 export interface CallOptions {
