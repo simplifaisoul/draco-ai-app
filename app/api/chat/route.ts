@@ -147,25 +147,15 @@ TONE: Shakespearean, theatrical.`;
         // NON-STREAMING HANDLING (Legacy/Fallback)
         const textContent = result.content as string;
 
-        // 3. Store in Cache
-        setCachedResponse(messages, textContent, result.provider);
-
-        const response = NextResponse.json({
-            response: textContent,
-            cached: false,
-            provider: result.provider
-        });
-        applyRateLimitHeaders(response, rateLimit);
-        return response;
-
-    } catch (error) {
+    } catch (error: any) {
         console.error('API Error:', error);
-        const errType = (error instanceof Error && error.message?.includes('Rate limit')) ? ErrorType.RATE_LIMIT : ErrorType.API_DOWN;
-        const errorMsg = getErrorMessage(errType);
+
+        // For debugging, ensuring we see the real error
+        const errorMessage = error instanceof Error ? error.message : "Unknown Error";
 
         const response = NextResponse.json(
-            { error: errorMsg.message },
-            { status: 503 }
+            { error: errorMessage },
+            { status: 500 }
         );
         applyRateLimitHeaders(response, rateLimit);
         return response;

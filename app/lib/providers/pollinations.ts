@@ -21,7 +21,11 @@ export class PollinationsProvider implements AIProvider {
                 signal: AbortSignal.timeout(30000),
             });
 
-            if (!response.ok) throw new Error(`Pollinations API error: ${response.status}`);
+            if (!response.ok) {
+                const text = await response.text();
+                console.error(`Pollinations API error raw: ${text}`);
+                throw new Error(`Pollinations API error: ${response.status} - ${text}`);
+            }
 
             // If streaming is supported/requested, return the body stream
             if (response.body) {
