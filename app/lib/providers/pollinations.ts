@@ -7,13 +7,17 @@ export class PollinationsProvider implements AIProvider {
 
     async call(messages: Message[], options?: CallOptions): Promise<string | ReadableStream> {
         // Use standard 'openai' endpoint for stability (maps to GPT-4o typically)
-        const modelId = 'openai';
-        const endpoint = `https://text.pollinations.ai/${modelId}`;
+        // Use standard 'openai' endpoint for stability (maps to GPT-4o typically)
+        // const modelId = 'openai'; // Deprecated/Fixed: Suffix causes 502. Use root.
+        const endpoint = `https://text.pollinations.ai/`;
 
         try {
             const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                },
                 body: JSON.stringify({
                     messages: messages.map(m => ({ role: m.role, content: m.content })), // Sanitize: Only send role/content
                     stream: true // ENABLE STREAMING
