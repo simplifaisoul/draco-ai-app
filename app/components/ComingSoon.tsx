@@ -70,8 +70,12 @@ const ComingSoon: React.FC = () => {
             {/* Content */}
             <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-4 py-20">
                 {/* Logo/Brand */}
-                <div className="mb-8 p-4 bg-white/5 rounded-full border border-white/10 backdrop-blur-sm">
-                    <span className="text-5xl">🐲</span>
+                <div className="mb-8 relative">
+                    <img
+                        src="/dragon_final.png"
+                        alt="Draco Logo"
+                        className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-[0_0_30px_rgba(168,85,247,0.6)] animate-pulse"
+                    />
                 </div>
 
                 {/* Main Heading */}
