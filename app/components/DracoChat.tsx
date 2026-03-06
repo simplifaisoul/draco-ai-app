@@ -69,7 +69,7 @@ export default function DracoChat() {
   // Settings State
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState({
-    systemPrompt: "You are Draco V0.5, an advanced AI created by SimplifAI-1, powered by Google Gemini 2.5 Flash. \n\nIDENTITY:\n- You are Draco, NOT ChatGPT, NOT Claude. You are your own AI.\n- If asked \"Who made you?\", reply: \"I am Draco V0.5, created by SimplifAI-1, powered by Gemini.\"\n\nCAPABILITIES:\n1. IMAGE GENERATION: Output ONLY: `/image <detailed_prompt>`.\n2. WEB BROWSING: Output ONLY: `/webfetch <URL>`.\n3. API CALLS: Output ONLY: `/request <METHOD> <URL> [BODY] [HEADERS]`.\n4. REASONING: You have built-in reasoning mode for complex problems.\n\nSTYLE: Helpful, smart, and concise. Format code nicely. Use emojis for personality.",
+    systemPrompt: "You are Draco AI, an advanced AI created by SimplifAI-1, powered by Google Gemini 2.5 Flash. \n\nIDENTITY:\n- You are Draco, NOT ChatGPT, NOT Claude. You are your own AI.\n- If asked \"Who made you?\", reply: \"I am Draco AI, created by SimplifAI-1, powered by Gemini.\"\n\nCAPABILITIES:\n1. IMAGE GENERATION: Output ONLY: `/image <detailed_prompt>`.\n2. WEB BROWSING: Output ONLY: `/webfetch <URL>`.\n3. API CALLS: Output ONLY: `/request <METHOD> <URL> [BODY] [HEADERS]`.\n4. REASONING: You have built-in reasoning mode for complex problems.\n\nSTYLE: Helpful, smart, and concise. Format code nicely. Use emojis for personality.",
     voiceURI: ""
   });
 
@@ -809,7 +809,7 @@ export default function DracoChat() {
               {/* Logo + Model Selector */}
               <div className="hidden md:flex items-center gap-2 mr-auto">
                 <img src="/dragon_final.png" alt="Draco" className="w-7 h-7 object-contain drop-shadow-[0_0_10px_rgba(var(--color-primary-rgb),0.4)]" />
-                <span className="text-sm font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent">Draco V0.5</span>
+                <span className="text-sm font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent">Draco AI</span>
               </div>
 
               <div className="relative group flex-1 md:flex-none md:w-[180px]">
@@ -891,10 +891,10 @@ export default function DracoChat() {
                   </motion.div>
 
                   <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-[var(--color-primary)] via-white to-[var(--color-secondary)] bg-clip-text text-transparent mb-4 bg-[length:200%_auto] animate-gradient tracking-tight drop-shadow-sm">
-                    Draco V0.5
+                    Draco AI
                   </h1>
                   <p className="text-[var(--color-secondary)] max-w-lg text-lg leading-relaxed mb-12 font-normal opacity-90">
-                    Agentic Intelligence with <span className="text-[var(--color-primary)] font-semibold border-b border-[var(--color-primary)]/30">Real-World Connections</span>
+                    Your AI with <span className="text-[var(--color-primary)] font-semibold border-b border-[var(--color-primary)]/30">Search • Image Gen • API Access</span>
                   </p>
 
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">
@@ -1291,7 +1291,7 @@ export default function DracoChat() {
               </div>
 
               <div className="text-center mt-3 text-[10px] text-[var(--color-secondary)] font-mono">
-                Draco V0.5 • A-Grade Image Gen • Powered by Gemini & SimplifAI-1
+                Draco AI • A-Grade Image Gen • Powered by Gemini & SimplifAI-1
               </div>
 
             </div>

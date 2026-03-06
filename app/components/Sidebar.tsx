@@ -102,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent font-mono">
-                                    <img src="/dragon_final.png" alt="Draco" className="w-7 h-7 object-contain drop-shadow-[0_0_12px_rgba(var(--color-primary-rgb),0.5)]" /> Draco V0.5
+                                    <img src="/dragon_final.png" alt="Draco" className="w-7 h-7 object-contain drop-shadow-[0_0_12px_rgba(var(--color-primary-rgb),0.5)]" /> Draco AI
                                 </div>
                             </div>
                             <button onClick={onClose} className="md:hidden text-gray-400 p-2 hover:bg-white/5 rounded-full">
