@@ -999,6 +999,12 @@ export default function DracoChat() {
 
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
+                            urlTransform={(url: string) => {
+                              if (url.startsWith('data:image/')) return url;
+                              if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('mailto:') || url.startsWith('tel:')) return url;
+                              if (url.startsWith('/') || url.startsWith('#')) return url;
+                              return '';
+                            }}
                             components={{
                               code({ node, inline, className, children, ...props }: any) {
                                 const match = /language-(\w+)/.exec(className || "");
