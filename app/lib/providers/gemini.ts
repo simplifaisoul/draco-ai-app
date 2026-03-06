@@ -35,6 +35,7 @@ export class GeminiProvider implements AIProvider {
 
         // Try each key, starting from where we left off
         let lastError: Error | null = null;
+        let rateLimitCount = 0;
 
         for (let attempt = 0; attempt < apiKeys.length; attempt++) {
             const keyIndex = (currentKeyIndex + attempt) % apiKeys.length;
@@ -77,15 +78,24 @@ export class GeminiProvider implements AIProvider {
                 }
 
                 throw new Error('No response body from Gemini');
-            } catch (error) {
+            } catch (error: any) {
                 lastError = error as Error;
                 console.warn(`Gemini key ${keyIndex + 1}/${apiKeys.length} failed:`, error);
+
+                if (error.message && (error.message.includes('429') || error.message.includes('403'))) {
+                    rateLimitCount++;
+                }
                 // Continue to next key
             }
         }
 
         // All keys exhausted
         console.error('All Gemini API keys failed:', lastError);
+
+        if (rateLimitCount === apiKeys.length && apiKeys.length > 0) {
+            throw new Error(`⚠️ All ${apiKeys.length} Gemini API keys are currently rate-limited (too many requests). Please wait 1 minute before trying again.`);
+        }
+
         throw lastError || new Error('All Gemini API keys exhausted');
     }
 

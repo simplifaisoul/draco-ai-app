@@ -28,6 +28,11 @@ export class ProviderManager {
 
         const keyCount = process.env.GEMINI_API_KEY ? 1 : 0;
         const backupCount = process.env.GEMINI_API_KEYS_BACKUP ? process.env.GEMINI_API_KEYS_BACKUP.split(',').length : 0;
+
+        if (lastError?.message?.includes('⚠️ All')) {
+            throw lastError; // Provide user-friendly message directly
+        }
+
         throw new Error(`Gemini API failed (${keyCount + backupCount} keys). ${lastError?.message || 'Unknown error'}`);
     }
 
