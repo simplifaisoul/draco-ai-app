@@ -56,6 +56,8 @@ export default function DracoChat() {
     setIsLoaded(true);
   }, []);
   const [dashboardOpen, setDashboardOpen] = useState(false);
+  const [imageGenOpen, setImageGenOpen] = useState(false);
+  const [imagePrompt, setImagePrompt] = useState("");
 
   // Waitlist State
   const [waitlistOpen, setWaitlistOpen] = useState(false);
@@ -1179,6 +1181,88 @@ export default function DracoChat() {
                         }} />
                       </label>
 
+                      {/* Image Generation Button */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setImageGenOpen(!imageGenOpen)}
+                          className={`p-2 rounded-xl transition-all ${imageGenOpen
+                            ? "bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-400 border border-pink-500/30"
+                            : "text-[var(--color-secondary)] hover:text-pink-400 hover:bg-[var(--input-bg)]"
+                            }`}
+                          title="Generate Image"
+                        >
+                          <ImageIcon size={18} />
+                        </button>
+
+                        {/* Image Gen Style Picker Popup */}
+                        <AnimatePresence>
+                          {imageGenOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                              transition={{ duration: 0.2 }}
+                              className="absolute bottom-12 left-1/2 -translate-x-1/2 w-[340px] md:w-[400px] bg-[var(--sidebar-bg)] border border-[var(--border-color)] rounded-2xl shadow-2xl shadow-purple-500/10 p-4 z-50"
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
+                                  <span className="text-lg">🎨</span> A-Grade Image Gen
+                                </h3>
+                                <button onClick={() => setImageGenOpen(false)} className="text-[var(--color-secondary)] hover:text-[var(--foreground)]">
+                                  <X size={16} />
+                                </button>
+                              </div>
+
+                              <input
+                                type="text"
+                                value={imagePrompt}
+                                onChange={(e) => setImagePrompt(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && imagePrompt.trim()) {
+                                    setInput(`make me an image of ${imagePrompt}`);
+                                    setImageGenOpen(false);
+                                    setImagePrompt("");
+                                    setTimeout(() => sendMessage(), 100);
+                                  }
+                                }}
+                                placeholder="Describe your image..."
+                                className="w-full bg-[var(--input-bg)] text-[var(--foreground)] rounded-xl px-3 py-2.5 text-sm outline-none border border-[var(--border-color)] focus:border-pink-500/50 mb-3 placeholder-[var(--color-secondary)]/40"
+                                autoFocus
+                              />
+
+                              <p className="text-[10px] text-[var(--color-secondary)] mb-2 uppercase tracking-wider font-semibold">Choose a Style</p>
+                              <div className="grid grid-cols-4 gap-2">
+                                {[
+                                  { emoji: "📸", label: "Realistic", style: "photorealistic 8K detailed" },
+                                  { emoji: "🎌", label: "Anime", style: "anime style vivid colors" },
+                                  { emoji: "🎨", label: "Oil Paint", style: "oil painting masterpiece" },
+                                  { emoji: "💻", label: "Digital", style: "digital art concept art" },
+                                  { emoji: "✏️", label: "Sketch", style: "pencil sketch detailed" },
+                                  { emoji: "🌌", label: "Cosmic", style: "cosmic space nebula" },
+                                  { emoji: "🏰", label: "Fantasy", style: "fantasy art epic" },
+                                  { emoji: "🔮", label: "Cyberpunk", style: "cyberpunk neon futuristic" },
+                                ].map((s) => (
+                                  <button
+                                    key={s.label}
+                                    onClick={() => {
+                                      const prompt = imagePrompt.trim() || "a dragon";
+                                      setInput(`make me an image of ${prompt}, ${s.style}`);
+                                      setImageGenOpen(false);
+                                      setImagePrompt("");
+                                      setTimeout(() => sendMessage(), 100);
+                                    }}
+                                    className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-white/5 border border-transparent hover:border-[var(--color-primary)]/30 transition-all group"
+                                  >
+                                    <span className="text-xl group-hover:scale-110 transition-transform">{s.emoji}</span>
+                                    <span className="text-[10px] text-[var(--color-secondary)] group-hover:text-[var(--foreground)]">{s.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
                       <button
                         onClick={() => setHandsFreeMode(!handsFreeMode)}
                         className={`p-2 rounded-xl transition-all ${handsFreeMode
@@ -1206,7 +1290,7 @@ export default function DracoChat() {
               </div>
 
               <div className="text-center mt-3 text-[10px] text-[var(--color-secondary)] font-mono">
-                Draco V0.5 • Powered by Gemini & SimplifAI-1
+                Draco V0.5 • A-Grade Image Gen • Powered by Gemini & SimplifAI-1
               </div>
 
             </div>
