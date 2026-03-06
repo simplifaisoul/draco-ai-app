@@ -7,7 +7,7 @@ import { useAuth } from "../lib/AuthContext";
 import LightningBackground from "./LightningBackground";
 
 interface AuthPageProps {
-    onBack: () => void;
+    onBack?: () => void;
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
@@ -70,17 +70,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
             {/* Content */}
             <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-8">
-                {/* Back Button */}
-                <motion.button
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 }}
-                    onClick={onBack}
-                    className="absolute top-6 left-6 flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm group"
-                >
-                    <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                    Back
-                </motion.button>
+                {/* Back Button (only shown if onBack provided) */}
+                {onBack && (
+                    <motion.button
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
+                        onClick={onBack}
+                        className="absolute top-6 left-6 flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm group"
+                    >
+                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                        Back
+                    </motion.button>
+                )}
 
                 {/* Logo */}
                 <motion.div

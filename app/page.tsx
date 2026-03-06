@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { useAuth } from "./lib/AuthContext";
-import ComingSoon from "./components/ComingSoon";
 import AuthPage from "./components/AuthPage";
 import DracoChat from "./components/DracoChat";
 import { SceneController } from "./components/SceneController";
@@ -10,7 +8,6 @@ import LightningBackground from "./components/LightningBackground";
 
 export default function Home() {
   const { user, loading } = useAuth();
-  const [showAuth, setShowAuth] = useState(false);
 
   // Loading state
   if (loading) {
@@ -31,12 +28,9 @@ export default function Home() {
     );
   }
 
-  // Not signed in — show auth page or coming soon
+  // Not signed in — go straight to sign-in page
   if (!user) {
-    if (showAuth) {
-      return <AuthPage onBack={() => setShowAuth(false)} />;
-    }
-    return <ComingSoon onSignIn={() => setShowAuth(true)} />;
+    return <AuthPage />;
   }
 
   // Signed in — show the full chat app

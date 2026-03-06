@@ -18,7 +18,7 @@ interface SidebarProps {
     onForgetMemory: (index: number) => void;
     currentTheme: 'cosmic' | 'corporate' | 'neural';
     onSetTheme: (theme: 'cosmic' | 'corporate' | 'neural') => void;
-    onJoinBeta: () => void;
+    onJoinBeta?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent font-mono">
-                                    <Bot className="text-[var(--color-primary)]" /> Draco V0.4
+                                    <Bot className="text-[var(--color-primary)]" /> Draco V0.5
                                 </div>
                                 <span className="hidden md:inline-block px-1.5 py-0.5 rounded bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 text-[9px] text-[var(--color-primary)] font-mono tracking-wider">
                                     AGENTIC
@@ -120,21 +120,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <Plus size={18} className="text-[var(--color-primary)]" /> New Chat
                             </button>
 
-                            {/* Agent Mode Trigger */}
-                            <button
-                                onClick={onJoinBeta}
-                                className="w-full relative overflow-hidden group flex items-center gap-2 bg-gradient-to-br from-purple-900/20 to-black border border-purple-500/20 p-3 rounded-xl text-sm font-medium transition-all hover:border-purple-500/50 active:scale-95 duration-200 text-purple-200"
-                            >
-                                <div className="absolute inset-0 bg-purple-500/5 group-hover:bg-purple-500/10 transition-colors" />
-                                <div className="relative flex items-center justify-between w-full">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-purple-400">⚡</span> Agent Mode
-                                    </div>
-                                    <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/20">
-                                        LOCKED
-                                    </span>
-                                </div>
-                            </button>
                         </div>
 
                         {/* History List */}
@@ -274,12 +259,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             </div>
 
                             <div className="mt-2 pt-3 border-t border-[var(--border-color)]">
-                                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-[var(--color-secondary)] opacity-80 mb-3">
-                                    <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" /> Systems Stable</div>
-                                    <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.3)]" /> Serper Active</div>
-                                    <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.3)]" /> Proxy Ready</div>
-                                    <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.3)]" /> Deep Fetch</div>
-                                </div>
                                 <div className="text-[10px] text-center text-[var(--color-secondary)] opacity-50 hover:opacity-100 transition-opacity">
                                     Built by SimplifAI-1
                                 </div>
