@@ -1,4 +1,5 @@
 import { GeminiProvider } from './gemini';
+import { HuggingFaceProvider } from './huggingface';
 import { Message, CallOptions, ProviderResponse, AIProvider } from './types';
 
 export class ProviderManager {
@@ -6,30 +7,32 @@ export class ProviderManager {
 
     constructor() {
         this.providers = [
-            new GeminiProvider(),       // Primary & only provider
-        ];
+            new GeminiProvider(),         // Primary — priority 1
+            new HuggingFaceProvider(),    // Fallback — priority 5
+        ].sort((a, b) => a.priority - b.priority);
     }
 
     async callWithFallback(messages: Message[], options?: CallOptions): Promise<ProviderResponse> {
         let lastError: Error | null = null;
+        const errors: string[] = [];
 
         for (const provider of this.providers) {
             if (!provider.isAvailable) continue;
 
             try {
+                console.log(`[Manager] Trying ${provider.name}...`);
                 const content = await provider.call(messages, options);
+                console.log(`[Manager] ${provider.name} succeeded`);
                 // @ts-ignore
                 return { provider: provider.name, content };
             } catch (e) {
                 lastError = e as Error;
-                console.error(`[Manager] ${provider.name} failed:`, (e as Error).message);
+                errors.push(`${provider.name}: ${(e as Error).message}`);
+                console.warn(`[Manager] ${provider.name} failed:`, (e as Error).message);
             }
         }
 
-        // Include helpful debug info in the error
-        const keyCount = process.env.GEMINI_API_KEY ? 1 : 0;
-        const backupCount = process.env.GEMINI_API_KEYS_BACKUP ? process.env.GEMINI_API_KEYS_BACKUP.split(',').length : 0;
-        throw new Error(`Gemini API failed (${keyCount + backupCount} keys configured). Error: ${lastError?.message}`);
+        throw new Error(`All providers failed. Errors: ${errors.join(' | ')}`);
     }
 
     async checkHealth() {

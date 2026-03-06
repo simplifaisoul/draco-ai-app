@@ -582,23 +582,40 @@ export default function DracoChat() {
       const imageLineMatch = streamedContent.split('\n').find(l => l.trim().startsWith("/image ") || l.trim().startsWith("/draw "));
       if (imageLineMatch) {
         const prompt = imageLineMatch.trim().replace(/^\/(image|draw)\s*/i, "").trim();
-        const encodedPrompt = encodeURIComponent(prompt);
-        const randomSeed = Math.floor(Math.random() * 10000);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
 
-        // Keep any text before the /image command, replace the command line with the image
+        // Keep any text before the /image command
         const beforeImage = streamedContent.split('\n')
           .filter(l => !l.trim().startsWith("/image ") && !l.trim().startsWith("/draw "))
           .join('\n').trim();
-        const imageContent = `${beforeImage ? beforeImage + '\n\n' : ''}![Generated Image](${imageUrl})`;
 
-        // Update the message with the image
+        // Show generating state
+        setMessages(prev => {
+          const newArr = [...prev];
+          newArr[newArr.length - 1].content = `${beforeImage ? beforeImage + '\n\n' : ''}🎨 Generating image...`;
+          return newArr;
+        });
+
+        // Try HuggingFace first, fallback to Pollinations
+        let imageUrl: string;
+        try {
+          const imgResponse = await fetch("/api/imagine", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt })
+          });
+          const imgData = await imgResponse.json();
+          imageUrl = imgData.imageUrl || imgData.fallbackUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${Math.floor(Math.random() * 10000)}&width=1024&height=768&nologo=true`;
+        } catch {
+          // Fallback to Pollinations if /api/imagine fails
+          imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${Math.floor(Math.random() * 10000)}&width=1024&height=768&nologo=true`;
+        }
+
+        const imageContent = `${beforeImage ? beforeImage + '\n\n' : ''}![Generated Image](${imageUrl})`;
         setMessages(prev => {
           const newArr = [...prev];
           newArr[newArr.length - 1].content = imageContent;
           return newArr;
         });
-        // End of turn for images
         setIsLoading(false);
         return;
       }
