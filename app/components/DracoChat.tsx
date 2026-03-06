@@ -386,6 +386,30 @@ export default function DracoChat() {
       }
     }
 
+    // 1.5. Web Search (converts query → DuckDuckGo search → fetches results)
+    if (line.startsWith("/websearch ")) {
+      const query = line.replace("/websearch ", "").trim();
+      if (!query) return "Error: No search query provided";
+      const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+      try {
+        const response = await fetch("/api/webfetch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: searchUrl })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          let res = `Web Search Results for "${query}":\n${data.content}`;
+          if (data.truncated) res += `\n(Truncated)`;
+          return res;
+        } else {
+          return `Error searching for "${query}": ${data.error}`;
+        }
+      } catch (e: any) {
+        return `Error executing web search: ${e.message}`;
+      }
+    }
+
     // 2. Generic Request
     if (line.startsWith("/request ")) {
       const params = line.replace("/request ", "").trim();
@@ -562,7 +586,7 @@ export default function DracoChat() {
       const contentLines = streamedContent.split('\n');
       for (const line of contentLines) {
         const t = line.trim();
-        if (t.startsWith("/webfetch ") || t.startsWith("/request ")) {
+        if (t.startsWith("/webfetch ") || t.startsWith("/websearch ") || t.startsWith("/request ")) {
           foundCommand = t;
           break; // Execute first found command
         }

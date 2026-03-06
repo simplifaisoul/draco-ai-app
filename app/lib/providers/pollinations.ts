@@ -3,7 +3,7 @@ import { AIProvider, Message, CallOptions } from './types';
 export class PollinationsProvider implements AIProvider {
     name = 'Pollinations';
     isAvailable = true;
-    priority = 1;
+    priority = 10; // Fallback — only used if Gemini fails
 
     async call(messages: Message[], options?: CallOptions): Promise<string | ReadableStream> {
         // Use the new authenticated gen.pollinations.ai endpoint
