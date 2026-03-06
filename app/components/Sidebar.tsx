@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, Plus, MessageSquare, Trash2, ChevronDown, X, Download } from "lucide-react";
+import { Bot, Plus, MessageSquare, Trash2, ChevronDown, X, Download, LogOut, User } from "lucide-react";
 import { HistoryManager, ChatSession } from "../lib/history";
+import { useAuth } from "../lib/AuthContext";
 
 interface SidebarProps {
     isOpen: boolean;
@@ -39,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onJoinBeta
 }) => {
     const [sessions, setSessions] = useState<ChatSession[]>([]);
+    const { user, signOut } = useAuth();
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -258,9 +260,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 </div>
                             </div>
 
-                            <div className="mt-2 pt-3 border-t border-[var(--border-color)]">
-                                <div className="text-[10px] text-center text-[var(--color-secondary)] opacity-50 hover:opacity-100 transition-opacity">
-                                    Built by SimplifAI-1
+                            <div className="mt-2 pt-3 border-t border-[var(--border-color)] space-y-2">
+                                {/* User Info + Sign Out */}
+                                {user && (
+                                    <div className="flex items-center gap-2 px-1">
+                                        <div className="w-7 h-7 rounded-full bg-[var(--color-primary)]/20 border border-[var(--color-primary)]/30 flex items-center justify-center shrink-0">
+                                            {user.photoURL ? (
+                                                <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full" />
+                                            ) : (
+                                                <User size={14} className="text-[var(--color-primary)]" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-[11px] font-medium text-[var(--foreground)] truncate">
+                                                {user.displayName || 'User'}
+                                            </div>
+                                            <div className="text-[9px] text-[var(--color-secondary)] truncate">
+                                                {user.email}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={signOut}
+                                            className="p-1.5 rounded-lg text-[var(--color-secondary)] hover:text-red-400 hover:bg-red-500/10 transition-all"
+                                            title="Sign Out"
+                                        >
+                                            <LogOut size={14} />
+                                        </button>
+                                    </div>
+                                )}
+                                <div className="text-[9px] text-center text-[var(--color-secondary)] opacity-40">
+                                    Powered by SimplifAI-1
                                 </div>
                             </div>
 

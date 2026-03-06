@@ -737,46 +737,25 @@ export default function DracoChat() {
                 <Menu />
               </button>
 
-              {/* SimplifAI-1 Branding */}
-              <div className="hidden md:flex flex-col items-start mr-4">
-                <BrandLink />
+              {/* Logo + Model Selector */}
+              <div className="hidden md:flex items-center gap-2 mr-auto">
+                <img src="/dragon_final.png" alt="Draco" className="w-7 h-7 object-contain drop-shadow-[0_0_10px_rgba(var(--color-primary-rgb),0.4)]" />
+                <span className="text-sm font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent">Draco V0.5</span>
               </div>
 
-              {/* Scene Selector */}
-              <div className="hidden md:flex items-center gap-1 bg-[var(--input-bg)]/80 p-1 rounded-full border border-[var(--border-color)] mr-4">
-                {(['cosmic', 'corporate', 'neural'] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTheme(t)}
-                    className={`px-3 py-1 rounded-full text-[10px] uppercase font-bold transition-all ${theme === t
-                      ? 'bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] text-white shadow-lg'
-                      : 'text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-white/5'
-                      }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-
-              <div className="relative group flex-1 md:flex-none max-w-[200px]">
-                <div className="absolute -top-3 left-0 bg-[var(--color-primary)]/20 text-[var(--color-primary)] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[var(--color-primary)]/30">
-                  OPEN BETA
-                </div>
-                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                  <span className="text-xs mr-1 opacity-50">Model:</span>
-                </div>
+              <div className="relative group flex-1 md:flex-none md:w-[180px]">
                 <select
                   value={currentModel}
                   onChange={(e) => setCurrentModel(e.target.value)}
-                  className="w-full appearance-none bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--foreground)] py-2 pl-12 pr-8 rounded-lg text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] cursor-pointer hover:bg-[var(--border-color)] transition-colors shadow-lg"
+                  className="w-full appearance-none bg-[var(--input-bg)]/80 border border-[var(--border-color)] text-[var(--foreground)] py-2 pl-3 pr-8 rounded-xl text-xs font-medium focus:outline-none focus:border-[var(--color-primary)]/50 cursor-pointer hover:bg-[var(--border-color)]/50 transition-all"
                 >
                   {MODELS.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name}
+                      {m.icon} {m.name}
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-secondary)] pointer-events-none" size={14} />
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-secondary)] pointer-events-none" size={12} />
               </div>
 
               {/* Search Toggle */}
@@ -991,39 +970,28 @@ export default function DracoChat() {
                             {msg.content}
                           </ReactMarkdown>
 
-                          {/* Action Buttons for AI Messages */}
+                          {/* Action Buttons for AI Messages — icon only */}
                           {msg.role === "assistant" && (
-                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border-color)]/30">
+                            <div className="flex items-center gap-1 mt-3 pt-2 border-t border-[var(--border-color)]/20">
                               <button
                                 onClick={() => copyMessage(msg.content, i)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${copiedMessageId === i
-                                  ? "bg-green-500/20 text-green-400 border border-green-500/50"
-                                  : "bg-[var(--input-bg)] text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--border-color)] border border-transparent"
+                                className={`p-1.5 rounded-lg transition-all ${copiedMessageId === i
+                                  ? "text-green-400"
+                                  : "text-[var(--color-secondary)]/50 hover:text-[var(--foreground)] hover:bg-white/5"
                                   }`}
-                                title="Copy Message"
+                                title={copiedMessageId === i ? "Copied!" : "Copy"}
                               >
-                                {copiedMessageId === i ? (
-                                  <>
-                                    <Check size={14} />
-                                    <span>Copied!</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy size={14} />
-                                    <span>Copy</span>
-                                  </>
-                                )}
+                                {copiedMessageId === i ? <Check size={14} /> : <Copy size={14} />}
                               </button>
                               <button
                                 onClick={() => toggleSpeech(msg.content, i)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${speakingMsgId === i
-                                  ? "bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/50"
-                                  : "bg-[var(--input-bg)] text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--border-color)] border border-transparent"
+                                className={`p-1.5 rounded-lg transition-all ${speakingMsgId === i
+                                  ? "text-[var(--color-primary)]"
+                                  : "text-[var(--color-secondary)]/50 hover:text-[var(--foreground)] hover:bg-white/5"
                                   }`}
-                                title="Read Aloud"
+                                title={speakingMsgId === i ? "Stop" : "Listen"}
                               >
                                 {speakingMsgId === i ? <Volume2 size={14} /> : <VolumeX size={14} />}
-                                <span>{speakingMsgId === i ? "Stop" : "Listen"}</span>
                               </button>
                             </div>
                           )}
