@@ -1,5 +1,4 @@
 import { GeminiProvider } from './gemini';
-import { PollinationsProvider } from './pollinations';
 import { Message, CallOptions, ProviderResponse, AIProvider } from './types';
 
 export class ProviderManager {
@@ -7,9 +6,8 @@ export class ProviderManager {
 
     constructor() {
         this.providers = [
-            new GeminiProvider(),       // Primary — free, high quality
-            new PollinationsProvider(),  // Fallback
-        ].sort((a, b) => a.priority - b.priority);
+            new GeminiProvider(),       // Primary & only provider
+        ];
     }
 
     async callWithFallback(messages: Message[], options?: CallOptions): Promise<ProviderResponse> {
@@ -19,17 +17,19 @@ export class ProviderManager {
             if (!provider.isAvailable) continue;
 
             try {
-                // console.log(`[Manager] Trying ${provider.name}...`);
                 const content = await provider.call(messages, options);
                 // @ts-ignore
                 return { provider: provider.name, content };
             } catch (e) {
                 lastError = e as Error;
-                console.warn(`[Manager] ${provider.name} failed:`, e);
+                console.error(`[Manager] ${provider.name} failed:`, (e as Error).message);
             }
         }
 
-        throw new Error(`All providers failed. Last error: ${lastError?.message}`);
+        // Include helpful debug info in the error
+        const keyCount = process.env.GEMINI_API_KEY ? 1 : 0;
+        const backupCount = process.env.GEMINI_API_KEYS_BACKUP ? process.env.GEMINI_API_KEYS_BACKUP.split(',').length : 0;
+        throw new Error(`Gemini API failed (${keyCount + backupCount} keys configured). Error: ${lastError?.message}`);
     }
 
     async checkHealth() {

@@ -6,25 +6,27 @@ export class PollinationsProvider implements AIProvider {
     priority = 10; // Fallback — only used if Gemini fails
 
     async call(messages: Message[], options?: CallOptions): Promise<string | ReadableStream> {
-        // Use the new authenticated gen.pollinations.ai endpoint
-        const endpoint = `https://gen.pollinations.ai/v1/chat/completions`;
+        // Pollinations offers a free API — works with or without an API key
         const apiKey = process.env.POLLINATIONS_API_KEY;
-
-        if (!apiKey) {
-            throw new Error('POLLINATIONS_API_KEY environment variable is required. Get your key at https://enter.pollinations.ai');
-        }
+        const endpoint = apiKey
+            ? 'https://gen.pollinations.ai/v1/chat/completions'
+            : 'https://text.pollinations.ai/openai';
 
         try {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            if (apiKey) {
+                headers['Authorization'] = `Bearer ${apiKey}`;
+            }
+
             const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
+                headers,
                 body: JSON.stringify({
-                    messages: messages.map(m => ({ role: m.role, content: m.content })), // Sanitize: Only send role/content
-                    model: 'openai', // Default model
-                    stream: true // ENABLE STREAMING
+                    messages: messages.map(m => ({ role: m.role, content: m.content })),
+                    model: apiKey ? 'openai' : 'openai',
+                    stream: true,
                 }),
                 signal: AbortSignal.timeout(30000),
             });
@@ -35,7 +37,6 @@ export class PollinationsProvider implements AIProvider {
                 throw new Error(`Pollinations API error: ${response.status} - ${text}`);
             }
 
-            // Return the stream directly
             if (response.body) {
                 return response.body;
             }
@@ -48,7 +49,6 @@ export class PollinationsProvider implements AIProvider {
     }
 
     async health(): Promise<boolean> {
-        // Simple check - if API key exists, assume healthy
-        return !!process.env.POLLINATIONS_API_KEY;
+        return true; // Always available — free API works without key
     }
 }

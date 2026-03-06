@@ -517,7 +517,12 @@ export default function DracoChat() {
         body: JSON.stringify({ messages: messagesPayload, model: currentModel }),
       });
 
-      if (!response.ok) throw new Error("API Error: " + response.statusText);
+      if (!response.ok) {
+        const errorBody = await response.text();
+        let errorMsg = "API Error";
+        try { errorMsg = JSON.parse(errorBody).error || errorMsg; } catch { }
+        throw new Error(errorMsg);
+      }
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No stream reader");
@@ -639,9 +644,10 @@ export default function DracoChat() {
         setIsLoading(false);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setMessages(prev => [...prev, { role: "assistant", content: "⚠️ Connection Error", timestamp: new Date().toISOString() }]);
+      const msg = error?.message || "Connection Error";
+      setMessages(prev => [...prev, { role: "assistant", content: `⚠️ ${msg}`, timestamp: new Date().toISOString() }]);
       setIsLoading(false);
     }
   };
