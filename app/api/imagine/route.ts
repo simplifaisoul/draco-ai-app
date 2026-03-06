@@ -18,43 +18,58 @@ export async function POST(request: NextRequest) {
         const hfToken = process.env.HF_TOKEN || '';
 
         for (const model of models) {
-            try {
-                const endpoint = `https://api-inference.huggingface.co/models/${model}`;
+            let retries = 3;
+            let waitTime = 2000;
 
-                const headers: Record<string, string> = {};
-                if (hfToken) {
-                    headers['Authorization'] = `Bearer ${hfToken}`;
-                }
+            while (retries > 0) {
+                try {
+                    // Using the new router.huggingface.co endpoint (api-inference is deprecated)
+                    const endpoint = `https://router.huggingface.co/hf-inference/models/${model}`;
 
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({
-                        inputs: prompt,
-                        parameters: {
-                            width: 1024,
-                            height: 768,
-                        }
-                    }),
-                    signal: AbortSignal.timeout(45000),
-                });
-
-                if (response.ok) {
-                    const contentType = response.headers.get('content-type') || 'image/png';
-                    const imageBuffer = await response.arrayBuffer();
-
-                    if (imageBuffer.byteLength > 1000) { // Sanity check — real images are > 1KB
-                        const base64 = Buffer.from(imageBuffer).toString('base64');
-                        return NextResponse.json({
-                            imageUrl: `data:${contentType};base64,${base64}`,
-                            model: model.split('/')[1] || model
-                        });
+                    const headers: Record<string, string> = {
+                        'Content-Type': 'application/json'
+                    };
+                    if (hfToken) {
+                        headers['Authorization'] = `Bearer ${hfToken}`;
                     }
-                }
 
-                console.warn(`HF model ${model} failed: ${response.status}`);
-            } catch (e) {
-                console.warn(`HF model ${model} error:`, e);
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            inputs: prompt,
+                        }),
+                        signal: AbortSignal.timeout(60000), // longer timeout for image gen
+                    });
+
+                    if (response.ok) {
+                        const contentType = response.headers.get('content-type') || 'image/png';
+                        const imageBuffer = await response.arrayBuffer();
+
+                        if (imageBuffer.byteLength > 1000) { // Sanity check — real images are > 1KB
+                            const base64 = Buffer.from(imageBuffer).toString('base64');
+                            return NextResponse.json({
+                                imageUrl: `data:${contentType};base64,${base64}`,
+                                model: model.split('/')[1] || model
+                            });
+                        }
+                    }
+
+                    // Handle "Model is loading" (HTTP 503) from HuggingFace
+                    if (response.status === 503) {
+                        console.warn(`HF model ${model} is loading. Retrying in ${waitTime / 1000}s...`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                        waitTime *= 2; // exponential backoff
+                        retries--;
+                        continue;
+                    }
+
+                    console.warn(`HF model ${model} failed: ${response.status}`);
+                    break; // Unrecoverable error, try next model
+                } catch (e) {
+                    console.warn(`HF model ${model} error:`, e);
+                    break;
+                }
             }
         }
 
