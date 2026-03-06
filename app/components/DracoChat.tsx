@@ -492,13 +492,23 @@ export default function DracoChat() {
 
     // CRITICAL FIX: Do NOT send a system prompt from the client.
     // The server (route.ts) injects the ONLY system prompt with tool instructions.
-    // Previously, sending a second system message here was DILUTING tool enforcement,
-    // causing Gemini to ignore /image, /webfetch, /websearch, /request.
+    // Vault/recursion context is injected into the first user message to avoid
+    // consecutive same-role messages (which breaks Gemini API).
     const contextParts = [vaultContext, recursionContext].filter(Boolean).join("\n");
-    const messagesPayload = [
-      ...(contextParts ? [{ role: "user" as const, content: `[CONTEXT]${contextParts}[/CONTEXT]` }] : []),
-      ...prunedHistory.map(m => ({ role: m.role, content: m.content }))
-    ];
+    const mappedHistory = prunedHistory.map(m => ({ role: m.role, content: m.content }));
+
+    // Inject context into the first user message if we have context
+    if (contextParts && mappedHistory.length > 0) {
+      const firstUserIdx = mappedHistory.findIndex(m => m.role === "user");
+      if (firstUserIdx !== -1) {
+        mappedHistory[firstUserIdx] = {
+          ...mappedHistory[firstUserIdx],
+          content: `${contextParts}\n\n${mappedHistory[firstUserIdx].content}`
+        };
+      }
+    }
+
+    const messagesPayload = mappedHistory;
 
     try {
       const response = await fetch("/api/chat", {
@@ -563,18 +573,24 @@ export default function DracoChat() {
 
       // --- Post-Processing & Recursion Check ---
 
-      // 1. Image Check (Legacy display logic, no loop needed usually unless requested)
-      if (streamedContent.trim().startsWith("/image") || streamedContent.trim().startsWith("/draw")) {
-        const prompt = streamedContent.replace(/^\/(image|draw)\s*/i, "").trim();
+      // 1. Image Check — scan ALL lines for /image command (AI may output text before it)
+      const imageLineMatch = streamedContent.split('\n').find(l => l.trim().startsWith("/image ") || l.trim().startsWith("/draw "));
+      if (imageLineMatch) {
+        const prompt = imageLineMatch.trim().replace(/^\/(image|draw)\s*/i, "").trim();
         const encodedPrompt = encodeURIComponent(prompt);
         const randomSeed = Math.floor(Math.random() * 10000);
         const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${randomSeed}&width=1024&height=768&nologo=true`;
-        streamedContent = `Generated image for "**${prompt}**":\n\n![Generated Image](${imageUrl})`;
 
-        // Update the message with the image markdown
+        // Keep any text before the /image command, replace the command line with the image
+        const beforeImage = streamedContent.split('\n')
+          .filter(l => !l.trim().startsWith("/image ") && !l.trim().startsWith("/draw "))
+          .join('\n').trim();
+        const imageContent = `${beforeImage ? beforeImage + '\n\n' : ''}![Generated Image](${imageUrl})`;
+
+        // Update the message with the image
         setMessages(prev => {
           const newArr = [...prev];
-          newArr[newArr.length - 1].content = streamedContent;
+          newArr[newArr.length - 1].content = imageContent;
           return newArr;
         });
         // End of turn for images
