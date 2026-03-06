@@ -478,23 +478,25 @@ export default function DracoChat() {
 
     const vaultContext = memory.length > 0 ? `\n\n[THE VAULT - LONG TERM MEMORY]:\n${memory.map((m, i) => `${i + 1}. ${m}`).join("\n")}\n\n[INSTRUCTION]: Use the above memory to personalize your response if relevant.` : "";
 
-    // Dynamic System Prompt for Recursion
-    let systemPromptExtras = "";
+    // Dynamic context for recursion (tool output follow-up)
+    let recursionContext = "";
     if (depth > 0) {
-      systemPromptExtras = "\n\n[SYSTEM UPDATE]: You have just received the output of a tool you executed. Please ANALYZE the 'Tool Output', SUMMARIZE what it tells us, and propose the BEST NEXT STEP or answer the user's question completely.";
+      recursionContext = "[SYSTEM UPDATE]: You just received tool output. ANALYZE the results, SUMMARIZE for the user. If you found useful URLs in search results, chain /webfetch to get details.";
     }
 
-    const finalSystemPrompt = settings.systemPrompt + vaultContext + systemPromptExtras;
-
     // OPTIMIZATION: Prune History (Sliding Window)
-    // Gemini 2.5 Flash has a 1M token context window — we can be generous
     const HISTORY_LIMIT = 50;
     const prunedHistory = currentHistory.length > HISTORY_LIMIT
       ? currentHistory.slice(currentHistory.length - HISTORY_LIMIT)
       : currentHistory;
 
+    // CRITICAL FIX: Do NOT send a system prompt from the client.
+    // The server (route.ts) injects the ONLY system prompt with tool instructions.
+    // Previously, sending a second system message here was DILUTING tool enforcement,
+    // causing Gemini to ignore /image, /webfetch, /websearch, /request.
+    const contextParts = [vaultContext, recursionContext].filter(Boolean).join("\n");
     const messagesPayload = [
-      { role: "system", content: finalSystemPrompt },
+      ...(contextParts ? [{ role: "user" as const, content: `[CONTEXT]${contextParts}[/CONTEXT]` }] : []),
       ...prunedHistory.map(m => ({ role: m.role, content: m.content }))
     ];
 
@@ -596,19 +598,20 @@ export default function DracoChat() {
         // Execute Tool
         const result = await executeToolCommand(foundCommand);
         if (result) {
-          // Add Tool Output to History as 'system' role
+          // Add Tool Output to History (visible to user)
+          const displayResult = result.substring(0, 2000) + (result.length > 2000 ? "\n...(truncated)" : "");
           const toolMsg: Message = {
-            role: "system",
-            content: `🛠️ **Tool Output:**\n\`\`\`\n${result.substring(0, 500)}${result.length > 500 ? "..." : ""}\n\`\`\``,
+            role: "assistant",
+            content: `🛠️ **Tool Output:**\n\`\`\`\n${displayResult}\n\`\`\``,
             timestamp: new Date().toISOString()
           };
 
           setMessages(prev => [...prev, toolMsg]);
 
-          // Construct full history for next turn
-          // We need the AI message we just generated + the tool message
+          // Construct full history for next turn (send more context to AI)
           const aiMsg: Message = { role: "assistant", content: streamedContent, timestamp: new Date().toISOString() };
-          const toolMsgForHistory: Message = { role: "system", content: `Tool Output: ${result}`, timestamp: new Date().toISOString() };
+          const fullResult = result.substring(0, 4000); // More context for AI to analyze
+          const toolMsgForHistory: Message = { role: "user", content: `[Tool Output]:\n${fullResult}`, timestamp: new Date().toISOString() };
           const nextHistory = [...currentHistory, aiMsg, toolMsgForHistory]; // Full result for AI
 
           // Recurse
