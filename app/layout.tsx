@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Draco V0.5 - Agentic AI",
   description: "Draco V0.5: Advanced Agentic AI with multi-model support, glassmorphic UI, and real-world API integrations. Created by SimplifAI-1.",
-  keywords: ["AI", "Chatbot", "GPT", "Draco", "Neural", "Voice AI", "Pollinations", "SimplifAI-1", "Agentic"],
+  keywords: ["AI", "Chatbot", "GPT", "Draco", "Neural", "Voice AI", "SimplifAI-1", "Agentic", "Image Generation"],
   icons: {
     icon: "/dragon_final.png",
     apple: "/dragon_final.png",

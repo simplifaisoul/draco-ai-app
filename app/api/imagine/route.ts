@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Image Generation API — tries multiple sources
+// Image Generation API — HuggingFace Inference with multiple model fallbacks
 export async function POST(request: NextRequest) {
     try {
         const { prompt } = await request.json();
@@ -9,54 +9,89 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No prompt provided' }, { status: 400 });
         }
 
-        // Strategy 1: HuggingFace Inference API (direct endpoint, no router)
+        // Try HuggingFace models in order of preference
+        const models = [
+            'stabilityai/stable-diffusion-xl-base-1.0',
+            'runwayml/stable-diffusion-v1-5',
+        ];
+
         const hfToken = process.env.HF_TOKEN || '';
-        if (hfToken) {
+
+        for (const model of models) {
             try {
-                const model = 'black-forest-labs/FLUX.1-schnell';
                 const endpoint = `https://api-inference.huggingface.co/models/${model}`;
+
+                const headers: Record<string, string> = {};
+                if (hfToken) {
+                    headers['Authorization'] = `Bearer ${hfToken}`;
+                }
 
                 const response = await fetch(endpoint, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${hfToken}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ inputs: prompt }),
+                    headers,
+                    body: JSON.stringify({
+                        inputs: prompt,
+                        parameters: {
+                            width: 1024,
+                            height: 768,
+                        }
+                    }),
                     signal: AbortSignal.timeout(45000),
                 });
 
                 if (response.ok) {
+                    const contentType = response.headers.get('content-type') || 'image/png';
                     const imageBuffer = await response.arrayBuffer();
-                    const base64 = Buffer.from(imageBuffer).toString('base64');
-                    return NextResponse.json({
-                        imageUrl: `data:image/png;base64,${base64}`,
-                        model: 'FLUX.1-schnell'
-                    });
+
+                    if (imageBuffer.byteLength > 1000) { // Sanity check — real images are > 1KB
+                        const base64 = Buffer.from(imageBuffer).toString('base64');
+                        return NextResponse.json({
+                            imageUrl: `data:${contentType};base64,${base64}`,
+                            model: model.split('/')[1] || model
+                        });
+                    }
                 }
-                console.warn(`HF direct failed: ${response.status}`);
+
+                console.warn(`HF model ${model} failed: ${response.status}`);
             } catch (e) {
-                console.warn('HuggingFace image gen failed:', e);
+                console.warn(`HF model ${model} error:`, e);
             }
         }
 
-        // Strategy 2: Pollinations URL (free, no API key, returns image directly via URL)
-        // This is a URL-based service — the image is generated when the URL is accessed
-        const seed = Math.floor(Math.random() * 10000);
-        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&width=1024&height=768&nologo=true`;
-
+        // All HuggingFace models failed — generate a styled placeholder
+        // Use a reliable SVG-based image as absolute last resort
+        const svgPlaceholder = generatePlaceholderSVG(prompt);
         return NextResponse.json({
-            imageUrl: pollinationsUrl,
-            model: 'pollinations'
+            imageUrl: svgPlaceholder,
+            model: 'placeholder',
+            note: 'HuggingFace models unavailable. Add HF_TOKEN env var for reliable image generation.'
         });
 
     } catch (error: any) {
         console.error('Image generation error:', error);
-        // Last resort fallback URL
-        const seed = Math.floor(Math.random() * 10000);
         return NextResponse.json({
-            imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent('a beautiful image')}?seed=${seed}&width=1024&height=768&nologo=true`,
-            model: 'fallback'
-        }, { status: 200 }); // Return 200 so client gets a URL even on error
+            imageUrl: generatePlaceholderSVG('Image'),
+            model: 'error-fallback'
+        }, { status: 200 });
     }
+}
+
+function generatePlaceholderSVG(prompt: string): string {
+    // Create a nice SVG placeholder that always works
+    const truncatedPrompt = prompt.length > 40 ? prompt.substring(0, 40) + '...' : prompt;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="768" viewBox="0 0 1024 768">
+        <defs>
+            <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#1a0533;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#0d1117;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+        <rect width="1024" height="768" fill="url(#bg)" rx="16"/>
+        <text x="512" y="340" text-anchor="middle" fill="#a855f7" font-family="system-ui" font-size="64" font-weight="bold">🎨</text>
+        <text x="512" y="400" text-anchor="middle" fill="#e2e8f0" font-family="system-ui" font-size="20" font-weight="600">Image Generation</text>
+        <text x="512" y="435" text-anchor="middle" fill="#94a3b8" font-family="system-ui" font-size="14">"${truncatedPrompt}"</text>
+        <text x="512" y="480" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="12">Add HF_TOKEN to Vercel env vars for full image generation</text>
+    </svg>`;
+    const base64 = Buffer.from(svg).toString('base64');
+    return `data:image/svg+xml;base64,${base64}`;
 }

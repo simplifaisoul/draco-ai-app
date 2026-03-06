@@ -597,7 +597,7 @@ export default function DracoChat() {
           return newArr;
         });
 
-        // Try HuggingFace first, fallback to Pollinations
+        // Call /api/imagine — always returns a valid base64 data URL
         let imageUrl: string;
         try {
           const imgResponse = await fetch("/api/imagine", {
@@ -606,13 +606,14 @@ export default function DracoChat() {
             body: JSON.stringify({ prompt })
           });
           const imgData = await imgResponse.json();
-          imageUrl = imgData.imageUrl || imgData.fallbackUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${Math.floor(Math.random() * 10000)}&width=1024&height=768&nologo=true`;
+          imageUrl = imgData.imageUrl;
         } catch {
-          // Fallback to Pollinations if /api/imagine fails
-          imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${Math.floor(Math.random() * 10000)}&width=1024&height=768&nologo=true`;
+          imageUrl = ''; // Will show error state
         }
 
-        const imageContent = `${beforeImage ? beforeImage + '\n\n' : ''}![Generated Image](${imageUrl})`;
+        const imageContent = imageUrl
+          ? `${beforeImage ? beforeImage + '\n\n' : ''}![Generated Image](${imageUrl})`
+          : `${beforeImage ? beforeImage + '\n\n' : ''}⚠️ Image generation is currently unavailable. Please try again later.`;
         setMessages(prev => {
           const newArr = [...prev];
           newArr[newArr.length - 1].content = imageContent;
@@ -962,7 +963,7 @@ export default function DracoChat() {
                         <ImageIcon className="w-8 h-8 text-pink-400 group-hover:rotate-6 transition-transform" />
                       </div>
                       <h3 className="text-white font-bold mb-1">Imagine</h3>
-                      <p className="text-xs text-gray-400">DALL-E 3 Grade Art</p>
+                      <p className="text-xs text-gray-400">A-Grade Image Gen</p>
                     </motion.button>
                   </div>
                 </div>
