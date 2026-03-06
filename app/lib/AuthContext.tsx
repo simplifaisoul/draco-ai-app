@@ -11,7 +11,7 @@ import {
     signOut as firebaseSignOut,
     updateProfile,
 } from "firebase/auth";
-import { auth } from "./firebase";
+import { getFirebaseAuth } from "./firebase";
 
 interface AuthContextType {
     user: User | null;
@@ -45,7 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        const authInstance = getFirebaseAuth();
+        const unsubscribe = onAuthStateChanged(authInstance, (firebaseUser) => {
             setUser(firebaseUser);
             setLoading(false);
         });
@@ -57,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const signInWithGoogle = async () => {
         try {
             setError(null);
-            await signInWithPopup(auth, googleProvider);
+            await signInWithPopup(getFirebaseAuth(), googleProvider);
         } catch (err: any) {
             const msg = getReadableError(err.code);
             setError(msg);
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const signInWithEmail = async (email: string, password: string) => {
         try {
             setError(null);
-            await signInWithEmailAndPassword(auth, email, password);
+            await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
         } catch (err: any) {
             const msg = getReadableError(err.code);
             setError(msg);
@@ -79,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const signUpWithEmail = async (email: string, password: string, displayName?: string) => {
         try {
             setError(null);
-            const result = await createUserWithEmailAndPassword(auth, email, password);
+            const result = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
             if (displayName) {
                 await updateProfile(result.user, { displayName });
             }
@@ -93,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const signOut = async () => {
         try {
             setError(null);
-            await firebaseSignOut(auth);
+            await firebaseSignOut(getFirebaseAuth());
         } catch (err: any) {
             setError("Failed to sign out. Please try again.");
             throw err;
