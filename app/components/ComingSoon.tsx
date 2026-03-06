@@ -3,7 +3,11 @@
 import React, { useState } from 'react';
 import LightningBackground from './LightningBackground';
 
-const ComingSoon: React.FC = () => {
+interface ComingSoonProps {
+    onSignIn?: () => void;
+}
+
+const ComingSoon: React.FC<ComingSoonProps> = ({ onSignIn }) => {
     const [email, setEmail] = useState("");
     const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
     const [message, setMessage] = useState("");
@@ -131,8 +135,18 @@ const ComingSoon: React.FC = () => {
                     <p className="mt-4 text-sm text-red-400 max-w-md">{message}</p>
                 )}
 
+                {/* Sign In Button */}
+                {onSignIn && (
+                    <button
+                        onClick={onSignIn}
+                        className="mt-8 px-8 py-3 bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.10] hover:border-purple-500/30 rounded-xl text-white/50 hover:text-white text-sm font-medium transition-all duration-300 backdrop-blur-sm"
+                    >
+                        Already have access? <span className="text-purple-400 font-semibold">Sign In</span>
+                    </button>
+                )}
+
                 {/* Footer Info */}
-                <p className="mt-12 text-xs text-white/30 uppercase tracking-widest">
+                <p className="mt-10 text-xs text-white/30 uppercase tracking-widest">
                     Under Construction • Coming Soon
                 </p>
             </div>

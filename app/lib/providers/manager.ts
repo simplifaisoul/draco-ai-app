@@ -1,3 +1,4 @@
+import { GeminiProvider } from './gemini';
 import { PollinationsProvider } from './pollinations';
 import { Message, CallOptions, ProviderResponse, AIProvider } from './types';
 
@@ -6,7 +7,8 @@ export class ProviderManager {
 
     constructor() {
         this.providers = [
-            new PollinationsProvider(),
+            new GeminiProvider(),       // Primary — free, high quality
+            new PollinationsProvider(),  // Fallback
         ].sort((a, b) => a.priority - b.priority);
     }
 
