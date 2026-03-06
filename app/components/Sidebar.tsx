@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, Plus, MessageSquare, Trash2, ChevronDown, X, Download, LogOut, User } from "lucide-react";
+import { Plus, MessageSquare, Trash2, ChevronDown, X, Download, LogOut, User } from "lucide-react";
 import { HistoryManager, ChatSession } from "../lib/history";
 import { useAuth } from "../lib/AuthContext";
 
@@ -102,11 +102,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent font-mono">
-                                    <Bot className="text-[var(--color-primary)]" /> Draco V0.5
+                                    <img src="/dragon_final.png" alt="Draco" className="w-7 h-7 object-contain drop-shadow-[0_0_12px_rgba(var(--color-primary-rgb),0.5)]" /> Draco V0.5
                                 </div>
-                                <span className="hidden md:inline-block px-1.5 py-0.5 rounded bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 text-[9px] text-[var(--color-primary)] font-mono tracking-wider">
-                                    AGENTIC
-                                </span>
                             </div>
                             <button onClick={onClose} className="md:hidden text-gray-400 p-2 hover:bg-white/5 rounded-full">
                                 <X />
