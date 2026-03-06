@@ -29,49 +29,14 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ isOpen, onClose }) => {
 
         setStatus("loading");
 
-        // EmailJS Configuration
-        const SERVICE_ID = "service_gdbvzu8";
-        const TEMPLATE_ID = "template_0hjybot";
-        const PUBLIC_KEY = "Gcg7webvGA3nyOv2o";
-
-        const payload = {
-            service_id: SERVICE_ID,
-            template_id: TEMPLATE_ID,
-            user_id: PUBLIC_KEY,
-            template_params: {
-                to_email: email, // Standard param, usually matches template
-                user_email: email,
-                message: "Requesting Beta Access"
-            }
-        };
-
-        try {
-            const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            const responseData = await response.text();
-            console.log("EmailJS Response:", response.status, responseData);
-
-            if (response.ok) {
-                setStatus("success");
-                setMessage("You have been added to the queue.");
-                setTimeout(() => {
-                    onClose();
-                }, 2000);
-            } else {
-                console.error("EmailJS Error:", responseData);
-                throw new Error(`EmailJS failed: ${responseData}`);
-            }
-        } catch (error) {
-            console.error("Waitlist Error:", error);
-            setStatus("error");
-            setMessage("Email service unavailable. Please contact soulsimplifai@gmail.com directly.");
-        }
+        // EmailJS has been removed as per request. Simulating a delay for the UI to show a processing state.
+        setTimeout(() => {
+            setStatus("success");
+            setMessage("You have been added to the queue.");
+            setTimeout(() => {
+                onClose();
+            }, 2000);
+        }, 1500);
     };
 
     return (
