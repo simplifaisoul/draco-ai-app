@@ -56,10 +56,10 @@ You: Let me search for that! 🔍
 
 /websearch SimplifAI-1
 
-User: get the latest news
-You: Fetching headlines! 📰
+User: what are the latest AI trends?
+You: Let me look that up! 📰
 
-/request GET https://news.google.com/rss
+/websearch latest AI trends 2026
 
 === CHAINING EXAMPLE (search then fetch) ===
 

@@ -897,29 +897,12 @@ export default function DracoChat() {
                     Your AI with <span className="text-[var(--color-primary)] font-semibold border-b border-[var(--color-primary)]/30">Search • Image Gen • API Access</span>
                   </p>
 
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl">
-                    {/* Card 1: Daily News */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl">
+                    {/* Card 1: API Request */}
                     <motion.button
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 }}
-                      whileHover={{ scale: 1.05, translateY: -5 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setInput("/request GET https://news.google.com/rss")}
-                      className="flex flex-col items-center p-6 bg-[var(--input-bg)]/40 backdrop-blur-md border border-[var(--border-color)] hover:border-blue-500/50 rounded-2xl transition-all shadow-xl hover:shadow-blue-500/20 group"
-                    >
-                      <div className="p-4 rounded-full bg-blue-500/10 mb-4 group-hover:bg-blue-500/20 transition-colors ring-1 ring-blue-500/20">
-                        <Globe className="w-8 h-8 text-blue-400 group-hover:rotate-12 transition-transform" />
-                      </div>
-                      <h3 className="text-white font-bold mb-1">Daily News</h3>
-                      <p className="text-xs text-gray-400">Live Headlines (RSS)</p>
-                    </motion.button>
-
-                    {/* Card 2: API Request */}
-                    <motion.button
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
                       whileHover={{ scale: 1.05, translateY: -5 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setInput("/request GET ")}
@@ -932,11 +915,11 @@ export default function DracoChat() {
                       <p className="text-xs text-gray-400">Universal HTTP Client</p>
                     </motion.button>
 
-                    {/* Card 3: Reasoning */}
+                    {/* Card 2: Reasoning */}
                     <motion.button
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
+                      transition={{ delay: 0.2 }}
                       whileHover={{ scale: 1.05, translateY: -5 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setInput("Can you research the current state of Quantum Computing and summarize the key players?")}
@@ -949,11 +932,11 @@ export default function DracoChat() {
                       <p className="text-xs text-gray-400">Deep problem solving</p>
                     </motion.button>
 
-                    {/* Card 4: Creative */}
+                    {/* Card 3: Creative */}
                     <motion.button
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
+                      transition={{ delay: 0.3 }}
                       whileHover={{ scale: 1.05, translateY: -5 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setInput("Generate a futuristic city wallpaper with neon lights")}

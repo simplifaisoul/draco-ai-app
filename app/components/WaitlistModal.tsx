@@ -105,7 +105,7 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ isOpen, onClose }) => {
                     )}
 
                     <p className="mt-6 text-[10px] text-white/20 uppercase tracking-widest">
-                        Limited Availability • V0.4
+                        Limited Availability
                     </p>
                 </div>
             </div>

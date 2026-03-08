@@ -61,7 +61,7 @@ const ComingSoon: React.FC<ComingSoonProps> = ({ onSignIn }) => {
 
                 {/* Subheading */}
                 <p className="text-xl md:text-2xl text-gray-300 max-w-2xl font-medium mb-12">
-                    Join the waitlist for <span className="text-purple-400 font-bold">Draco V0.4</span>
+                    Join the waitlist for <span className="text-purple-400 font-bold">Draco AI</span>
                     <br />
                     The next generation AI assistant by SimplifAI-1
                 </p>
