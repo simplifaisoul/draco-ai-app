@@ -777,7 +777,7 @@ export default function DracoChat() {
       </div>
 
       {/* New Sidebar Integration */}
-      <div className="flex h-screen overflow-hidden w-full relative">
+      <div className="flex h-[100dvh] overflow-hidden w-full relative">
         <WaitlistModal isOpen={waitlistOpen} onClose={() => setWaitlistOpen(false)} />
         <Sidebar
           isOpen={sidebarOpen}
@@ -798,7 +798,7 @@ export default function DracoChat() {
         />
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col h-full relative w-full md:w-auto bg-transparent z-10 transition-all duration-300">
+        <main className="flex-1 flex flex-col h-full relative w-full md:w-auto bg-transparent z-10 transition-all duration-300 min-h-0">
           {/* Header */}
           <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-[var(--background)]/90 backdrop-blur-xl z-40 fixed top-0 left-0 right-0 md:absolute md:bg-[var(--background)]/50">
             <div className="flex items-center gap-3 w-full">
@@ -875,10 +875,10 @@ export default function DracoChat() {
           </header>
 
           {/* Content Container (Chat + Preview) */}
-          <div className="flex-1 overflow-hidden relative flex">
+          <div className="flex-1 overflow-hidden relative flex min-h-0">
 
             {/* Chat Area */}
-            <div className={`flex-1 overflow-y-auto overflow-x-hidden pt-16 pb-32 px-4 md:px-8 scroll-smooth custom-scrollbar transition-all duration-300 ${showPreview ? "hidden md:block md:w-1/2 md:max-w-[50%]" : "w-full"}`} ref={messagesContainerRef}>
+            <div className={`flex-1 overflow-y-auto overflow-x-hidden pt-16 pb-36 px-4 md:px-8 scroll-smooth custom-scrollbar transition-all duration-300 overscroll-contain ${showPreview ? "hidden md:block md:w-1/2 md:max-w-[50%]" : "w-full"}`} ref={messagesContainerRef} style={{ WebkitOverflowScrolling: 'touch' }}>
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full px-4 text-center z-10 relative lg:mt-[-5vh]">
                   <motion.div
@@ -1100,7 +1100,7 @@ export default function DracoChat() {
             </AnimatePresence>
 
             {/* Input Area - Fixed positioning for mobile */}
-            <div className={`absolute bottom-0 w-full p-3 md:p-4 pt-8 md:pt-10 bg-gradient-to-t from-[var(--background)] via-[var(--background)] to-transparent z-20 transition-all duration-300 ${showPreview ? "md:w-1/2" : ""}`}>
+            <div className={`absolute bottom-0 left-0 right-0 w-full p-3 md:p-4 pt-8 md:pt-10 bg-gradient-to-t from-[var(--background)] via-[var(--background)] to-transparent z-20 transition-all duration-300 pb-[env(safe-area-inset-bottom,12px)] ${showPreview ? "md:w-1/2" : ""}`}>
               <div className="max-w-3xl mx-auto relative group">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
 
@@ -1192,7 +1192,7 @@ export default function DracoChat() {
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 10, scale: 0.95 }}
                               transition={{ duration: 0.2 }}
-                              className="absolute bottom-12 left-1/2 -translate-x-1/2 w-[340px] md:w-[400px] bg-[var(--sidebar-bg)] border border-[var(--border-color)] rounded-2xl shadow-2xl shadow-purple-500/10 p-4 z-50"
+                              className="fixed bottom-[120px] left-1/2 -translate-x-1/2 w-[90vw] max-w-[400px] bg-[var(--sidebar-bg)] border border-[var(--border-color)] rounded-2xl shadow-2xl shadow-purple-500/10 p-4 z-50"
                             >
                               <div className="flex items-center justify-between mb-3">
                                 <h3 className="text-sm font-bold text-[var(--foreground)] flex items-center gap-2">
