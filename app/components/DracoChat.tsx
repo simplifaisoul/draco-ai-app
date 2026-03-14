@@ -953,7 +953,7 @@ export default function DracoChat() {
             {/* Chat Area */}
             <div className={`flex-1 overflow-y-auto overflow-x-hidden pt-16 pb-36 px-4 md:px-8 scroll-smooth custom-scrollbar transition-all duration-300 overscroll-contain ${showPreview ? "hidden md:block md:w-1/2 md:max-w-[50%]" : "w-full"}`} ref={messagesContainerRef} style={{ WebkitOverflowScrolling: 'touch' }}>
               {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full px-4 text-center z-10 relative lg:mt-[-5vh]">
+                <div className="flex flex-col items-center justify-center min-h-full px-4 py-8 text-center z-10 relative lg:mt-[-5vh]">
                   <motion.div
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
