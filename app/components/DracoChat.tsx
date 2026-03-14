@@ -13,6 +13,8 @@ import { ModelSelector } from "./ModelSelector";
 import { AudioVisualizer } from "./AudioVisualizer";
 import { ThinkingProcess } from "./ThinkingProcess";
 import { Dashboard } from "./Dashboard";
+import PricingModal from "./PricingModal";
+import { canSendMessage, canGenerateImage, incrementMessages, incrementImages } from "../lib/usage";
 import { TermsModal } from "./TermsModal";
 import { BrandLink, useScene } from "./SceneController";
 import WaitlistModal from "./WaitlistModal";
@@ -50,7 +52,7 @@ export default function DracoChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState("draco-prime");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false); // Used for hydration check
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     setIsLoaded(true);
@@ -58,6 +60,11 @@ export default function DracoChat() {
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [imageGenOpen, setImageGenOpen] = useState(false);
   const [imagePrompt, setImagePrompt] = useState("");
+
+  // Stripe / Subscription State
+  const [userPlan, setUserPlan] = useState<string>("free");
+  const [pricingOpen, setPricingOpen] = useState(false);
+  const [pricingTrigger, setPricingTrigger] = useState<string>("");
 
   // Waitlist State
   const [waitlistOpen, setWaitlistOpen] = useState(false);
@@ -152,6 +159,12 @@ export default function DracoChat() {
     }
 
     setIsLoaded(true);
+
+    // 4. Check for upgrade success from Stripe redirect
+    if (typeof window !== 'undefined' && window.location.search.includes('upgraded=true')) {
+      setUserPlan('pro');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   // Persistence Effects
@@ -676,6 +689,14 @@ export default function DracoChat() {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
+    // Check usage limits (connected to Firebase user's Stripe plan)
+    const msgCheck = canSendMessage(userPlan);
+    if (!msgCheck.allowed) {
+      setPricingTrigger("messages");
+      setPricingOpen(true);
+      return;
+    }
+
     window.speechSynthesis.cancel();
     setSpeakingMsgId(null);
 
@@ -687,6 +708,7 @@ export default function DracoChat() {
     setInput("");
     setAttachment(null);
     setIsLoading(true);
+    incrementMessages(); // Track usage
 
     // Auto-title the sidebar session from the first user message
     if (activeSessionId && messages.length === 0) {
@@ -1304,6 +1326,14 @@ export default function DracoChat() {
           </div>
         </main>
       </div>
+
+      {/* Pricing Modal */}
+      <PricingModal
+        isOpen={pricingOpen}
+        onClose={() => setPricingOpen(false)}
+        currentPlan={userPlan}
+        trigger={pricingTrigger}
+      />
     </div>
   );
 }
