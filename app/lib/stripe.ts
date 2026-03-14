@@ -89,7 +89,7 @@ export async function ensureStripeProducts() {
   if (!proProduct) {
     proProduct = await s.products.create({
       name: 'Draco AI Pro',
-      description: 'Unlimited AI requests, unlimited image generation, all premium themes, priority speed, and advanced reasoning — no daily limits.',
+      description: 'Unlimited API requests, 200 images/month, access to better models, faster responses, no rate limiting.',
       metadata: { plan: 'pro' },
     });
   }

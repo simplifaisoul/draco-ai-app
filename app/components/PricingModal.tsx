@@ -163,9 +163,9 @@ export default function PricingModal({
                     {[
                       "33 requests per day",
                       "3 images per day",
-                      "1 theme",
+                      "Memory Vault",
+                      "Standard models",
                       "Standard speed",
-                      "Basic chat history",
                     ].map((f, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm text-white/50">
                         <svg className="w-4 h-4 mt-0.5 shrink-0 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -215,13 +215,13 @@ export default function PricingModal({
 
                     <ul className="flex-1 space-y-3 mb-7">
                       {[
-                        ["Unlimited requests — no daily cap", true],
-                        ["Unlimited image generation", true],
+                        ["Unlimited API requests", true],
+                        ["200 images per month", true],
+                        ["Access to better models", true],
+                        ["Faster responses", true],
+                        ["No rate limiting", true],
+                        ["Less throttling in rush hours", false],
                         ["All 3 premium themes", false],
-                        ["Faster response speed", true],
-                        ["Chain of Thought reasoning", false],
-                        ["Memory Vault", false],
-                        ["File uploads & analysis", false],
                         ["Priority support", false],
                       ].map(([f, highlight], i) => (
                         <li key={i} className={`flex items-start gap-3 text-sm ${highlight ? "text-white/90 font-medium" : "text-white/50"}`}>
