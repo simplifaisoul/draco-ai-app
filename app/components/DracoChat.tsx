@@ -906,17 +906,16 @@ export default function DracoChat() {
                 </button>
               )}
 
-              {/* Chain of Thought Toggle */}
-              <button
-                onClick={() => setShowChainOfThought(!showChainOfThought)}
-                className={`p-2 rounded-lg transition-all border ${showChainOfThought
-                  ? "bg-[var(--color-primary)]/20 text-[var(--color-primary)] border-[var(--color-primary)]/50"
-                  : "text-[var(--color-secondary)] border-transparent hover:bg-white/5"
-                  }`}
-                title="Toggle Chain of Thought"
-              >
-                <Brain size={18} />
-              </button>
+              {/* Upgrade to Pro (header) */}
+              {userPlan === 'free' && (
+                <button
+                  onClick={() => { setPricingTrigger(''); setPricingOpen(true); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-bold shadow-md shadow-purple-500/20 hover:shadow-purple-500/40 transition-all hover:scale-105"
+                >
+                  <Zap size={13} />
+                  <span className="hidden sm:inline">Upgrade</span>
+                </button>
+              )}
 
               {/* Settings Toggle */}
               <button
