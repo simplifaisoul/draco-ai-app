@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/app/lib/stripe';
+import { getStripe } from '@/app/lib/stripe';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userEmail' }, { status: 400 });
     }
 
-    const customers = await stripe.customers.list({
+    const customers = await getStripe().customers.list({
       email: userEmail,
       limit: 1,
     });
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const customer = customers.data[0];
 
     // Check active subscriptions
-    const subscriptions = await stripe.subscriptions.list({
+    const subscriptions = await getStripe().subscriptions.list({
       customer: customer.id,
       status: 'active',
       limit: 1,
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     if (subscriptions.data.length === 0) {
       // Check for trialing
-      const trialing = await stripe.subscriptions.list({
+      const trialing = await getStripe().subscriptions.list({
         customer: customer.id,
         status: 'trialing',
         limit: 1,

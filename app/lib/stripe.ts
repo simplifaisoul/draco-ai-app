@@ -1,12 +1,18 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
-}
+let _stripe: Stripe | null = null;
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  typescript: true,
-});
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      typescript: true,
+    });
+  }
+  return _stripe;
+}
 
 // Plan definitions
 export const PLANS = {
@@ -26,7 +32,7 @@ export const PLANS = {
   },
   pro: {
     name: 'Pro',
-    priceId: null as string | null, // Will be set after product creation
+    priceId: null as string | null,
     price: 12,
     limits: {
       messagesPerDay: Infinity,
@@ -73,49 +79,47 @@ export async function ensureStripeProducts() {
     return { proPriceId, teamPriceId };
   }
 
-  // Search for existing products
-  const products = await stripe.products.list({ active: true, limit: 100 });
+  const s = getStripe();
+
+  const products = await s.products.list({ active: true, limit: 100 });
 
   let proProduct = products.data.find(p => p.metadata.plan === 'pro');
   let teamProduct = products.data.find(p => p.metadata.plan === 'team');
 
-  // Create Pro product if missing
   if (!proProduct) {
-    proProduct = await stripe.products.create({
+    proProduct = await s.products.create({
       name: 'Draco AI Pro',
       description: 'Unlimited messages, 50 images/day, all themes, priority speed',
       metadata: { plan: 'pro' },
     });
   }
 
-  // Create Team product if missing
   if (!teamProduct) {
-    teamProduct = await stripe.products.create({
+    teamProduct = await s.products.create({
       name: 'Draco AI Team',
       description: 'Everything in Pro + shared workspaces, team memory, priority support',
       metadata: { plan: 'team' },
     });
   }
 
-  // Get or create prices
-  const prices = await stripe.prices.list({ active: true, limit: 100 });
+  const prices = await s.prices.list({ active: true, limit: 100 });
 
   let proPrice = prices.data.find(p => p.product === proProduct!.id && p.recurring?.interval === 'month');
   let teamPrice = prices.data.find(p => p.product === teamProduct!.id && p.recurring?.interval === 'month');
 
   if (!proPrice) {
-    proPrice = await stripe.prices.create({
+    proPrice = await s.prices.create({
       product: proProduct.id,
-      unit_amount: 1200, // $12.00
+      unit_amount: 1200,
       currency: 'usd',
       recurring: { interval: 'month' },
     });
   }
 
   if (!teamPrice) {
-    teamPrice = await stripe.prices.create({
+    teamPrice = await s.prices.create({
       product: teamProduct.id,
-      unit_amount: 2500, // $25.00
+      unit_amount: 2500,
       currency: 'usd',
       recurring: { interval: 'month' },
     });

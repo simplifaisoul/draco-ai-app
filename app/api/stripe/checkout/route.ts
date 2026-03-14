@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe, ensureStripeProducts } from '@/app/lib/stripe';
+import { getStripe, ensureStripeProducts } from '@/app/lib/stripe';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for existing customer
-    const existingCustomers = await stripe.customers.list({
+    const existingCustomers = await getStripe().customers.list({
       email: userEmail,
       limit: 1,
     });
@@ -25,14 +25,14 @@ export async function POST(request: NextRequest) {
     let customerId = existingCustomers.data[0]?.id;
 
     if (!customerId) {
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email: userEmail,
         metadata: { firebaseUid: userId },
       });
       customerId = customer.id;
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { stripe } from '@/app/lib/stripe';
+import { getStripe } from '@/app/lib/stripe';
 
 // Disable body parsing — Stripe needs raw body to verify signatures
 export const dynamic = 'force-dynamic';
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     if (process.env.STRIPE_WEBHOOK_SECRET && signature) {
       try {
-        event = stripe.webhooks.constructEvent(
+        event = getStripe().webhooks.constructEvent(
           body,
           signature,
           process.env.STRIPE_WEBHOOK_SECRET
