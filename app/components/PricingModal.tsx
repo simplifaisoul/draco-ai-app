@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../lib/AuthContext";
 import { getRemainingRequests } from "../lib/usage";
@@ -20,7 +20,6 @@ export default function PricingModal({
 }: PricingModalProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
-  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
   const remaining = getRemainingRequests(currentPlan);
 
   const handleUpgrade = async (planId: string) => {
@@ -67,6 +66,21 @@ export default function PricingModal({
     }
   };
 
+  // Contextual headline based on trigger
+  const getHeadline = () => {
+    if (trigger === "messages") return "You've hit your daily limit";
+    if (trigger === "images") return "Image limit reached";
+    return "Go Unlimited with Pro";
+  };
+
+  const getSubheadline = () => {
+    if (trigger === "messages")
+      return `You've used all 33 free requests today. Upgrade to keep the conversation going — no interruptions, ever.`;
+    if (trigger === "images")
+      return "Free accounts can generate 3 images per day. Go Pro for unlimited creative freedom.";
+    return "Stop counting requests. Pro members get unlimited everything — the AI works as fast as you think.";
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -79,223 +93,145 @@ export default function PricingModal({
           style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(20px)" }}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.88, y: 40 }}
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.88, y: 40 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+            transition={{ type: "spring", damping: 28, stiffness: 350 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-5xl mx-4 max-h-[92vh] overflow-y-auto"
+            className="relative w-full max-w-[520px] mx-4 max-h-[92vh] overflow-y-auto"
           >
-            {/* Glow effects */}
-            <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute -bottom-20 right-1/4 w-64 h-64 bg-pink-600/15 rounded-full blur-[100px] pointer-events-none" />
+            {/* Ambient glow */}
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-purple-600/25 rounded-full blur-[100px] pointer-events-none" />
 
-            <div className="relative rounded-3xl border border-white/10 bg-gradient-to-b from-gray-900/95 to-black/95 backdrop-blur-xl shadow-2xl overflow-hidden">
-              {/* Close button */}
+            <div className="relative rounded-3xl border border-white/10 bg-gradient-to-b from-[#13111C] to-[#0a090f] shadow-2xl overflow-hidden">
+              {/* Close */}
               <button
                 onClick={onClose}
-                className="absolute top-5 right-5 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/50 hover:text-white transition-all duration-300 hover:rotate-90"
+                className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/40 hover:text-white transition-all duration-300 hover:rotate-90"
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
                   <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </button>
 
               {/* Header */}
-              <div className="text-center pt-12 pb-2 px-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium mb-5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-                    {trigger === "messages"
-                      ? `${remaining} requests remaining today`
-                      : trigger === "images"
-                        ? "Image limit reached"
-                        : "Supercharge your AI"}
-                  </div>
-                  <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
-                    <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent">
-                      Unlock Unlimited
-                    </span>
+              <div className="text-center pt-10 pb-2 px-8">
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                  {trigger && (
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-300 text-[11px] font-medium mb-4">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                      {trigger === "messages" ? `${remaining}/33 requests left` : "Daily limit reached"}
+                    </div>
+                  )}
+                  <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white leading-tight">
+                    {getHeadline()}
                   </h2>
-                  <p className="mt-3 text-white/40 text-base max-w-md mx-auto">
-                    Remove all limits. Get unlimited AI requests, priority speed, and premium features.
+                  <p className="mt-3 text-white/40 text-sm leading-relaxed max-w-sm mx-auto">
+                    {getSubheadline()}
                   </p>
                 </motion.div>
               </div>
 
-              {/* Plans Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-8 pt-6 max-w-3xl mx-auto">
-
-                {/* FREE PLAN */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  onMouseEnter={() => setHoveredPlan("free")}
-                  onMouseLeave={() => setHoveredPlan(null)}
-                  className={`relative rounded-2xl border p-7 flex flex-col transition-all duration-500 ${currentPlan === "free"
-                      ? "border-white/20 bg-white/[0.03]"
-                      : "border-white/10 bg-white/[0.02] hover:border-white/15"
-                    }`}
-                >
-                  {currentPlan === "free" && (
-                    <div className="absolute -top-3 left-6 px-3 py-1 bg-white/10 text-white/60 text-[10px] font-bold rounded-full border border-white/20 uppercase tracking-widest">
-                      Current
+              {/* Pro Card */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mx-6 mt-6 mb-4 rounded-2xl p-[1px] bg-gradient-to-b from-purple-500/40 via-pink-500/20 to-purple-600/40"
+              >
+                <div className="rounded-2xl bg-[#0e0d14] p-6">
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <span className="text-xl">⚡</span> Draco Pro
+                      </h3>
+                      <p className="text-white/30 text-xs mt-0.5">Everything. No limits.</p>
                     </div>
-                  )}
-
-                  <div className="mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-                      <span className="text-lg">🐲</span>
-                    </div>
-                    <h3 className="text-xl font-bold text-white">Free</h3>
-                    <div className="flex items-baseline gap-1 mt-2">
-                      <span className="text-3xl font-bold text-white">$0</span>
-                      <span className="text-white/30 text-sm">/forever</span>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">$12</div>
+                      <div className="text-white/25 text-[10px]">per month</div>
                     </div>
                   </div>
 
-                  <ul className="flex-1 space-y-3 mb-7">
+                  {/* Features grid */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mb-6">
                     {[
-                      "33 AI requests per day",
-                      "3 image generations per day",
-                      "Cosmic theme",
-                      "Standard response speed",
-                      "Basic chat history",
-                    ].map((f, i) => (
-                      <li key={i} className="flex items-start gap-3 text-sm text-white/50">
-                        <svg className="w-4 h-4 mt-0.5 shrink-0 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        {f}
-                      </li>
+                      ["∞", "Unlimited AI requests"],
+                      ["∞", "Unlimited image gen"],
+                      ["⚡", "Priority speed"],
+                      ["🎨", "All premium themes"],
+                      ["🧠", "Advanced reasoning"],
+                      ["💾", "Memory Vault"],
+                      ["📎", "File uploads"],
+                      ["🛡️", "Priority support"],
+                    ].map(([icon, label], i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs text-white/60">
+                        <span className="w-5 text-center text-[11px]">{icon}</span>
+                        {label}
+                      </div>
                     ))}
-                  </ul>
-
-                  <button
-                    disabled
-                    className="w-full py-3.5 px-4 rounded-xl text-sm font-semibold bg-white/5 text-white/25 cursor-not-allowed border border-white/5"
-                  >
-                    Current Plan
-                  </button>
-                </motion.div>
-
-                {/* PRO PLAN */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  onMouseEnter={() => setHoveredPlan("pro")}
-                  onMouseLeave={() => setHoveredPlan(null)}
-                  className="relative rounded-2xl p-[1px] bg-gradient-to-b from-purple-500/50 via-pink-500/30 to-purple-600/50 transition-all duration-500 hover:from-purple-500/70 hover:via-pink-500/50 hover:to-purple-600/70"
-                >
-                  {/* Glow behind card */}
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-purple-600/20 to-pink-600/10 blur-xl -z-10" />
-
-                  <div className="relative rounded-2xl bg-gradient-to-b from-gray-900/98 to-[#0a0a0f] p-7 flex flex-col h-full">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] font-bold rounded-full uppercase tracking-widest shadow-lg shadow-purple-500/30">
-                      ✦ Recommended
-                    </div>
-
-                    <div className="mb-6">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 flex items-center justify-center mb-4">
-                        <span className="text-lg">⚡</span>
-                      </div>
-                      <h3 className="text-xl font-bold text-white">Pro</h3>
-                      <div className="flex items-baseline gap-1 mt-2">
-                        <span className="text-3xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">$12</span>
-                        <span className="text-white/30 text-sm">/month</span>
-                      </div>
-                      <p className="text-white/30 text-xs mt-1">Cancel anytime</p>
-                    </div>
-
-                    <ul className="flex-1 space-y-3 mb-7">
-                      {[
-                        ["Unlimited AI requests", true],
-                        ["Unlimited image generation", true],
-                        ["All 3 premium themes", false],
-                        ["Priority response speed", true],
-                        ["Chain of Thought reasoning", false],
-                        ["Memory Vault", false],
-                        ["File uploads & analysis", false],
-                        ["Priority support", false],
-                      ].map(([f, highlight], i) => (
-                        <li key={i} className={`flex items-start gap-3 text-sm ${highlight ? "text-white/90 font-medium" : "text-white/50"}`}>
-                          <svg className={`w-4 h-4 mt-0.5 shrink-0 ${highlight ? "text-purple-400" : "text-purple-400/50"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-
-                    <button
-                      onClick={() =>
-                        currentPlan === "pro"
-                          ? handleManageBilling()
-                          : handleUpgrade("pro")
-                      }
-                      disabled={loading === "pro"}
-                      className="group relative w-full py-4 px-4 rounded-xl text-sm font-bold overflow-hidden"
-                    >
-                      {/* Button gradient bg */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transition-all duration-300 group-hover:from-purple-500 group-hover:to-pink-500" />
-                      {/* Shine effect */}
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                      </div>
-                      <span className="relative text-white flex items-center justify-center gap-2">
-                        {loading === "pro" ? (
-                          <>
-                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            Redirecting to checkout...
-                          </>
-                        ) : currentPlan === "pro" ? (
-                          "Manage Billing"
-                        ) : (
-                          <>
-                            Upgrade to Pro
-                            <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                          </>
-                        )}
-                      </span>
-                    </button>
                   </div>
-                </motion.div>
-              </div>
 
-              {/* Trust badges */}
+                  {/* CTA Button */}
+                  <button
+                    onClick={() => currentPlan === "pro" ? handleManageBilling() : handleUpgrade("pro")}
+                    disabled={loading === "pro" || loading === "portal"}
+                    className="group relative w-full py-3.5 px-4 rounded-xl text-sm font-bold overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transition-all duration-300 group-hover:from-purple-500 group-hover:to-pink-500" />
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                    </div>
+                    <span className="relative text-white flex items-center justify-center gap-2">
+                      {loading ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Redirecting...
+                        </>
+                      ) : currentPlan === "pro" ? (
+                        "Manage Subscription"
+                      ) : (
+                        <>
+                          Upgrade Now — $12/mo
+                          <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                        </>
+                      )}
+                    </span>
+                  </button>
+                </div>
+              </motion.div>
+
+              {/* Social proof + trust */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.35 }}
-                className="flex items-center justify-center gap-6 pb-8 px-6"
+                transition={{ delay: 0.3 }}
+                className="px-8 pb-8 space-y-3"
               >
-                <div className="flex items-center gap-2 text-white/20 text-xs">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                  </svg>
-                  Secured by Stripe
+                {/* Comparison callout */}
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+                    <span className="text-sm">💡</span>
+                  </div>
+                  <p className="text-[11px] text-white/35 leading-relaxed">
+                    <span className="text-white/60 font-medium">Less than $0.40/day</span> — cheaper than a coffee, unlimited AI power all day.
+                  </p>
                 </div>
-                <div className="w-px h-3 bg-white/10" />
-                <div className="flex items-center gap-2 text-white/20 text-xs">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
-                  </svg>
-                  Cancel anytime
-                </div>
-                <div className="w-px h-3 bg-white/10" />
-                <div className="flex items-center gap-2 text-white/20 text-xs">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                  </svg>
-                  No hidden fees
+
+                {/* Trust badges */}
+                <div className="flex items-center justify-center gap-5 pt-2">
+                  <div className="flex items-center gap-1.5 text-white/20 text-[10px]">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                    Stripe secured
+                  </div>
+                  <div className="w-px h-3 bg-white/10" />
+                  <div className="text-white/20 text-[10px]">Cancel anytime</div>
+                  <div className="w-px h-3 bg-white/10" />
+                  <div className="text-white/20 text-[10px]">Instant activation</div>
                 </div>
               </motion.div>
             </div>

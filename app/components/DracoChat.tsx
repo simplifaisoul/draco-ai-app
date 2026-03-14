@@ -670,10 +670,29 @@ export default function DracoChat() {
         // Execute Tool
         const result = await executeToolCommand(foundCommand);
         if (result) {
-          // Add Tool Output to History (visible to user)
+          // Strip the tool command from the AI's visible message
+          const cleanedAiContent = streamedContent
+            .split('\n')
+            .filter(line => {
+              const t = line.trim();
+              return !t.startsWith('/webfetch ') && !t.startsWith('/websearch ') && !t.startsWith('/request ');
+            })
+            .join('\n')
+            .trim();
+
+          // Update the AI message to show only the conversational part
+          if (cleanedAiContent) {
+            setMessages(prev => {
+              const newArr = [...prev];
+              newArr[newArr.length - 1].content = cleanedAiContent;
+              return newArr;
+            });
+          }
+
+          // Add Tool Output as 'system' role → renders as collapsible ToolStatus panel
           const displayResult = result.substring(0, 2000) + (result.length > 2000 ? "\n...(truncated)" : "");
           const toolMsg: Message = {
-            role: "assistant",
+            role: "system",
             content: `🛠️ **Tool Output:**\n\`\`\`\n${displayResult}\n\`\`\``,
             timestamp: new Date().toISOString()
           };
@@ -682,9 +701,9 @@ export default function DracoChat() {
 
           // Construct full history for next turn (send more context to AI)
           const aiMsg: Message = { role: "assistant", content: streamedContent, timestamp: new Date().toISOString() };
-          const fullResult = result.substring(0, 4000); // More context for AI to analyze
+          const fullResult = result.substring(0, 4000);
           const toolMsgForHistory: Message = { role: "user", content: `[Tool Output]:\n${fullResult}`, timestamp: new Date().toISOString() };
-          const nextHistory = [...currentHistory, aiMsg, toolMsgForHistory]; // Full result for AI
+          const nextHistory = [...currentHistory, aiMsg, toolMsgForHistory];
 
           // Recurse
           await processTurn(nextHistory, depth + 1);
