@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download, Eye, Headphones, LayoutGrid, Brain, Copy, Check, Zap, Terminal, Code, Cpu } from "lucide-react";
+import { Send, Menu, Plus, MessageSquare, X, ChevronDown, Bot, User, Trash2, Globe, Image as ImageIcon, Mic, MicOff, Volume2, VolumeX, Settings as SettingsIcon, FileText, Upload, Download, Eye, Headphones, LayoutGrid, Brain, Copy, Check, Zap, Terminal, Code, Cpu, Share2 } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
 import ReactMarkdown from "react-markdown";
@@ -296,6 +296,40 @@ export default function DracoChat() {
     } catch (e) {
       console.error("Export failed:", e);
       alert("Failed to export chat.");
+    }
+  };
+
+  // Share Chat
+  const [shareSuccess, setShareSuccess] = useState(false);
+  const shareChat = async () => {
+    const chatText = messages
+      .filter(m => m.role !== 'system')
+      .map(m => `${m.role === 'user' ? 'You' : 'Draco'}: ${m.content.replace(/!\[.*?\]\(data:image.*?\)/g, '[Image]').substring(0, 500)}`)
+      .join('\n\n');
+
+    const shareText = `${chatText}\n\n---\nShared via Draco AI \u2014 dracoai.app`;
+
+    // Try Web Share API first (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Draco AI Chat',
+          text: shareText,
+          url: 'https://dracoai.app',
+        });
+        return;
+      } catch (e) {
+        // Fallback to clipboard
+      }
+    }
+
+    // Clipboard fallback
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2000);
+    } catch (e) {
+      console.error('Share failed:', e);
     }
   };
 
@@ -1123,6 +1157,16 @@ export default function DracoChat() {
                                 title={speakingMsgId === i ? "Stop" : "Listen"}
                               >
                                 {speakingMsgId === i ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                              </button>
+                              <button
+                                onClick={shareChat}
+                                className={`p-1.5 rounded-lg transition-all ${shareSuccess
+                                  ? "text-green-400"
+                                  : "text-[var(--color-secondary)]/50 hover:text-[var(--foreground)] hover:bg-white/5"
+                                  }`}
+                                title={shareSuccess ? "Copied to clipboard!" : "Share chat"}
+                              >
+                                {shareSuccess ? <Check size={14} /> : <Share2 size={14} />}
                               </button>
                             </div>
                           )}
