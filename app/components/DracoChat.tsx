@@ -299,37 +299,56 @@ export default function DracoChat() {
     }
   };
 
-  // Share Chat
+  // Share Chat — generates a shareable link
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
   const shareChat = async () => {
-    const chatText = messages
-      .filter(m => m.role !== 'system')
-      .map(m => `${m.role === 'user' ? 'You' : 'Draco'}: ${m.content.replace(/!\[.*?\]\(data:image.*?\)/g, '[Image]').substring(0, 500)}`)
-      .join('\n\n');
+    if (messages.length === 0 || shareLoading) return;
 
-    const shareText = `${chatText}\n\n---\nShared via Draco AI \u2014 dracoai.app`;
-
-    // Try Web Share API first (mobile)
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Draco AI Chat',
-          text: shareText,
-          url: 'https://dracoai.app',
-        });
-        return;
-      } catch (e) {
-        // Fallback to clipboard
-      }
-    }
-
-    // Clipboard fallback
+    setShareLoading(true);
     try {
-      await navigator.clipboard.writeText(shareText);
-      setShareSuccess(true);
-      setTimeout(() => setShareSuccess(false), 2000);
+      // Get chat title from first user message
+      const firstUserMsg = messages.find(m => m.role === 'user');
+      const title = firstUserMsg
+        ? firstUserMsg.content.substring(0, 60) + (firstUserMsg.content.length > 60 ? '...' : '')
+        : 'Draco AI Chat';
+
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages,
+          title,
+          userId: user?.uid || 'anonymous',
+        }),
+      });
+      const data = await res.json();
+
+      if (data.shareUrl) {
+        // Try Web Share API first (mobile)
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: `${title} — Draco AI`,
+              text: 'Check out this AI conversation on Draco AI',
+              url: data.shareUrl,
+            });
+            setShareLoading(false);
+            return;
+          } catch (e) {
+            // User cancelled or fallback to clipboard
+          }
+        }
+
+        // Clipboard fallback
+        await navigator.clipboard.writeText(data.shareUrl);
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 3000);
+      }
     } catch (e) {
       console.error('Share failed:', e);
+    } finally {
+      setShareLoading(false);
     }
   };
 
@@ -1160,13 +1179,18 @@ export default function DracoChat() {
                               </button>
                               <button
                                 onClick={shareChat}
+                                disabled={shareLoading}
                                 className={`p-1.5 rounded-lg transition-all ${shareSuccess
                                   ? "text-green-400"
-                                  : "text-[var(--color-secondary)]/50 hover:text-[var(--foreground)] hover:bg-white/5"
+                                  : shareLoading
+                                    ? "text-yellow-400/60"
+                                    : "text-[var(--color-secondary)]/50 hover:text-[var(--foreground)] hover:bg-white/5"
                                   }`}
-                                title={shareSuccess ? "Copied to clipboard!" : "Share chat"}
+                                title={shareSuccess ? "Link copied!" : shareLoading ? "Generating link..." : "Share chat"}
                               >
-                                {shareSuccess ? <Check size={14} /> : <Share2 size={14} />}
+                                {shareLoading ? (
+                                  <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin block" />
+                                ) : shareSuccess ? <Check size={14} /> : <Share2 size={14} />}
                               </button>
                             </div>
                           )}
