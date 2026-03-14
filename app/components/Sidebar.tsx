@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, MessageSquare, Trash2, ChevronDown, X, Download, LogOut, User } from "lucide-react";
+import { Plus, MessageSquare, Trash2, ChevronDown, X, Download, LogOut, User, Crown, Zap } from "lucide-react";
 import { HistoryManager, ChatSession } from "../lib/history";
 import { useAuth } from "../lib/AuthContext";
 
@@ -20,6 +20,8 @@ interface SidebarProps {
     currentTheme: 'cosmic' | 'corporate' | 'neural';
     onSetTheme: (theme: 'cosmic' | 'corporate' | 'neural') => void;
     onJoinBeta?: () => void;
+    userPlan?: string;
+    onUpgrade?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -37,7 +39,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onForgetMemory,
     currentTheme,
     onSetTheme,
-    onJoinBeta
+    onJoinBeta,
+    userPlan = 'free',
+    onUpgrade
 }) => {
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const { user, signOut } = useAuth();
@@ -257,6 +261,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 </div>
                             </div>
 
+                            {/* Upgrade Button (Free users) or Plan Badge (Paid users) */}
+                            {userPlan === 'free' ? (
+                                <button
+                                    onClick={onUpgrade}
+                                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-bold shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Zap size={14} />
+                                    Upgrade to Pro
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={onUpgrade}
+                                    className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 text-xs transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Crown size={12} className="text-yellow-400" />
+                                    Manage Billing
+                                </button>
+                            )}
+
                             <div className="mt-2 pt-3 border-t border-[var(--border-color)] space-y-2">
                                 {/* User Info + Sign Out */}
                                 {user && (
@@ -269,8 +292,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="text-[11px] font-medium text-[var(--foreground)] truncate">
+                                            <div className="text-[11px] font-medium text-[var(--foreground)] truncate flex items-center gap-1">
                                                 {user.displayName || 'User'}
+                                                {userPlan !== 'free' && (
+                                                    <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-purple-600 to-pink-600 text-[8px] font-bold uppercase tracking-wider">
+                                                        {userPlan}
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="text-[9px] text-[var(--color-secondary)] truncate">
                                                 {user.email}

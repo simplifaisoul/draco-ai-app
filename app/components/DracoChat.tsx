@@ -46,6 +46,7 @@ const MODELS: AIModel[] = [
 ];
 
 export default function DracoChat() {
+  const { user } = useAuth();
   const { theme, setTheme } = useScene();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -166,6 +167,23 @@ export default function DracoChat() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  // 5. Fetch subscription status from Stripe when user is authenticated
+  useEffect(() => {
+    if (!user?.email) return;
+    fetch('/api/stripe/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userEmail: user.email }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.plan && data.plan !== 'free') {
+          setUserPlan(data.plan);
+        }
+      })
+      .catch(err => console.error('Failed to fetch subscription:', err));
+  }, [user?.email]);
 
   // Persistence Effects
   useEffect(() => {
@@ -830,6 +848,8 @@ export default function DracoChat() {
           currentTheme={theme as 'cosmic' | 'corporate' | 'neural'}
           onSetTheme={setTheme}
           onJoinBeta={handleJoinBeta}
+          userPlan={userPlan}
+          onUpgrade={() => { setPricingTrigger(''); setPricingOpen(true); }}
         />
 
         {/* Main Content */}
