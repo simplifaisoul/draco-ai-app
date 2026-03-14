@@ -1,78 +1,77 @@
-// Usage tracking for free-tier limits
-// Stores daily counts in localStorage (client-side) with server-side verification via Stripe status
+import { PLANS } from './stripe';
 
-const USAGE_KEY = 'draco_usage';
-
-interface DailyUsage {
-  date: string; // YYYY-MM-DD
-  messages: number;
-  images: number;
+// Server-side usage tracking key format: draco_usage_{userId}_{date}
+function getUsageKey(userId: string): string {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  return `draco_usage_${userId}_${today}`;
 }
 
-function getToday(): string {
-  return new Date().toISOString().split('T')[0];
-}
+// Updated limits: 33 requests/day free, unlimited for paid
+const LIMITS = {
+  free: { requestsPerDay: 33, imagesPerDay: 3 },
+  pro: { requestsPerDay: Infinity, imagesPerDay: Infinity },
+  team: { requestsPerDay: Infinity, imagesPerDay: Infinity },
+};
 
-function getUsage(): DailyUsage {
-  if (typeof window === 'undefined') return { date: getToday(), messages: 0, images: 0 };
+// ---------- Client-side tracking (localStorage) ----------
 
+function getClientUsage(): { messages: number; images: number; date: string } {
+  if (typeof window === 'undefined') return { messages: 0, images: 0, date: '' };
+  const raw = localStorage.getItem('draco_daily_usage');
+  if (!raw) return { messages: 0, images: 0, date: new Date().toISOString().split('T')[0] };
   try {
-    const stored = localStorage.getItem(USAGE_KEY);
-    if (stored) {
-      const usage = JSON.parse(stored) as DailyUsage;
-      // Reset if it's a new day
-      if (usage.date !== getToday()) {
-        const fresh = { date: getToday(), messages: 0, images: 0 };
-        localStorage.setItem(USAGE_KEY, JSON.stringify(fresh));
-        return fresh;
-      }
-      return usage;
+    const data = JSON.parse(raw);
+    const today = new Date().toISOString().split('T')[0];
+    if (data.date !== today) {
+      return { messages: 0, images: 0, date: today };
     }
-  } catch { /* ignore */ }
-
-  const fresh = { date: getToday(), messages: 0, images: 0 };
-  localStorage.setItem(USAGE_KEY, JSON.stringify(fresh));
-  return fresh;
+    return data;
+  } catch {
+    return { messages: 0, images: 0, date: new Date().toISOString().split('T')[0] };
+  }
 }
 
-function saveUsage(usage: DailyUsage): void {
+function saveClientUsage(usage: { messages: number; images: number; date: string }) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(USAGE_KEY, JSON.stringify(usage));
-}
-
-export function incrementMessages(): DailyUsage {
-  const usage = getUsage();
-  usage.messages += 1;
-  saveUsage(usage);
-  return usage;
-}
-
-export function incrementImages(): DailyUsage {
-  const usage = getUsage();
-  usage.images += 1;
-  saveUsage(usage);
-  return usage;
-}
-
-export function getMessageCount(): number {
-  return getUsage().messages;
-}
-
-export function getImageCount(): number {
-  return getUsage().images;
+  localStorage.setItem('draco_daily_usage', JSON.stringify(usage));
 }
 
 export function canSendMessage(plan: string): { allowed: boolean; remaining: number } {
-  if (plan === 'pro' || plan === 'team') return { allowed: true, remaining: Infinity };
-  const count = getMessageCount();
-  const limit = 25;
-  return { allowed: count < limit, remaining: Math.max(0, limit - count) };
+  const limits = LIMITS[plan as keyof typeof LIMITS] || LIMITS.free;
+  if (limits.requestsPerDay === Infinity) return { allowed: true, remaining: Infinity };
+  const usage = getClientUsage();
+  const remaining = limits.requestsPerDay - usage.messages;
+  return { allowed: remaining > 0, remaining: Math.max(0, remaining) };
 }
 
 export function canGenerateImage(plan: string): { allowed: boolean; remaining: number } {
-  if (plan === 'team') return { allowed: true, remaining: 200 - getImageCount() };
-  if (plan === 'pro') return { allowed: true, remaining: 50 - getImageCount() };
-  const count = getImageCount();
-  const limit = 3;
-  return { allowed: count < limit, remaining: Math.max(0, limit - count) };
+  const limits = LIMITS[plan as keyof typeof LIMITS] || LIMITS.free;
+  if (limits.imagesPerDay === Infinity) return { allowed: true, remaining: Infinity };
+  const usage = getClientUsage();
+  const remaining = limits.imagesPerDay - usage.images;
+  return { allowed: remaining > 0, remaining: Math.max(0, remaining) };
+}
+
+export function incrementMessages() {
+  const usage = getClientUsage();
+  usage.messages += 1;
+  saveClientUsage(usage);
+}
+
+export function incrementImages() {
+  const usage = getClientUsage();
+  usage.images += 1;
+  saveClientUsage(usage);
+}
+
+export function getUsageCounts(): { messages: number; images: number } {
+  const usage = getClientUsage();
+  return { messages: usage.messages, images: usage.images };
+}
+
+export function getRemainingRequests(plan: string): number {
+  const limits = LIMITS[plan as keyof typeof LIMITS] || LIMITS.free;
+  if (limits.requestsPerDay === Infinity) return Infinity;
+  const usage = getClientUsage();
+  return Math.max(0, limits.requestsPerDay - usage.messages);
 }

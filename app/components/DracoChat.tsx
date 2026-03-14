@@ -1267,6 +1267,14 @@ export default function DracoChat() {
                                   onChange={(e) => setImagePrompt(e.target.value)}
                                   onKeyDown={(e) => {
                                     if (e.key === "Enter" && imagePrompt.trim()) {
+                                      const imgCheck = canGenerateImage(userPlan);
+                                      if (!imgCheck.allowed) {
+                                        setPricingTrigger("images");
+                                        setPricingOpen(true);
+                                        setImageGenOpen(false);
+                                        return;
+                                      }
+                                      incrementImages();
                                       setInput(`make me an image of ${imagePrompt}`);
                                       setImageGenOpen(false);
                                       setImagePrompt("");

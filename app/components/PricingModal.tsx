@@ -1,68 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../lib/AuthContext";
+import { getRemainingRequests } from "../lib/usage";
 
 interface PricingModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentPlan: string;
-  trigger?: string; // "messages" | "images" | "manual"
+  trigger?: string;
 }
-
-const plans = [
-  {
-    id: "free",
-    name: "Free",
-    price: 0,
-    period: "",
-    badge: "Current",
-    features: [
-      "25 messages per day",
-      "3 AI images per day",
-      "Cosmic theme",
-      "Basic models",
-    ],
-    cta: "Current Plan",
-    popular: false,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: 12,
-    period: "/mo",
-    badge: "Most Popular",
-    features: [
-      "Unlimited messages",
-      "50 AI images per day",
-      "All 3 themes",
-      "Priority speed",
-      "Chain of Thought",
-      "Memory Vault",
-      "File uploads",
-    ],
-    cta: "Upgrade to Pro",
-    popular: true,
-  },
-  {
-    id: "team",
-    name: "Team",
-    price: 25,
-    period: "/user/mo",
-    badge: "Best Value",
-    features: [
-      "Everything in Pro",
-      "200 AI images per day",
-      "Shared workspaces",
-      "Team memory",
-      "Custom system prompts",
-      "Priority support",
-    ],
-    cta: "Upgrade to Team",
-    popular: false,
-  },
-];
 
 export default function PricingModal({
   isOpen,
@@ -72,13 +20,14 @@ export default function PricingModal({
 }: PricingModalProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
+  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
+  const remaining = getRemainingRequests(currentPlan);
 
   const handleUpgrade = async (planId: string) => {
     if (planId === "free" || planId === currentPlan) return;
     if (!user) return;
 
     setLoading(planId);
-
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -89,17 +38,12 @@ export default function PricingModal({
           userEmail: user.email,
         }),
       });
-
       const data = await res.json();
-
       if (data.url) {
         window.location.href = data.url;
-      } else {
-        alert("Failed to create checkout session. Please try again.");
       }
     } catch (error) {
       console.error("Checkout error:", error);
-      alert("Something went wrong. Please try again.");
     } finally {
       setLoading(null);
     }
@@ -108,22 +52,18 @@ export default function PricingModal({
   const handleManageBilling = async () => {
     if (!user?.email) return;
     setLoading("portal");
-
     try {
       const res = await fetch("/api/stripe/portal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userEmail: user.email }),
       });
-
       const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
+      if (data.url) window.location.href = data.url;
     } catch (error) {
       console.error("Portal error:", error);
     } finally {
-      setLoading("portal");
+      setLoading(null);
     }
   };
 
@@ -134,149 +74,230 @@ export default function PricingModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[200] flex items-center justify-center"
           onClick={onClose}
+          style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(20px)" }}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.88, y: 40 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", duration: 0.5 }}
+            exit={{ opacity: 0, scale: 0.88, y: 40 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[var(--sidebar-bg)] border border-[var(--border-color)] shadow-2xl shadow-purple-500/10"
+            className="relative w-full max-w-5xl mx-4 max-h-[92vh] overflow-y-auto"
           >
-            {/* Close button */}
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-            >
-              ✕
-            </button>
+            {/* Glow effects */}
+            <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute -bottom-20 right-1/4 w-64 h-64 bg-pink-600/15 rounded-full blur-[100px] pointer-events-none" />
 
-            {/* Header */}
-            <div className="text-center pt-8 pb-4 px-6">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-500 bg-clip-text text-transparent">
-                Upgrade Draco AI
-              </h2>
-              {trigger === "messages" && (
-                <p className="mt-2 text-white/50 text-sm">
-                  You&apos;ve hit your daily message limit. Upgrade for unlimited
-                  access.
-                </p>
-              )}
-              {trigger === "images" && (
-                <p className="mt-2 text-white/50 text-sm">
-                  You&apos;ve used all your daily image generations. Upgrade for
-                  more.
-                </p>
-              )}
-              {!trigger && (
-                <p className="mt-2 text-white/50 text-sm">
-                  Unlock the full power of Draco AI
-                </p>
-              )}
-            </div>
+            <div className="relative rounded-3xl border border-white/10 bg-gradient-to-b from-gray-900/95 to-black/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+              {/* Close button */}
+              <button
+                onClick={onClose}
+                className="absolute top-5 right-5 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/50 hover:text-white transition-all duration-300 hover:rotate-90"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
 
-            {/* Plans */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-              {plans.map((plan) => {
-                const isCurrent = plan.id === currentPlan;
-                const isUpgrade = plan.id !== "free" && plan.id !== currentPlan;
+              {/* Header */}
+              <div className="text-center pt-12 pb-2 px-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium mb-5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                    {trigger === "messages"
+                      ? `${remaining} requests remaining today`
+                      : trigger === "images"
+                        ? "Image limit reached"
+                        : "Supercharge your AI"}
+                  </div>
+                  <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
+                    <span className="bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent">
+                      Unlock Unlimited
+                    </span>
+                  </h2>
+                  <p className="mt-3 text-white/40 text-base max-w-md mx-auto">
+                    Remove all limits. Get unlimited AI requests, priority speed, and premium features.
+                  </p>
+                </motion.div>
+              </div>
 
-                return (
-                  <div
-                    key={plan.id}
-                    className={`relative rounded-2xl border p-6 flex flex-col transition-all duration-300 ${
-                      plan.popular
-                        ? "border-purple-500/50 bg-purple-500/5 shadow-lg shadow-purple-500/10 scale-[1.02]"
-                        : "border-[var(--border-color)] bg-white/[0.02]"
-                    } ${isCurrent ? "ring-2 ring-purple-500/30" : ""}`}
+              {/* Plans Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-8 pt-6 max-w-3xl mx-auto">
+
+                {/* FREE PLAN */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  onMouseEnter={() => setHoveredPlan("free")}
+                  onMouseLeave={() => setHoveredPlan(null)}
+                  className={`relative rounded-2xl border p-7 flex flex-col transition-all duration-500 ${currentPlan === "free"
+                      ? "border-white/20 bg-white/[0.03]"
+                      : "border-white/10 bg-white/[0.02] hover:border-white/15"
+                    }`}
+                >
+                  {currentPlan === "free" && (
+                    <div className="absolute -top-3 left-6 px-3 py-1 bg-white/10 text-white/60 text-[10px] font-bold rounded-full border border-white/20 uppercase tracking-widest">
+                      Current
+                    </div>
+                  )}
+
+                  <div className="mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+                      <span className="text-lg">🐲</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-white">Free</h3>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-3xl font-bold text-white">$0</span>
+                      <span className="text-white/30 text-sm">/forever</span>
+                    </div>
+                  </div>
+
+                  <ul className="flex-1 space-y-3 mb-7">
+                    {[
+                      "33 AI requests per day",
+                      "3 image generations per day",
+                      "Cosmic theme",
+                      "Standard response speed",
+                      "Basic chat history",
+                    ].map((f, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm text-white/50">
+                        <svg className="w-4 h-4 mt-0.5 shrink-0 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    disabled
+                    className="w-full py-3.5 px-4 rounded-xl text-sm font-semibold bg-white/5 text-white/25 cursor-not-allowed border border-white/5"
                   >
-                    {/* Badge */}
-                    {plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">
-                        {plan.badge}
-                      </div>
-                    )}
+                    Current Plan
+                  </button>
+                </motion.div>
 
-                    {isCurrent && !plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-white/10 text-white/60 text-xs font-bold rounded-full border border-white/20">
-                        Current
-                      </div>
-                    )}
+                {/* PRO PLAN */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  onMouseEnter={() => setHoveredPlan("pro")}
+                  onMouseLeave={() => setHoveredPlan(null)}
+                  className="relative rounded-2xl p-[1px] bg-gradient-to-b from-purple-500/50 via-pink-500/30 to-purple-600/50 transition-all duration-500 hover:from-purple-500/70 hover:via-pink-500/50 hover:to-purple-600/70"
+                >
+                  {/* Glow behind card */}
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-purple-600/20 to-pink-600/10 blur-xl -z-10" />
 
-                    {/* Price */}
-                    <div className="text-center mb-4 mt-2">
-                      <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-4xl font-bold text-[var(--foreground)]">
-                          {plan.price === 0 ? "Free" : `$${plan.price}`}
-                        </span>
-                        {plan.period && (
-                          <span className="text-white/40 text-sm">
-                            {plan.period}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-white/40 text-sm mt-1">{plan.name}</p>
+                  <div className="relative rounded-2xl bg-gradient-to-b from-gray-900/98 to-[#0a0a0f] p-7 flex flex-col h-full">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] font-bold rounded-full uppercase tracking-widest shadow-lg shadow-purple-500/30">
+                      ✦ Recommended
                     </div>
 
-                    {/* Features */}
-                    <ul className="flex-1 space-y-2 mb-6">
-                      {plan.features.map((f) => (
-                        <li
-                          key={f}
-                          className="flex items-start gap-2 text-sm text-white/70"
-                        >
-                          <span className="text-green-400 mt-0.5 shrink-0">
-                            ✓
-                          </span>
+                    <div className="mb-6">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 flex items-center justify-center mb-4">
+                        <span className="text-lg">⚡</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-white">Pro</h3>
+                      <div className="flex items-baseline gap-1 mt-2">
+                        <span className="text-3xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">$12</span>
+                        <span className="text-white/30 text-sm">/month</span>
+                      </div>
+                      <p className="text-white/30 text-xs mt-1">Cancel anytime</p>
+                    </div>
+
+                    <ul className="flex-1 space-y-3 mb-7">
+                      {[
+                        ["Unlimited AI requests", true],
+                        ["Unlimited image generation", true],
+                        ["All 3 premium themes", false],
+                        ["Priority response speed", true],
+                        ["Chain of Thought reasoning", false],
+                        ["Memory Vault", false],
+                        ["File uploads & analysis", false],
+                        ["Priority support", false],
+                      ].map(([f, highlight], i) => (
+                        <li key={i} className={`flex items-start gap-3 text-sm ${highlight ? "text-white/90 font-medium" : "text-white/50"}`}>
+                          <svg className={`w-4 h-4 mt-0.5 shrink-0 ${highlight ? "text-purple-400" : "text-purple-400/50"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
                           {f}
                         </li>
                       ))}
                     </ul>
 
-                    {/* CTA */}
                     <button
                       onClick={() =>
-                        isCurrent && currentPlan !== "free"
+                        currentPlan === "pro"
                           ? handleManageBilling()
-                          : handleUpgrade(plan.id)
+                          : handleUpgrade("pro")
                       }
-                      disabled={
-                        (isCurrent && currentPlan === "free") ||
-                        loading === plan.id
-                      }
-                      className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${
-                        isUpgrade
-                          ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-[1.02]"
-                          : isCurrent && currentPlan !== "free"
-                          ? "bg-white/10 hover:bg-white/15 text-white/80 border border-white/10"
-                          : "bg-white/5 text-white/30 cursor-not-allowed"
-                      }`}
+                      disabled={loading === "pro"}
+                      className="group relative w-full py-4 px-4 rounded-xl text-sm font-bold overflow-hidden"
                     >
-                      {loading === plan.id ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Redirecting...
-                        </span>
-                      ) : isCurrent && currentPlan !== "free" ? (
-                        "Manage Billing"
-                      ) : isCurrent ? (
-                        plan.cta
-                      ) : (
-                        plan.cta
-                      )}
+                      {/* Button gradient bg */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transition-all duration-300 group-hover:from-purple-500 group-hover:to-pink-500" />
+                      {/* Shine effect */}
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                      </div>
+                      <span className="relative text-white flex items-center justify-center gap-2">
+                        {loading === "pro" ? (
+                          <>
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Redirecting to checkout...
+                          </>
+                        ) : currentPlan === "pro" ? (
+                          "Manage Billing"
+                        ) : (
+                          <>
+                            Upgrade to Pro
+                            <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </>
+                        )}
+                      </span>
                     </button>
                   </div>
-                );
-              })}
-            </div>
+                </motion.div>
+              </div>
 
-            {/* Footer */}
-            <div className="text-center pb-6 px-6">
-              <p className="text-white/30 text-xs">
-                Secure payments by Stripe • Cancel anytime • No hidden fees
-              </p>
+              {/* Trust badges */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35 }}
+                className="flex items-center justify-center gap-6 pb-8 px-6"
+              >
+                <div className="flex items-center gap-2 text-white/20 text-xs">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                  Secured by Stripe
+                </div>
+                <div className="w-px h-3 bg-white/10" />
+                <div className="flex items-center gap-2 text-white/20 text-xs">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                  </svg>
+                  Cancel anytime
+                </div>
+                <div className="w-px h-3 bg-white/10" />
+                <div className="flex items-center gap-2 text-white/20 text-xs">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                  </svg>
+                  No hidden fees
+                </div>
+              </motion.div>
             </div>
           </motion.div>
         </motion.div>
