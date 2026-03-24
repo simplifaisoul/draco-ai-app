@@ -128,7 +128,7 @@ export default function PricingModal({
               </div>
 
               {/* Plans Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-8 pt-6 max-w-3xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8 pt-6 max-w-5xl mx-auto">
 
                 {/* FREE PLAN */}
                 <motion.div
@@ -267,6 +267,80 @@ export default function PricingModal({
                       </span>
                     </button>
                   </div>
+                </motion.div>
+
+                {/* DRAGON PLAN */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                  onMouseEnter={() => setHoveredPlan("dragon")}
+                  onMouseLeave={() => setHoveredPlan(null)}
+                  className={`relative rounded-2xl border p-7 flex flex-col transition-all duration-500 ${currentPlan === "dragon"
+                    ? "border-purple-500/40 bg-purple-500/5 shadow-[0_0_30px_rgba(168,85,247,0.15)]"
+                    : "border-white/10 bg-white/[0.02] hover:border-purple-500/30 hover:bg-purple-500/[0.02]"
+                    }`}
+                >
+                  {currentPlan === "dragon" && (
+                    <div className="absolute -top-3 left-6 px-3 py-1 bg-purple-500/20 text-purple-300 text-[10px] font-bold rounded-full border border-purple-500/30 uppercase tracking-widest">
+                      Current
+                    </div>
+                  )}
+
+                  <div className="mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center mb-4">
+                      <span className="text-lg">🐉</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-white">Dragon</h3>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-3xl font-bold text-white">$33</span>
+                      <span className="text-white/30 text-sm">/month</span>
+                    </div>
+                    <p className="text-white/30 text-xs mt-1">Cancel anytime</p>
+                  </div>
+
+                  <ul className="flex-1 space-y-3 mb-7">
+                    {[
+                      ["3 Linux VMs (simultaneous)", true],
+                      ["SSH into any container", true],
+                      ["Unlimited AI messages", true],
+                      ["100 images per day", true],
+                      ["Priority AI speed", true],
+                      ["Everything in Pro", false],
+                    ].map(([f, highlight], i) => (
+                      <li key={i} className={`flex items-start gap-3 text-sm ${highlight ? "text-white/90 font-medium" : "text-white/50"}`}>
+                        <svg className={`w-4 h-4 mt-0.5 shrink-0 ${highlight ? "text-indigo-400" : "text-indigo-400/50"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {f as string}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={() =>
+                      currentPlan === "dragon"
+                        ? handleManageBilling()
+                        : handleUpgrade("dragon")
+                    }
+                    disabled={loading === "dragon"}
+                    className={`w-full py-4 px-4 rounded-xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
+                      currentPlan === "dragon"
+                        ? "bg-white/5 text-white hover:bg-white/10"
+                        : "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-600/40 hover:text-white"
+                    }`}
+                  >
+                    {loading === "dragon" ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        Redirecting...
+                      </>
+                    ) : currentPlan === "dragon" ? (
+                      "Manage Billing"
+                    ) : (
+                      "Upgrade to Dragon"
+                    )}
+                  </button>
                 </motion.div>
               </div>
 
