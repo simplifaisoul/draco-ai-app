@@ -1,13 +1,26 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAuth } from "./lib/AuthContext";
 import AuthPage from "./components/AuthPage";
 import DracoChat from "./components/DracoChat";
+import LandingPage from "./components/LandingPage";
 import { SceneController } from "./components/SceneController";
 import LightningBackground from "./components/LightningBackground";
 
 export default function Home() {
   const { user, loading } = useAuth();
+  const [showAuth, setShowAuth] = useState(false);
+
+  // Toggle body class for app vs landing page scrolling
+  useEffect(() => {
+    if (user) {
+      document.body.classList.add('app-mode');
+    } else {
+      document.body.classList.remove('app-mode');
+    }
+    return () => document.body.classList.remove('app-mode');
+  }, [user]);
 
   // Loading state
   if (loading) {
@@ -28,15 +41,19 @@ export default function Home() {
     );
   }
 
-  // Not signed in — go straight to sign-in page
-  if (!user) {
+  // Signed in — show the full chat app
+  if (user) {
+    return (
+      <SceneController>
+        <DracoChat />
+      </SceneController>
+    );
+  }
+
+  // Not signed in — show landing page or auth page
+  if (showAuth) {
     return <AuthPage />;
   }
 
-  // Signed in — show the full chat app
-  return (
-    <SceneController>
-      <DracoChat />
-    </SceneController>
-  );
+  return <LandingPage onGetStarted={() => setShowAuth(true)} />;
 }

@@ -9,8 +9,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing plan, userId, or userEmail' }, { status: 400 });
     }
 
-    const { proPriceId, teamPriceId } = await ensureStripeProducts();
-    const priceId = plan === 'pro' ? proPriceId : plan === 'team' ? teamPriceId : null;
+    const { proPriceId, dragonPriceId } = await ensureStripeProducts();
+    const priceId = plan === 'pro' ? proPriceId : (plan === 'dragon' || plan === 'hacker' || plan === 'team') ? dragonPriceId : null;
 
     if (!priceId) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });

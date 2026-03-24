@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/app/lib/stripe';
 
+// Permanently Pro accounts (admins/owners)
+const PRO_OVERRIDE_EMAILS = [
+  'soulsimplifai@gmail.com',
+  'simplifaisoul@gmail.com',
+  'sounakabz123@gmail.com',
+];
+
 export async function POST(request: NextRequest) {
   try {
     const { userEmail } = await request.json();
 
     if (!userEmail) {
       return NextResponse.json({ error: 'Missing userEmail' }, { status: 400 });
+    }
+
+    // Check for permanent Pro overrides
+    if (PRO_OVERRIDE_EMAILS.includes(userEmail.toLowerCase())) {
+      return NextResponse.json({ plan: 'pro', status: 'active', override: true });
     }
 
     const customers = await getStripe().customers.list({

@@ -48,21 +48,23 @@ export const PLANS = {
       'File uploads',
     ],
   },
-  team: {
-    name: 'Team',
+  dragon: {
+    name: 'Dragon',
     priceId: null as string | null,
-    price: 25,
+    price: 33,
     limits: {
       messagesPerDay: Infinity,
-      imagesPerDay: 200,
+      imagesPerDay: 100,
+      maxContainers: 3,
     },
     features: [
+      '3 Linux VMs (simultaneous)',
+      'SSH into any container',
+      'Use as jump boxes',
+      'Unlimited AI messages',
+      '100 images / day',
+      'Priority speed',
       'Everything in Pro',
-      '200 AI images per day',
-      'Shared workspaces',
-      'Team memory',
-      'Custom system prompts',
-      'Priority support',
     ],
   },
 } as const;
@@ -72,11 +74,11 @@ export type PlanType = keyof typeof PLANS;
 // Get or create Stripe products and prices
 let productsInitialized = false;
 let proPriceId: string | null = null;
-let teamPriceId: string | null = null;
+let dragonPriceId: string | null = null;
 
 export async function ensureStripeProducts() {
-  if (productsInitialized && proPriceId && teamPriceId) {
-    return { proPriceId, teamPriceId };
+  if (productsInitialized && proPriceId && dragonPriceId) {
+    return { proPriceId, dragonPriceId };
   }
 
   const s = getStripe();
@@ -84,28 +86,28 @@ export async function ensureStripeProducts() {
   const products = await s.products.list({ active: true, limit: 100 });
 
   let proProduct = products.data.find(p => p.metadata.plan === 'pro');
-  let teamProduct = products.data.find(p => p.metadata.plan === 'team');
+  let dragonProduct = products.data.find(p => p.metadata.plan === 'dragon') || products.data.find(p => p.metadata.plan === 'hacker') || products.data.find(p => p.metadata.plan === 'team');
 
   if (!proProduct) {
     proProduct = await s.products.create({
       name: 'Draco AI Pro',
-      description: 'Unlimited API requests, 200 images/month, access to better models, faster responses, no rate limiting.',
+      description: '1 Linux VM, unlimited AI messages, Draco Agent, full root access & SSH.',
       metadata: { plan: 'pro' },
     });
   }
 
-  if (!teamProduct) {
-    teamProduct = await s.products.create({
-      name: 'Draco AI Team',
-      description: 'Everything in Pro + shared workspaces, team memory, priority support',
-      metadata: { plan: 'team' },
+  if (!dragonProduct) {
+    dragonProduct = await s.products.create({
+      name: 'Draco AI Dragon',
+      description: '3 Linux VMs, SSH jump boxes, unlimited AI, priority speed.',
+      metadata: { plan: 'dragon' },
     });
   }
 
   const prices = await s.prices.list({ active: true, limit: 100 });
 
   let proPrice = prices.data.find(p => p.product === proProduct!.id && p.recurring?.interval === 'month');
-  let teamPrice = prices.data.find(p => p.product === teamProduct!.id && p.recurring?.interval === 'month');
+  let dragonPrice = prices.data.find(p => p.product === dragonProduct!.id && p.recurring?.interval === 'month' && p.unit_amount === 3300);
 
   if (!proPrice) {
     proPrice = await s.prices.create({
@@ -116,18 +118,18 @@ export async function ensureStripeProducts() {
     });
   }
 
-  if (!teamPrice) {
-    teamPrice = await s.prices.create({
-      product: teamProduct.id,
-      unit_amount: 2500,
+  if (!dragonPrice) {
+    dragonPrice = await s.prices.create({
+      product: dragonProduct.id,
+      unit_amount: 3300,
       currency: 'usd',
       recurring: { interval: 'month' },
     });
   }
 
   proPriceId = proPrice.id;
-  teamPriceId = teamPrice.id;
+  dragonPriceId = dragonPrice.id;
   productsInitialized = true;
 
-  return { proPriceId, teamPriceId };
+  return { proPriceId, dragonPriceId };
 }

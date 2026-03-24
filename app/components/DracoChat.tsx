@@ -24,6 +24,8 @@ import { HistoryManager, ChatSession, Message } from "../lib/history";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ToolStatus } from "./ToolStatus";
+import AgentChat from "./AgentChat";
+import ContainerDashboard from "./ContainerDashboard";
 
 // Types
 // Message interface removed (imported from lib/history)
@@ -70,6 +72,11 @@ export default function DracoChat() {
   // Waitlist State
   const [waitlistOpen, setWaitlistOpen] = useState(false);
   const handleJoinBeta = () => setWaitlistOpen(true);
+
+  // Agent Mode State
+  const [viewMode, setViewMode] = useState<"chat" | "agent" | "machines">("chat");
+  const [agentVmid, setAgentVmid] = useState<number | null>(null);
+  const [agentSessionId, setAgentSessionId] = useState<string | null>(null);
 
   // New History State
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -922,9 +929,31 @@ export default function DracoChat() {
           onJoinBeta={handleJoinBeta}
           userPlan={userPlan}
           onUpgrade={() => { setPricingTrigger(''); setPricingOpen(true); }}
+          onOpenAgent={() => setViewMode("machines")}
         />
 
-        {/* Main Content */}
+        {/* Main Content — Machines / Agent / Chat */}
+        {viewMode === "machines" ? (
+          <ContainerDashboard
+            userId={user?.uid || 'anonymous'}
+            userPlan={userPlan}
+            onOpenTerminal={(vmid, sessionId) => {
+              setAgentVmid(vmid);
+              setAgentSessionId(sessionId);
+              setViewMode("agent");
+            }}
+            onUpgrade={() => { setPricingTrigger(''); setPricingOpen(true); }}
+          />
+        ) : viewMode === "agent" ? (
+          <AgentChat
+            userId={user?.uid || 'anonymous'}
+            userPlan={userPlan}
+            onBack={() => setViewMode("machines")}
+            onUpgrade={() => { setPricingTrigger(''); setPricingOpen(true); }}
+            initialVmid={agentVmid || undefined}
+            initialSessionId={agentSessionId || undefined}
+          />
+        ) : (
         <main className="flex-1 flex flex-col h-full relative w-full md:w-auto bg-transparent z-10 transition-all duration-300 min-h-0">
           {/* Header */}
           <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 bg-[var(--background)]/90 backdrop-blur-xl z-40 fixed top-0 left-0 right-0 md:absolute md:bg-[var(--background)]/50">
@@ -1439,6 +1468,7 @@ export default function DracoChat() {
             </div>
           </div>
         </main>
+        )}
       </div>
 
       {/* Pricing Modal */}

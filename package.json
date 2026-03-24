@@ -11,6 +11,7 @@
   "dependencies": {
     "@stripe/stripe-js": "^8.9.0",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/ssh2": "^1.15.5",
     "@vercel/analytics": "^1.6.1",
     "@vercel/speed-insights": "^1.3.1",
     "cheerio": "^1.1.2",
@@ -24,6 +25,7 @@
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^16.1.0",
     "remark-gfm": "^4.0.1",
+    "ssh2": "^1.17.0",
     "stripe": "^20.4.1"
   },
   "devDependencies": {

@@ -58,12 +58,18 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
+}
+
+body.app-mode {
   overflow: hidden;
-  /* For app-like feel */
 }
 
 /* Custom Animations */

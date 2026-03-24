@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, MessageSquare, Trash2, ChevronDown, X, Download, LogOut, User, Crown, Zap } from "lucide-react";
+import { Plus, MessageSquare, Trash2, ChevronDown, X, Download, LogOut, User, Crown, Zap, Cpu } from "lucide-react";
 import { HistoryManager, ChatSession } from "../lib/history";
 import { useAuth } from "../lib/AuthContext";
 
@@ -22,6 +22,7 @@ interface SidebarProps {
     onJoinBeta?: () => void;
     userPlan?: string;
     onUpgrade?: () => void;
+    onOpenAgent?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -41,7 +42,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onSetTheme,
     onJoinBeta,
     userPlan = 'free',
-    onUpgrade
+    onUpgrade,
+    onOpenAgent
 }) => {
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const { user, signOut } = useAuth();
@@ -121,6 +123,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 className="w-full flex items-center gap-2 bg-[var(--input-bg)] hover:bg-[var(--border-color)] border border-[var(--border-color)] p-3 rounded-xl text-sm font-medium transition-colors active:scale-95 duration-200 shadow-lg shadow-black/5 text-[var(--foreground)]"
                             >
                                 <Plus size={18} className="text-[var(--color-primary)]" /> New Chat
+                            </button>
+
+                            {/* Agent Button */}
+                            <button
+                                onClick={onOpenAgent}
+                                className="w-full flex items-center gap-2 bg-gradient-to-r from-emerald-600/10 to-cyan-600/10 hover:from-emerald-600/20 hover:to-cyan-600/20 border border-emerald-500/20 hover:border-emerald-500/40 p-3 rounded-xl text-sm font-medium transition-all active:scale-95 duration-200 text-[var(--foreground)]"
+                            >
+                                <Cpu size={18} className="text-emerald-400" /> Draco Agent
+                                {userPlan === 'free' && (
+                                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-purple-600/30 text-purple-300 font-bold">PRO</span>
+                                )}
                             </button>
 
                         </div>
