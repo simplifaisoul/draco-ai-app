@@ -8,7 +8,7 @@ if (typeof process !== 'undefined') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
-const PROXMOX_API_URL = process.env.PROXMOX_API_URL || 'https://100.68.100.15:8006';
+const PROXMOX_API_URL = process.env.PROXMOX_API_URL || 'https://proxmox.simplifai-1.org';
 const PROXMOX_API_TOKEN = process.env.PROXMOX_API_TOKEN || '';
 const PROXMOX_NODE = process.env.PROXMOX_NODE || 'server1';
 const PROXMOX_LXC_TEMPLATE = process.env.PROXMOX_LXC_TEMPLATE || 'local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst';

@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       });
 
       conn.connect({
-        host: process.env.PROXMOX_SSH_HOST || '100.68.100.15',
+        host: process.env.PROXMOX_SSH_HOST || 'ssh.simplifai-1.org',
         port: 22,
         username: 'root',
         privateKey,

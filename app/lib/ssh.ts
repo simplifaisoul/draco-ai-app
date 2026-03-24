@@ -8,7 +8,7 @@ import { Client as SSHClient } from 'ssh2';
 const SSH_PRIVATE_KEY = process.env.PROXMOX_SSH_PRIVATE_KEY
   ? Buffer.from(process.env.PROXMOX_SSH_PRIVATE_KEY, 'base64').toString('utf-8')
   : '';
-const PROXMOX_HOST = process.env.PROXMOX_SSH_HOST || '100.68.100.15';
+const PROXMOX_HOST = process.env.PROXMOX_SSH_HOST || 'ssh.simplifai-1.org';
 
 const MAX_OUTPUT_SIZE = 10 * 1024; // 10KB per command output
 const COMMAND_TIMEOUT = 120000; // 120 seconds (apt operations need time)
