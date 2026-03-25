@@ -6,6 +6,7 @@ import {
   Terminal, Cpu, HardDrive, Wifi, Clock, AlertCircle, RefreshCw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/app/lib/AuthContext";
 
 interface Container {
   sessionId: string;
@@ -33,13 +34,27 @@ export default function ContainerDashboard({
   const [creating, setCreating] = useState(false);
   const [actionLoading, setActionLoading] = useState<Record<number, string>>({});
   const [error, setError] = useState("");
+  const { user } = useAuth();
+  const [idToken, setIdToken] = useState<string>("");
+
+  // Get Firebase ID token
+  useEffect(() => {
+    if (user) {
+      user.getIdToken().then((token: string) => setIdToken(token));
+      const interval = setInterval(() => {
+        user.getIdToken(true).then((token: string) => setIdToken(token));
+      }, 50 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const maxContainers = 3;
 
   // Fetch containers
   const fetchContainers = useCallback(async () => {
+    if (!idToken) return;
     try {
-      const res = await fetch(`/api/agent/session?userId=${userId}`);
+      const res = await fetch(`/api/agent/session?userId=${userId}&idToken=${encodeURIComponent(idToken)}`);
       const data = await res.json();
       setContainers(data.sessions || []);
       setError("");
@@ -48,13 +63,15 @@ export default function ContainerDashboard({
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, idToken]);
 
   useEffect(() => {
-    fetchContainers();
-    const interval = setInterval(fetchContainers, 8000);
-    return () => clearInterval(interval);
-  }, [fetchContainers]);
+    if (idToken) {
+      fetchContainers();
+      const interval = setInterval(fetchContainers, 8000);
+      return () => clearInterval(interval);
+    }
+  }, [fetchContainers, idToken]);
 
   // Create new container
   const createContainer = async () => {
@@ -64,7 +81,7 @@ export default function ContainerDashboard({
     try {
       const res = await fetch("/api/agent/session", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
         body: JSON.stringify({ userId, userPlan }),
       });
       const data = await res.json();
@@ -89,7 +106,7 @@ export default function ContainerDashboard({
     try {
       const res = await fetch("/api/agent/session", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
         body: JSON.stringify({ vmid, action }),
       });
       const data = await res.json();
@@ -113,7 +130,7 @@ export default function ContainerDashboard({
     try {
       await fetch("/api/agent/session", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
         body: JSON.stringify({ sessionId, userId, vmid }),
       });
       await fetchContainers();
