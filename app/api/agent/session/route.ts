@@ -127,21 +127,34 @@ export async function GET(request: NextRequest) {
 
   // 1. Rehydrate sessionMeta from Proxmox truth (fixes disappearances on serverless cold starts)
   try {
-    const proxmoxContainers = await require('@/app/lib/proxmox').listContainersForUser(userId);
-    for (const c of proxmoxContainers) {
-      const vmid = c.vmid;
+    // Get ALL draco containers, then filter by userId from description
+    const allContainers = await require('@/app/lib/proxmox').listContainers();
+    for (const c of allContainers) {
+      const vmid = typeof c.vmid === 'string' ? parseInt(c.vmid) : c.vmid;
+      
+      // Parse description to extract owner: format is "draco-agent|{userId}|{sessionId}"
+      let ownerUserId: string | null = null;
+      let storedSessionId: string | null = null;
+      if (c.description && c.description.includes('|')) {
+        const parts = c.description.split('|');
+        if (parts.length >= 3 && parts[0] === 'draco-agent') {
+          ownerUserId = parts[1];
+          storedSessionId = parts[2];
+        }
+      }
+
+      // Only rehydrate containers belonging to THIS user
+      if (ownerUserId !== userId) continue;
+
+      // Check if already tracked in sessionMeta
       let found = false;
-      for (const [sid, meta] of sessionMeta.entries()) {
-        if (meta.vmid === vmid) found = true;
+      for (const [, meta] of sessionMeta.entries()) {
+        if (meta.vmid === vmid) { found = true; break; }
       }
       if (!found) {
-        // Reconstruct sessionId from the LXC description if possible (format: draco-agent|userId|sessionId)
-        let sessionId = crypto.randomUUID();
-        if (c.description && c.description.includes('|')) {
-          const parts = c.description.split('|');
-          if (parts.length >= 3) sessionId = parts[2];
-        }
+        const sessionId = storedSessionId || crypto.randomUUID();
         sessionMeta.set(sessionId, { vmid, userId, createdAt: Date.now() });
+        console.log(`[SESSION] Rehydrated CT ${vmid} for user ${userId.slice(0, 8)}... (session ${sessionId.slice(0, 8)})`);
       }
     }
   } catch (err) {
