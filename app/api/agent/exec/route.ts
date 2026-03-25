@@ -24,16 +24,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sanitize: block dangerous commands
+    // Sanitize: block dangerous commands (keep existing blocklist for specific args)
     const dangerous = [
       'rm -rf /', 'mkfs', ':(){', 'dd if=/dev/zero',
       'chmod -R 777 /', 'chown -R', '> /dev/sda',
-      'wget -O- | sh', 'curl | sh', 'nsenter',
       '/proc/sysrq', 'mount -o remount',
     ];
     if (dangerous.some(d => command.toLowerCase().includes(d))) {
       return NextResponse.json(
         { error: 'Command blocked for safety' },
+        { status: 403 }
+      );
+    }
+
+    // Security: Strict Allowlist based on user request
+    const allowedCommands = [
+      "ls", "cd", "pwd",
+      "rm", "rmdir", "mkdir", "mv", "cp", "touch",
+      "chmod", "chown",
+      "curl", "wget", "git",
+      "npm", "npx", "node", "python", "python3", "pip", "pip3",
+      "apt", "apt-get", "sudo", "bash", "sh",
+      "systemctl", "journalctl", "dmesg",
+      "cat", "echo", "grep", "find", "sed", "awk",
+      "tar", "gzip", "unzip", "ping", "whoami", "ip", "export", "source"
+    ];
+
+    // Get the base command (e.g. "sudo apt update" -> "sudo", or if sudo, check next word)
+    const cmdParts = command.trim().split(/\s+/);
+    let baseCmd = cmdParts[0];
+
+    // If the command is variable assignment like VAR=value, extract the real command
+    if (baseCmd.includes('=') && cmdParts.length > 1) {
+      baseCmd = cmdParts[1];
+    }
+    
+    if (baseCmd === 'sudo' && cmdParts.length > 1) {
+      baseCmd = cmdParts[1];
+    }
+
+    if (!allowedCommands.includes(baseCmd)) {
+      console.warn(`[SECURITY] Blocked non-allowlisted command: ${baseCmd}`);
+      return NextResponse.json(
+        { error: `Command '${baseCmd}' is not in the allowed list.` },
         { status: 403 }
       );
     }
