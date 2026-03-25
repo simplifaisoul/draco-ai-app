@@ -126,10 +126,6 @@ function escapeShellArg(arg: string): string {
  */
 export async function setupContainer(vmid: number): Promise<void> {
   const setupCommands = [
-    // Configure DNS — critical for apt to resolve package mirrors
-    'echo "nameserver 8.8.8.8" > /etc/resolv.conf',
-    'echo "nameserver 1.1.1.1" >> /etc/resolv.conf',
-    'echo "nameserver 8.8.4.4" >> /etc/resolv.conf',
     // Wait for network connectivity
     'for i in $(seq 1 15); do ping -c1 8.8.8.8 > /dev/null 2>&1 && break || sleep 2; done',
     // Create workspace directory

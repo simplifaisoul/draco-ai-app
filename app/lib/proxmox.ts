@@ -88,6 +88,8 @@ export async function createContainer(
     unprivileged: '1',
     tags: `draco-agent;uid-${userId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20)}`,
     description: `draco-agent|${userId}|${sessionId}`,
+    nameserver: '8.8.8.8 1.1.1.1',
+    searchdomain: 'draco.local',
     'ssh-public-keys': sshPubKey,
     password,
   });
