@@ -138,17 +138,22 @@ function escapeShellArg(arg: string): string {
 
 /**
  * Setup a fresh container after boot.
- * IMPORTANT: No apt-get here — we don't want to hold apt locks.
- * Users should run their own apt-get update/install as needed.
+ * Installs essential tools so users can immediately install software like OpenClaw.
  */
 export async function setupContainer(vmid: number): Promise<void> {
   const setupCommands = [
     // Wait for network connectivity
     'for i in $(seq 1 15); do ping -c1 8.8.8.8 > /dev/null 2>&1 && break || sleep 2; done',
+    // Install essential tools in one shot (curl, git, wget, sudo, nano, locales)
+    'apt-get update -qq && apt-get install -y -qq curl git wget sudo nano locales ca-certificates > /dev/null 2>&1',
+    // Fix locale warnings
+    'locale-gen en_US.UTF-8 > /dev/null 2>&1 && update-locale LANG=en_US.UTF-8 > /dev/null 2>&1',
     // Create workspace directory
     'mkdir -p /workspace',
     // Set a nice prompt
     'echo \'export PS1="\\[\\e[1;32m\\]root@draco\\[\\e[0m\\]:\\[\\e[1;34m\\]\\w\\[\\e[0m\\]\\$ "\' >> /root/.bashrc',
+    // Default cd to workspace
+    'echo "cd /workspace" >> /root/.bashrc',
   ];
 
   for (const cmd of setupCommands) {

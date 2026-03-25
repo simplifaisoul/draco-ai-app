@@ -37,17 +37,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Security: Strict Allowlist based on user request
+    // Security: Strict Allowlist — all standard Linux and dev tooling
     const allowedCommands = [
-      "ls", "cd", "pwd",
-      "rm", "rmdir", "mkdir", "mv", "cp", "touch",
-      "chmod", "chown",
-      "curl", "wget", "git",
-      "npm", "npx", "node", "python", "python3", "pip", "pip3",
-      "apt", "apt-get", "sudo", "bash", "sh",
-      "systemctl", "journalctl", "dmesg",
-      "cat", "echo", "grep", "find", "sed", "awk",
-      "tar", "gzip", "unzip", "ping", "whoami", "ip", "export", "source"
+      // Filesystem
+      "ls", "cd", "pwd", "rm", "rmdir", "mkdir", "mv", "cp", "touch", "ln",
+      "chmod", "chown", "stat", "file", "realpath", "dirname", "basename",
+      // Text / IO
+      "cat", "echo", "grep", "find", "sed", "awk", "head", "tail", "wc",
+      "sort", "uniq", "cut", "tr", "tee", "xargs", "diff", "less", "more",
+      // Networking
+      "curl", "wget", "ping", "ip", "ss", "nc", "nslookup", "dig", "ssh", "scp", "rsync",
+      // Package managers
+      "apt", "apt-get", "dpkg", "npm", "npx", "yarn", "pnpm", "pip", "pip3",
+      // Runtimes
+      "node", "python", "python3", "bash", "sh", "env",
+      // System
+      "sudo", "systemctl", "journalctl", "dmesg", "ps", "kill", "top", "htop",
+      "free", "df", "du", "uname", "hostname", "whoami", "id", "date", "sleep",
+      "locale-gen", "update-locale", "which", "man", "export", "source",
+      // Compression
+      "tar", "gzip", "gunzip", "zip", "unzip", "bzip2",
+      // Editors
+      "nano", "vi", "vim",
+      // Dev tools
+      "git", "make", "gcc", "g++", "cargo", "rustc", "go", "java", "javac",
+      // Containers & AI
+      "docker", "docker-compose", "openclaw",
+      // Script execution
+      "test", "[", "true", "false", "for", "while", "if",
     ];
 
     // Get the base command (e.g. "sudo apt update" -> "sudo", or if sudo, check next word)

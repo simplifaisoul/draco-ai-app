@@ -440,13 +440,22 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
               New Session
             </button>
           ) : (
-            <button
-              onClick={endSession}
-              className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold transition-all flex items-center gap-2"
-            >
-              <Square size={14} />
-              End Session
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => window.open(`/terminal/${session?.vmid}`, '_blank')}
+                className="px-3 py-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400 text-xs font-bold transition-all flex items-center gap-2"
+              >
+                <Terminal size={14} />
+                Open Terminal
+              </button>
+              <button
+                onClick={endSession}
+                className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold transition-all flex items-center gap-2"
+              >
+                <Square size={14} />
+                End Session
+              </button>
+            </div>
           )}
         </div>
       </div>
