@@ -398,6 +398,18 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                 desc: "Got an idea? Tell Draco to set up the backend, install the tools, configure the database. Focus on your idea, not the setup.",
                 example: "\"Set up a Node.js API with a PostgreSQL database\"",
               },
+              {
+                icon: <Server size={20} />,
+                title: "Run more for less",
+                desc: "Host up to 3 OpenClaw instances on a single VM starting at just $33/month, optimized for performance without breaking your budget.",
+                example: "\"Install OpenClaw\"",
+              },
+              {
+                icon: <Cpu size={20} />,
+                title: "Designed for agent workloads",
+                desc: "Our infrastructure is tailored for autonomous systems, giving you the flexibility and reliability needed to deploy and scale with confidence.",
+                example: "\"Deploy an autonomous AI agent\"",
+              },
             ].map((uc, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }} transition={{ delay: i * 0.06 }}
                 className="p-6 rounded-2xl border border-purple-500/[0.05] bg-purple-500/[0.02] hover:bg-purple-500/[0.03] transition-all">

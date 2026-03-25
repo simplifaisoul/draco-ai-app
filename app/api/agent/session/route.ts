@@ -125,7 +125,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'userId required' }, { status: 400 });
   }
 
-  // Get this user's containers from sessionMeta
+  // 1. Rehydrate sessionMeta from Proxmox truth (fixes disappearances on serverless cold starts)
+  try {
+    const proxmoxContainers = await require('@/app/lib/proxmox').listContainersForUser(userId);
+    for (const c of proxmoxContainers) {
+      const vmid = c.vmid;
+      let found = false;
+      for (const [sid, meta] of sessionMeta.entries()) {
+        if (meta.vmid === vmid) found = true;
+      }
+      if (!found) {
+        // Reconstruct sessionId from the LXC description if possible (format: draco-agent|userId|sessionId)
+        let sessionId = crypto.randomUUID();
+        if (c.description && c.description.includes('|')) {
+          const parts = c.description.split('|');
+          if (parts.length >= 3) sessionId = parts[2];
+        }
+        sessionMeta.set(sessionId, { vmid, userId, createdAt: Date.now() });
+      }
+    }
+  } catch (err) {
+    console.error('[SESSION] Failed to rehydrate sessions from Proxmox:', err);
+  }
+
+  // 2. Get this user's containers from sessionMeta
   const userContainers = getUserVmids(userId);
 
   // For each container, check live status from Proxmox
