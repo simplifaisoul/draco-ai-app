@@ -100,15 +100,32 @@ function sshExec(host: string, username: string, command: string): Promise<ExecR
       reject(new Error(`SSH connection failed: ${err.message}`));
     });
 
-    conn.connect({
-      host,
-      port: 22,
+    const isCloudflare = host.includes('simplifai') || host.includes('cloudflare');
+    const connectConfig: any = {
       username,
       privateKey: SSH_PRIVATE_KEY,
       readyTimeout: 10000,
-      // Allow self-signed host keys
-      hostVerifier: () => true,
-    });
+      hostVerifier: () => true, // Allow self-signed / dynamic IPs
+    };
+
+    if (isCloudflare) {
+      // Bypass Cloudflare TCP blocks by wrapping SSH in a secure WebSocket
+      const websocket = require('websocket-stream');
+      const wsStream = websocket(`wss://${host}`);
+      connectConfig.sock = wsStream;
+      
+      // If the websocket drops before ssh2 is ready, reject
+      wsStream.on('error', (err: Error) => {
+        clearTimeout(timer);
+        reject(new Error(`WebSocket tunnel failed: ${err.message}`));
+      });
+    } else {
+      // Standard raw TCP fallback
+      connectConfig.host = host;
+      connectConfig.port = 22;
+    }
+
+    conn.connect(connectConfig);
   });
 }
 
