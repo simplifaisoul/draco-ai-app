@@ -31,6 +31,104 @@ export async function execCommand(vmid: number, command: string): Promise<ExecRe
 }
 
 /**
+ * Execute a command with STREAMING output — chunks are pushed via callbacks as they arrive.
+ * This is used for the real-time terminal experience.
+ */
+export function execCommandStreaming(
+  vmid: number,
+  command: string,
+  callbacks: {
+    onData: (chunk: string) => void;
+    onStderr: (chunk: string) => void;
+    onClose: (exitCode: number) => void;
+    onError: (error: Error) => void;
+  }
+): { abort: () => void } {
+  const wrappedCommand = `pct exec ${vmid} -- bash -c ${escapeShellArg(command)}`;
+  const conn = new SSHClient();
+  let timedOut = false;
+  let totalOutput = 0;
+
+  const timer = setTimeout(() => {
+    timedOut = true;
+    callbacks.onData('\n...(command timed out after ' + (COMMAND_TIMEOUT / 1000) + 's)\n');
+    callbacks.onClose(124);
+    try { conn.end(); } catch {}
+  }, COMMAND_TIMEOUT);
+
+  conn.on('ready', () => {
+    conn.exec(wrappedCommand, (err, stream) => {
+      if (err) {
+        clearTimeout(timer);
+        conn.end();
+        callbacks.onError(err);
+        return;
+      }
+
+      stream.on('data', (data: Buffer) => {
+        if (timedOut) return;
+        const chunk = data.toString();
+        totalOutput += chunk.length;
+        if (totalOutput <= MAX_OUTPUT_SIZE) {
+          callbacks.onData(chunk);
+        } else if (totalOutput - chunk.length < MAX_OUTPUT_SIZE) {
+          callbacks.onData('\n...(output truncated)\n');
+        }
+      });
+
+      stream.stderr.on('data', (data: Buffer) => {
+        if (timedOut) return;
+        callbacks.onStderr(data.toString());
+      });
+
+      stream.on('close', (code: number) => {
+        clearTimeout(timer);
+        if (!timedOut) {
+          conn.end();
+          callbacks.onClose(code ?? 0);
+        }
+      });
+    });
+  });
+
+  conn.on('error', (err) => {
+    clearTimeout(timer);
+    callbacks.onError(new Error(`SSH connection failed: ${err.message}`));
+  });
+
+  // Connect with same logic as sshExec
+  const isCloudflare = PROXMOX_HOST.includes('simplifai') || PROXMOX_HOST.includes('cloudflare');
+  const connectConfig: any = {
+    username: 'root',
+    privateKey: SSH_PRIVATE_KEY,
+    readyTimeout: 10000,
+    hostVerifier: () => true,
+  };
+
+  if (isCloudflare) {
+    const websocket = require('websocket-stream');
+    const wsStream = websocket(`wss://${PROXMOX_HOST}`);
+    connectConfig.sock = wsStream;
+    wsStream.on('error', (err: Error) => {
+      clearTimeout(timer);
+      callbacks.onError(new Error(`WebSocket tunnel failed: ${err.message}`));
+    });
+  } else {
+    connectConfig.host = PROXMOX_HOST;
+    connectConfig.port = 22;
+  }
+
+  conn.connect(connectConfig);
+
+  return {
+    abort: () => {
+      clearTimeout(timer);
+      try { conn.end(); } catch {}
+    },
+  };
+}
+
+/**
  * Execute a command on the Proxmox host directly (for setup tasks).
  */
 export async function execOnHost(command: string): Promise<ExecResult> {

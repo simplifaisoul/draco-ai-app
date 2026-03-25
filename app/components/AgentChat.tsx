@@ -12,6 +12,7 @@ import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import dynamic from "next/dynamic";
+import { useAuth } from "@/app/lib/AuthContext";
 
 // Dynamic import XTerminal to avoid SSR issues
 const XTerminal = dynamic(() => import("./XTerminal"), {
@@ -77,6 +78,7 @@ function loadSessionLocal(): { vmid: number; sessionId: string; userId: string }
 }
 
 export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initialVmid, initialSessionId }: AgentChatProps) {
+  const { user } = useAuth();
   const [session, setSession] = useState<AgentSession | null>(null);
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [input, setInput] = useState("");
@@ -85,10 +87,23 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
   const [agentStatus, setAgentStatus] = useState("");
   const [mobileTab, setMobileTab] = useState<MobileTab>("chat");
   const [isRecovering, setIsRecovering] = useState(true);
+  const [idToken, setIdToken] = useState<string>("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const xtermRef = useRef<any>(null);
+
+  // Get Firebase ID token for authenticated API calls
+  useEffect(() => {
+    if (user) {
+      user.getIdToken().then((token: string) => setIdToken(token));
+      // Refresh token every 50 minutes
+      const interval = setInterval(() => {
+        user.getIdToken(true).then((token: string) => setIdToken(token));
+      }, 50 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   // Auto-scroll messages
   useEffect(() => {
@@ -120,7 +135,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
       const saved = loadSessionLocal();
       if (saved && saved.userId === userId) {
         try {
-          const res = await fetch(`/api/agent/session?userId=${userId}`);
+          const res = await fetch(`/api/agent/session?userId=${userId}&idToken=${encodeURIComponent(idToken)}`);
           const data = await res.json();
           const match = data.sessions?.find((s: any) =>
             s.vmid === saved.vmid || s.sessionId === saved.sessionId
@@ -203,7 +218,10 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
     try {
       const res = await fetch("/api/agent/session", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
+        },
         body: JSON.stringify({ userId, userPlan }),
       });
       const data = await res.json();
@@ -246,7 +264,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
     for (let i = 0; i < maxPolls; i++) {
       await new Promise(r => setTimeout(r, 2000));
       try {
-        const res = await fetch(`/api/agent/session?userId=${userId}`);
+        const res = await fetch(`/api/agent/session?userId=${userId}&idToken=${encodeURIComponent(idToken)}`);
         const data = await res.json();
         const s = data.sessions?.find((s: any) => s.sessionId === sessionId);
 
@@ -284,7 +302,10 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
     try {
       await fetch("/api/agent/session", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
+        },
         body: JSON.stringify({ sessionId: session.sessionId, userId }),
       });
     } catch {}
@@ -542,7 +563,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
       </div>
 
       {/* ── Main Content: Split Panel ── */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
 
         {/* ── Left Panel: Chat ── */}
         <div className={`flex flex-col min-w-0 border-r border-white/5 ${
@@ -689,8 +710,8 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         </div>
 
         {/* ── Right Panel: xterm.js Terminal (Desktop always visible, Mobile tab) ── */}
-        <div className={`flex flex-col bg-[#1a1b26] min-w-0 ${
-          mobileTab === "terminal" ? "flex-1" : "hidden md:flex md:w-[45%]"
+        <div className={`flex flex-col bg-[#1a1b26] min-w-0 overflow-hidden ${
+          mobileTab === "terminal" ? "flex-1 h-full" : "hidden md:flex md:w-[45%] md:h-auto"
         }`}>
           {/* Terminal title bar */}
           <div className="shrink-0 flex items-center justify-between px-3 py-2 bg-[#111118] border-b border-white/5">
@@ -724,12 +745,12 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
           </div>
 
           {/* Terminal body */}
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
             {session?.status === "running" ? (
               <XTerminal
                 ref={xtermRef}
                 vmid={session.vmid}
-                userId={userId}
+                idToken={idToken}
                 fontSize={13}
                 autoFocus={false}
               />

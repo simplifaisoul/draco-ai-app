@@ -2,6 +2,8 @@
  * Agent Session API — Create, List, Delete agent sessions
  * Each session = 1 LXC container on Proxmox
  * 
+ * SECURITY: All endpoints require valid Firebase ID token.
+ * 
  * ARCHITECTURE: Uses in-memory sessionMeta as primary source of truth for
  * which user owns which container. Validates container state via individual
  * Proxmox status checks (not the list endpoint, which may lack permissions).
@@ -14,6 +16,7 @@ import {
   startContainer, stopContainer, rebootContainer, getContainerIP
 } from '@/app/lib/proxmox';
 import { setupContainer } from '@/app/lib/ssh';
+import { verifyAuth, authErrorResponse } from '@/app/lib/verifyAuth';
 
 // In-memory session metadata — primary source for user→container mapping
 const sessionMeta = new Map<string, {
@@ -41,11 +44,15 @@ function getUserVmids(userId: string): { sessionId: string; vmid: number; create
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, userPlan } = await request.json();
+    const body = await request.json();
+    const { userPlan } = body;
 
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    // SECURITY: Verify Firebase ID token
+    const auth = await verifyAuth(request, body);
+    if (!auth.success) {
+      return authErrorResponse(auth);
     }
+    const userId = auth.user.uid;
 
     // Gate: Pro/Team/Dragon only
     if (!userPlan || userPlan === 'free') {
@@ -118,16 +125,25 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  // SECURITY: Verify Firebase ID token from query params
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
+  const idToken = searchParams.get('idToken');
+  
+  if (!idToken) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
 
-  if (!userId) {
-    return NextResponse.json({ error: 'userId required' }, { status: 400 });
+  let userId: string;
+  try {
+    const { verifyFirebaseToken } = require('@/app/lib/firebaseAdmin');
+    const decoded = await verifyFirebaseToken(idToken);
+    userId = decoded.uid;
+  } catch (err: any) {
+    return NextResponse.json({ error: `Authentication failed: ${err.message}` }, { status: 401 });
   }
 
   // 1. Rehydrate sessionMeta from Proxmox truth (fixes disappearances on serverless cold starts)
   try {
-    // Get ALL draco containers, then filter by userId from description
     const allContainers = await require('@/app/lib/proxmox').listContainers();
     for (const c of allContainers) {
       const vmid = typeof c.vmid === 'string' ? parseInt(c.vmid) : c.vmid;
@@ -179,14 +195,11 @@ export async function GET(request: NextRequest) {
         } catch {}
       }
     } catch (err: any) {
-      // Container might not exist yet (still creating) or was destroyed externally
       if (err.message?.includes('500') || err.message?.includes('not found') || err.message?.includes('does not exist')) {
-        // Container is gone — remove from sessionMeta
         console.log(`[SESSION] CT ${entry.vmid} no longer exists, cleaning up sessionMeta`);
         sessionMeta.delete(entry.sessionId);
-        return null; // Will be filtered out
+        return null;
       }
-      // Otherwise it might be creating
       status = 'creating';
     }
 
@@ -199,21 +212,28 @@ export async function GET(request: NextRequest) {
     };
   }));
 
-  // Filter out null entries (deleted containers)
   return NextResponse.json({ sessions: sessions.filter(Boolean) });
 }
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { sessionId, userId, vmid: directVmid } = await request.json();
+    const body = await request.json();
+    const { sessionId, vmid: directVmid } = body;
+
+    // SECURITY: Verify Firebase ID token
+    const auth = await verifyAuth(request, body);
+    if (!auth.success) {
+      return authErrorResponse(auth);
+    }
+    const userId = auth.user.uid;
 
     let vmid = directVmid;
     
     if (sessionId && sessionMeta.has(sessionId)) {
       const meta = sessionMeta.get(sessionId)!;
-      // SECURITY: verify the userId matches
-      if (userId && meta.userId !== userId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      // SECURITY: verify the authenticated user owns this session
+      if (meta.userId !== userId) {
+        return NextResponse.json({ error: 'Unauthorized — you do not own this container' }, { status: 403 });
       }
       vmid = meta.vmid;
     }
@@ -252,16 +272,30 @@ export async function DELETE(request: NextRequest) {
 // PATCH — Container actions: start, stop, reboot
 export async function PATCH(request: NextRequest) {
   try {
-    let { vmid, action, userId } = await request.json();
+    const body = await request.json();
+    let { vmid, action } = body;
 
     if (!vmid || !action) {
       return NextResponse.json({ error: 'vmid and action required' }, { status: 400 });
+    }
+
+    // SECURITY: Verify Firebase ID token
+    const auth = await verifyAuth(request, body);
+    if (!auth.success) {
+      return authErrorResponse(auth);
     }
 
     // Parse vmid to integer
     if (typeof vmid === 'string') {
       const parsed = parseInt(vmid.replace(/\D/g, ''));
       if (!isNaN(parsed)) vmid = parsed;
+    }
+
+    // SECURITY: Verify container ownership
+    const { verifyContainerOwnership } = require('@/app/lib/verifyAuth');
+    const owns = await verifyContainerOwnership(auth.user.uid, vmid);
+    if (!owns) {
+      return NextResponse.json({ error: 'You do not have access to this container' }, { status: 403 });
     }
 
     console.log(`[SESSION] Action '${action}' on CT ${vmid}`);
