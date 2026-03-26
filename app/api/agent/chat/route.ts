@@ -1,13 +1,24 @@
 /**
- * Agent Chat API — Agentic loop with PROGRESSIVE STREAMING
- * Events are pushed to the client in real-time as they happen.
- * Gemini plans → shell executes → output streamed → repeat
+ * Agent Chat API — Persistent Shell Agentic Loop with Real-Time Streaming
+ * 
+ * ARCHITECTURE:
+ * - Uses AgentShell (persistent `pct enter` PTY) instead of stateless `pct exec`
+ * - Shell state persists across commands: cd, env vars, running processes all survive
+ * - Commands + output stream to the frontend in real-time via SSE
+ * - Sentinel-based command completion detection
+ * 
+ * EVENT TYPES streamed to client:
+ *   { type: "status",   content: "Thinking..." }
+ *   { type: "command",  content: "ls -la /workspace" }
+ *   { type: "output",   content: "...", exitCode: 0 }
+ *   { type: "response", content: "Here's what I found..." }
+ *   { type: "artifact", content: "{filename}:{filepath}" }
  */
 
 import { NextRequest } from 'next/server';
-import { execCommand } from '@/app/lib/ssh';
+import { getOrCreateShell } from '@/app/lib/agentShell';
 
-const MAX_ITERATIONS = 10;
+const MAX_ITERATIONS = 12;
 const EXEC_TAG_REGEX = /<exec>([\s\S]*?)<\/exec>/g;
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
@@ -33,6 +44,7 @@ function getNextApiKey(): string {
 const AGENT_SYSTEM_PROMPT = `You are Draco Agent — an autonomous, elite AI software engineer with your own LIVE Ubuntu Linux machine.
 
 You have a REAL terminal. You run REAL commands. This is not a simulation.
+Your shell is PERSISTENT — cd, environment variables, and running processes survive between commands.
 
 THE PHILOSOPHY: DEEP THINKING & RELENTLESS EXECUTION
 You are a Deep Thinker. You tackle deep problems by taking your time, researching meticulously, formulating a Gameplan, and executing with absolute precision. You NEVER give up. 
@@ -47,14 +59,14 @@ EXECUTION FORMAT:
 To run a command on your live machine, wrap it in <exec> tags:
 <exec>ls -la /workspace</exec>
 
-Multiple <exec> commands in one response are permitted. The system will run them and feed you the output so you can continue your Gameplan.
+Multiple <exec> commands in one response are permitted. The system will run them sequentially and feed you the output so you can continue your Gameplan.
 
-⚠️ CRITICAL ENVIRONMENT RULE:
-Each command you run starts in /root with a FRESH context. The working directory does NOT persist between commands!
-- WRONG: <exec>cd /workspace/myproject</exec> then <exec>ls</exec> (ls runs in /root, NOT /workspace/myproject!)
-- RIGHT: <exec>cd /workspace/myproject && ls</exec> (chained with &&, runs in the correct directory)
-- RIGHT: <exec>ls /workspace/myproject</exec> (absolute path)
-Always chain cd with your actual command using && or use absolute paths.
+PERSISTENT SHELL — YOUR SUPERPOWER:
+Your terminal is a persistent interactive shell. This means:
+- ✅ \`cd /workspace/myproject\` in one <exec> → the next <exec> is STILL in /workspace/myproject
+- ✅ \`export MY_VAR=hello\` → the next <exec> can use $MY_VAR
+- ✅ You can start background processes, use screen/tmux, etc.
+- Use \`cd\` freely. Chain with \`&&\` for multi-step commands when needed for atomicity.
 
 STRICT RULES & BEST PRACTICES:
 1. ALWAYS ACT: Don't just talk. If the user asks for something, DO IT. Every response addressing a task MUST include at least one <exec> tag if work remains.
@@ -119,7 +131,7 @@ async function callGemini(messages: { role: string; content: string }[]): Promis
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
+      const timeout = setTimeout(() => controller.abort(), 60000);
 
       const res = await fetch(url, {
         method: 'POST',
@@ -133,7 +145,7 @@ async function callGemini(messages: { role: string; content: string }[]): Promis
       if (!res.ok) {
         lastError = await res.text();
         console.warn(`[AGENT] Key failed (${res.status}): ${lastError.slice(0, 200)}`);
-        if (res.status === 429 || res.status === 403) continue; // Try next key
+        if (res.status === 429 || res.status === 403) continue;
         throw new Error(`Gemini API error ${res.status}: ${lastError}`);
       }
 
@@ -155,14 +167,14 @@ async function callGemini(messages: { role: string; content: string }[]): Promis
 }
 
 interface AgentEvent {
-  type: 'response' | 'command' | 'output' | 'status';
+  type: 'response' | 'command' | 'output' | 'status' | 'artifact';
   content: string;
   exitCode?: number;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { vmid, messages } = await request.json();
+    const { vmid, messages, sessionId } = await request.json();
 
     if (!vmid || !messages) {
       return new Response(JSON.stringify({ error: 'vmid and messages required' }), {
@@ -170,6 +182,8 @@ export async function POST(request: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    const activeSessionId = sessionId || `agent-${vmid}`;
 
     const fullMessages = [
       { role: 'system', content: AGENT_SYSTEM_PROMPT },
@@ -187,6 +201,21 @@ export async function POST(request: NextRequest) {
           } catch {}
         };
 
+        // Get or create a PERSISTENT shell for this session
+        let shell;
+        try {
+          push({ type: 'status', content: 'Connecting to your machine...' });
+          shell = await getOrCreateShell(vmid, activeSessionId);
+          push({ type: 'status', content: 'Connected. Thinking...' });
+        } catch (err: any) {
+          push({ type: 'response', content: `⚠️ Failed to connect to container: ${err.message}` });
+          try {
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            controller.close();
+          } catch {}
+          return;
+        }
+
         try {
           let iteration = 0;
           let currentMessages = [...fullMessages];
@@ -195,7 +224,7 @@ export async function POST(request: NextRequest) {
             iteration++;
             console.log(`[AGENT] Iteration ${iteration}/${MAX_ITERATIONS}`);
 
-            push({ type: 'status', content: `Thinking... (step ${iteration})` });
+            push({ type: 'status', content: iteration === 1 ? 'Thinking...' : `Analyzing results... (step ${iteration})` });
 
             // Call Gemini
             let responseText: string;
@@ -223,7 +252,6 @@ export async function POST(request: NextRequest) {
 
             // Process text + commands progressively
             let lastIndex = 0;
-            let hasError = false;
 
             for (const match of execMatches) {
               // Text before this command
@@ -234,18 +262,29 @@ export async function POST(request: NextRequest) {
 
               const command = match[1].trim();
               push({ type: 'command', content: command });
-              console.log(`[AGENT] Executing: ${command}`);
+              console.log(`[AGENT] Executing in persistent shell: ${command}`);
 
-              // Execute command — streamed immediately
+              // Execute command in the PERSISTENT shell — streams output in real-time
               try {
-                const execResult = await execCommand(vmid, command);
-                const output = [
-                  execResult.stdout,
-                  execResult.stderr ? `STDERR: ${execResult.stderr}` : '',
-                ].filter(Boolean).join('\n') || '(no output)';
+                const execResult = await shell.runCommand(command, (chunk) => {
+                  // Stream raw terminal output to client in real-time
+                  // Filter out sentinel markers from the live stream
+                  if (!chunk.includes('___DRACO_DONE_')) {
+                    push({ type: 'output', content: chunk });
+                  }
+                });
 
+                const output = execResult.stdout || '(no output)';
+                // Send final clean output with exit code
                 push({ type: 'output', content: output, exitCode: execResult.exitCode });
                 console.log(`[AGENT] Exit: ${execResult.exitCode}, output: ${output.length} chars`);
+
+                // Check for artifact files in the output
+                const artifactRegex = /\[DOWNLOAD:([^:]+):([^\]]+)\]/g;
+                let artifactMatch;
+                while ((artifactMatch = artifactRegex.exec(output)) !== null) {
+                  push({ type: 'artifact', content: `${artifactMatch[1]}:${artifactMatch[2]}` });
+                }
 
                 currentMessages.push(
                   { role: 'assistant', content: responseText },
@@ -259,7 +298,6 @@ export async function POST(request: NextRequest) {
                   { role: 'assistant', content: responseText },
                   { role: 'user', content: `[Command Error for: ${command}]\n${errorMsg}` }
                 );
-                hasError = true;
               }
 
               lastIndex = (match.index || 0) + match[0].length;
@@ -269,10 +307,14 @@ export async function POST(request: NextRequest) {
             const textAfter = responseText.slice(lastIndex).trim();
             if (textAfter) {
               push({ type: 'response', content: textAfter });
-            }
 
-            // If no errors and all commands succeeded, we can stop if this seems like a final response
-            // Otherwise the loop continues for the AI to react to outputs
+              // Check for download links in the response text too
+              const dlRegex = /\[DOWNLOAD:([^:]+):([^\]]+)\]/g;
+              let dlMatch;
+              while ((dlMatch = dlRegex.exec(textAfter)) !== null) {
+                push({ type: 'artifact', content: `${dlMatch[1]}:${dlMatch[2]}` });
+              }
+            }
           }
         } catch (err: any) {
           try {

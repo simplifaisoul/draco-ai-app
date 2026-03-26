@@ -4,9 +4,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Send, Play, Square, Loader2,
   Bot, User, AlertCircle, Cpu, ArrowLeft, Zap,
-  Terminal, ExternalLink, Monitor, MessageSquare, Wifi, Clock,
+  Terminal, ExternalLink, Monitor, Wifi, Clock,
   Paperclip, FileText, X, Download, File, FileSpreadsheet,
-  ChevronRight, PanelRightOpen, PanelRightClose
+  ChevronDown, ChevronUp, Eye
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -20,7 +20,7 @@ import { useAuth } from "@/app/lib/AuthContext";
 const XTerminal = dynamic(() => import("./XTerminal"), {
   ssr: false,
   loading: () => (
-    <div className="flex-1 flex items-center justify-center bg-[#1a1b26]">
+    <div className="flex-1 flex items-center justify-center bg-[#0d0d14]">
       <div className="flex items-center gap-2 text-sm text-white/30">
         <div className="w-4 h-4 border-2 border-purple-500/40 border-t-purple-500 rounded-full animate-spin" />
         Loading terminal...
@@ -30,7 +30,7 @@ const XTerminal = dynamic(() => import("./XTerminal"), {
 });
 
 interface AgentEvent {
-  type: "response" | "command" | "output" | "status";
+  type: "response" | "command" | "output" | "status" | "artifact";
   content: string;
   exitCode?: number;
 }
@@ -41,12 +41,21 @@ interface Attachment {
   size: number;
 }
 
+// Represents a single step in the agent's execution
+interface AgentStep {
+  id: string;
+  type: "thinking" | "command" | "output" | "response" | "artifact";
+  content: string;
+  exitCode?: number;
+  timestamp: number;
+}
+
 interface AgentMessage {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: string;
-  events?: AgentEvent[];
   attachments?: Attachment[];
+  steps?: AgentStep[];
 }
 
 interface AgentSession {
@@ -89,8 +98,6 @@ function FileIcon({ filename }: { filename: string }) {
   if (['pdf'].includes(ext)) return <File size={20} className="text-red-400" />;
   if (['doc', 'docx'].includes(ext)) return <FileText size={20} className="text-blue-400" />;
   if (['xls', 'xlsx', 'csv'].includes(ext)) return <FileSpreadsheet size={20} className="text-green-400" />;
-  if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) return <File size={20} className="text-purple-400" />;
-  if (['zip', 'tar', 'gz'].includes(ext)) return <File size={20} className="text-yellow-400" />;
   return <File size={20} className="text-white/40" />;
 }
 
@@ -127,29 +134,64 @@ function DownloadCard({ filename, filepath, vmid, idToken }: { filename: string;
       <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-[#1a1a2e]/80 to-[#16162a]/80 border border-white/[0.06] hover:border-white/10 transition-all cursor-pointer shadow-lg shadow-black/20"
         onClick={handleDownload}
       >
-        {/* File type badge */}
         <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-white/[0.08] to-white/[0.03] border border-white/[0.06] flex items-center justify-center shrink-0">
           <FileIcon filename={filename} />
         </div>
-        
-        {/* File info */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-white truncate">{filename}</p>
           <p className="text-[11px] text-white/25 mt-0.5">{ext} Document • Ready to download</p>
         </div>
-        
-        {/* Download button */}
         <button
           disabled={downloading}
           className="shrink-0 w-9 h-9 rounded-lg bg-white/[0.06] hover:bg-white/10 border border-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/70 transition-all group-hover:bg-purple-500/15 group-hover:border-purple-500/20 group-hover:text-purple-400"
         >
-          {downloading ? (
-            <Loader2 size={15} className="animate-spin" />
-          ) : (
-            <Download size={15} />
-          )}
+          {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
         </button>
       </div>
+    </motion.div>
+  );
+}
+
+// ── Command Step Card ──
+function CommandStep({ step }: { step: AgentStep }) {
+  const [expanded, setExpanded] = useState(true);
+  const isError = step.exitCode !== undefined && step.exitCode !== 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-lg border border-white/[0.04] bg-[#0d0d14] overflow-hidden my-2"
+    >
+      {/* Command header */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors"
+      >
+        <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-mono ${
+          isError ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'
+        }`}>
+          {step.exitCode !== undefined ? (isError ? '✗' : '✓') : <Loader2 size={10} className="animate-spin" />}
+        </div>
+        <code className="text-[12px] font-mono text-white/60 flex-1 truncate">{step.content}</code>
+        {expanded ? <ChevronUp size={12} className="text-white/20" /> : <ChevronDown size={12} className="text-white/20" />}
+      </button>
+
+      {/* Output */}
+      <AnimatePresence>
+        {expanded && step.type === "output" && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="border-t border-white/[0.03]"
+          >
+            <pre className="text-[11px] font-mono text-white/40 p-3 overflow-x-auto max-h-[200px] overflow-y-auto whitespace-pre-wrap">
+              {step.content || "(no output)"}
+            </pre>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -165,8 +207,9 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
   const [isRecovering, setIsRecovering] = useState(true);
   const [idToken, setIdToken] = useState<string>("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [showTerminal, setShowTerminal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [activeView, setActiveView] = useState<"chat" | "terminal">("chat");
+  const [liveSteps, setLiveSteps] = useState<AgentStep[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -187,7 +230,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, liveSteps]);
 
   // ── Session Recovery ──
   useEffect(() => {
@@ -208,7 +251,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
           if (match && (match.status === "running" || match.status === "creating")) {
             setSession({ sessionId: match.sessionId || saved.sessionId, vmid: match.vmid, status: match.status, containerIP: match.containerIP, createdAt: match.createdAt || Date.now() });
             if (match.status === "running") {
-              setMessages([{ role: "system", content: `🖥️ **Reconnected to CT ${match.vmid}**${match.containerIP ? ` (${match.containerIP})` : ""}. Session restored.`, timestamp: new Date().toISOString() }]);
+              setMessages([{ role: "system", content: `🖥️ **Reconnected to CT ${match.vmid}**${match.containerIP ? ` (${match.containerIP})` : ""}. Session restored — persistent shell is live.`, timestamp: new Date().toISOString() }]);
             } else {
               setMessages([{ role: "system", content: `⏳ **CT ${match.vmid} is starting up...** Waiting for container.`, timestamp: new Date().toISOString() }]);
               pollSessionStatus(match.sessionId || saved.sessionId);
@@ -228,7 +271,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
   // Pro-only gate
   if (userPlan === "free") {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0a0a12]">
+      <div className="flex-1 flex items-center justify-center bg-[#09090b]">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-md mx-auto p-8">
           <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 flex items-center justify-center">
             <Cpu size={36} className="text-purple-400" />
@@ -274,7 +317,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         const s = data.sessions?.find((s: any) => s.sessionId === sessionId);
         if (s?.status === "running") {
           setSession(prev => prev ? { ...prev, status: "running", containerIP: s.containerIP } : null);
-          setMessages(prev => [...prev, { role: "system", content: `🖥️ **Machine ready!** CT ${s.vmid}${s.containerIP ? ` • ${s.containerIP}` : ""}\n\nYour Linux environment is live. Ask me to build anything, generate documents, or use the terminal.`, timestamp: new Date().toISOString() }]);
+          setMessages(prev => [...prev, { role: "system", content: `🖥️ **Machine ready!** CT ${s.vmid}${s.containerIP ? ` • ${s.containerIP}` : ""}\n\nYour Linux environment is live. Persistent shell active — ask me to build anything.`, timestamp: new Date().toISOString() }]);
           return;
         } else if (s?.status === "error") {
           setSession(prev => prev ? { ...prev, status: "error", error: s.error } : null);
@@ -352,6 +395,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
     setInput("");
     setAttachments([]);
     setIsLoading(true);
+    setLiveSteps([]);
 
     try {
       const res = await fetch("/api/agent/chat", {
@@ -359,6 +403,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           vmid: session.vmid,
+          sessionId: session.sessionId,
           messages: [...messages, userMessage].map(m => ({
             role: m.role === "system" ? "user" : m.role,
             content: m.content,
@@ -374,6 +419,8 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
       const decoder = new TextDecoder();
       let buffer = "";
       let responseText = "";
+      const steps: AgentStep[] = [];
+      let currentCommandStep: AgentStep | null = null;
 
       while (true) {
         const { value, done } = await reader.read();
@@ -396,11 +443,36 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
               setAgentStatus(event.content);
             } else if (event.type === "command") {
               setAgentStatus(`Running: ${event.content}`);
+              currentCommandStep = {
+                id: crypto.randomUUID(),
+                type: "command",
+                content: event.content,
+                timestamp: Date.now(),
+              };
+              steps.push(currentCommandStep);
+              setLiveSteps([...steps]);
+
+              // Also pipe into the terminal if visible
               if (xtermRef.current) {
                 xtermRef.current.write(`\r\n\x1b[1;33m❯\x1b[0m \x1b[1;37m${event.content}\x1b[0m\r\n`);
               }
             } else if (event.type === "output") {
               setAgentStatus("");
+              const outputStep: AgentStep = {
+                id: crypto.randomUUID(),
+                type: "output",
+                content: event.content,
+                exitCode: event.exitCode,
+                timestamp: Date.now(),
+              };
+              // Update the command step with exit code
+              if (currentCommandStep) {
+                currentCommandStep.exitCode = event.exitCode;
+              }
+              steps.push(outputStep);
+              setLiveSteps([...steps]);
+
+              // Pipe output into terminal
               if (xtermRef.current) {
                 const outLines = event.content.split("\n");
                 for (const l of outLines) {
@@ -415,17 +487,27 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
               setMessages(prev => {
                 const last = prev[prev.length - 1];
                 if (last?.role === "assistant" && last.timestamp === "streaming") {
-                  return [...prev.slice(0, -1), { ...last, content: responseText.trim() }];
+                  return [...prev.slice(0, -1), { ...last, content: responseText.trim(), steps: [...steps] }];
                 }
-                return [...prev, { role: "assistant", content: responseText.trim(), timestamp: "streaming" }];
+                return [...prev, { role: "assistant", content: responseText.trim(), timestamp: "streaming", steps: [...steps] }];
               });
+            } else if (event.type === "artifact") {
+              const [filename, filepath] = event.content.split(":");
+              steps.push({
+                id: crypto.randomUUID(),
+                type: "artifact",
+                content: event.content,
+                timestamp: Date.now(),
+              });
+              setLiveSteps([...steps]);
             }
           } catch {}
         }
       }
 
-      setMessages(prev => prev.map(m => m.timestamp === "streaming" ? { ...m, timestamp: new Date().toISOString() } : m));
+      setMessages(prev => prev.map(m => m.timestamp === "streaming" ? { ...m, timestamp: new Date().toISOString(), steps: [...steps] } : m));
       setAgentStatus("");
+      setLiveSteps([]);
     } catch (err: any) {
       setMessages(prev => [...prev, { role: "system", content: `⚠️ ${err.message}`, timestamp: new Date().toISOString() }]);
     } finally {
@@ -448,16 +530,13 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
 
   // ── Render content with download cards ──
   const renderMessageContent = (content: string) => {
-    // Parse [DOWNLOAD:filename:path] patterns
     const downloadRegex = /\[DOWNLOAD:([^:]+):([^\]]+)\]/g;
     const parts: (string | { type: 'download'; filename: string; filepath: string })[] = [];
     let lastIdx = 0;
     let match;
 
     while ((match = downloadRegex.exec(content)) !== null) {
-      if (match.index > lastIdx) {
-        parts.push(content.slice(lastIdx, match.index));
-      }
+      if (match.index > lastIdx) parts.push(content.slice(lastIdx, match.index));
       parts.push({ type: 'download', filename: match[1], filepath: match[2] });
       lastIdx = match.index + match[0].length;
     }
@@ -497,7 +576,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
 
   // ── RENDER ──
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0a0a12] relative"
+    <div className="flex-1 flex flex-col h-full bg-[#09090b] relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -521,8 +600,8 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
       </AnimatePresence>
 
       {/* ── Top Bar ── */}
-      <div className="shrink-0 border-b border-white/[0.04] bg-[#0c0c15]/90 backdrop-blur-xl z-30">
-        <div className="flex items-center justify-between px-4 py-2.5 max-w-6xl mx-auto w-full">
+      <div className="shrink-0 border-b border-white/[0.06] bg-[#09090b]/95 backdrop-blur-xl z-30">
+        <div className="flex items-center justify-between px-4 py-2.5 max-w-full w-full">
           {/* Left */}
           <div className="flex items-center gap-3">
             <button onClick={onBack} className="p-2 rounded-lg hover:bg-white/5 text-white/25 hover:text-white/50 transition-colors">
@@ -562,27 +641,40 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
             </div>
           </div>
 
+          {/* Center — View Toggle */}
+          {session?.status === "running" && (
+            <div className="flex items-center bg-white/[0.03] rounded-lg border border-white/[0.06] p-0.5">
+              <button
+                onClick={() => setActiveView("chat")}
+                className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  activeView === "chat"
+                    ? "bg-white/[0.08] text-white shadow-sm"
+                    : "text-white/30 hover:text-white/50"
+                }`}
+              >
+                <Bot size={13} /> Chat
+              </button>
+              <button
+                onClick={() => setActiveView("terminal")}
+                className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  activeView === "terminal"
+                    ? "bg-white/[0.08] text-white shadow-sm"
+                    : "text-white/30 hover:text-white/50"
+                }`}
+              >
+                <Eye size={13} /> Watch Computer
+              </button>
+            </div>
+          )}
+
           {/* Right */}
           <div className="flex items-center gap-2">
             {session?.status === "running" && (
               <button
-                onClick={() => setShowTerminal(!showTerminal)}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  showTerminal
-                    ? "bg-emerald-500/15 border border-emerald-500/20 text-emerald-400"
-                    : "bg-white/[0.04] hover:bg-white/[0.06] border border-white/[0.04] text-white/40 hover:text-white/60"
-                }`}
-              >
-                {showTerminal ? <PanelRightClose size={13} /> : <PanelRightOpen size={13} />}
-                Terminal
-              </button>
-            )}
-            {session?.status === "running" && (
-              <button
                 onClick={() => window.open(`/terminal/${session.vmid}`, "_blank")}
-                className="px-3 py-2 rounded-lg bg-purple-500/8 hover:bg-purple-500/15 border border-purple-500/10 text-purple-400/70 hover:text-purple-400 text-xs font-semibold transition-all flex items-center gap-1.5"
+                className="px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.04] text-white/30 hover:text-white/60 text-xs font-semibold transition-all flex items-center gap-1.5"
               >
-                <ExternalLink size={12} /> Full Screen
+                <ExternalLink size={12} /> Full Terminal
               </button>
             )}
             {!session ? (
@@ -606,13 +698,13 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         </div>
       </div>
 
-      {/* ── Main Layout ── */}
+      {/* ── Main Content ── */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
-        {/* ── Center Panel: Chat ── */}
-        <div className="flex-1 flex flex-col min-w-0">
+        {/* ── Chat View ── */}
+        <div className={`flex-1 flex flex-col min-w-0 ${activeView !== "chat" ? "hidden" : ""}`}>
           {/* Messages */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+            <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
               {/* Empty state */}
               {messages.length === 0 && !session && !isRecovering && (
                 <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
@@ -665,59 +757,103 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
-                  className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
                 >
-                  {msg.role !== "user" && (
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                      msg.role === "system"
-                        ? "bg-yellow-500/8 border border-yellow-500/10"
-                        : "bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/10"
-                    }`}>
-                      {msg.role === "system" ? <AlertCircle size={14} className="text-yellow-400/60" /> : <Bot size={14} className="text-emerald-400" />}
-                    </div>
-                  )}
-                  <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                    msg.role === "user"
-                      ? "bg-gradient-to-r from-purple-600/90 to-purple-700/90 text-white rounded-br-md shadow-lg shadow-purple-500/10"
-                      : msg.role === "system"
-                      ? "bg-yellow-500/[0.04] border border-yellow-500/[0.06] text-white/60"
-                      : "bg-[#12121e] border border-white/[0.04] text-white/80"
-                  }`}>
-                    {/* User attachments */}
-                    {msg.role === "user" && msg.attachments && msg.attachments.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {msg.attachments.map((a, ai) => (
-                          <div key={ai} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/10 text-[11px] text-white/70">
-                            <Paperclip size={10} /> {a.name}
+                  {msg.role === "user" ? (
+                    /* User message — right aligned bubble */
+                    <div className="flex justify-end gap-3">
+                      <div className="max-w-[75%] rounded-2xl rounded-br-md px-4 py-3 text-sm leading-relaxed bg-gradient-to-r from-purple-600/90 to-purple-700/90 text-white shadow-lg shadow-purple-500/10">
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {msg.attachments.map((a, ai) => (
+                              <div key={ai} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/10 text-[11px] text-white/70">
+                                <Paperclip size={10} /> {a.name}
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
+                        <div className="prose prose-invert prose-sm max-w-none break-words [&_p]:my-1">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {msg.content.replace(/\n\n--- Attached File:[\s\S]*$/g, '')}
+                          </ReactMarkdown>
+                        </div>
                       </div>
-                    )}
-                    <div className="prose prose-invert prose-sm max-w-none break-words [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_hr]:my-3 [&_hr]:border-white/5">
-                      {msg.role === "user" ? (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {msg.content.replace(/\n\n--- Attached File:[\s\S]*$/g, '')}
-                        </ReactMarkdown>
-                      ) : (
-                        renderMessageContent(msg.content)
-                      )}
                     </div>
-                  </div>
-                  {msg.role === "user" && (
-                    <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/15 flex items-center justify-center shrink-0 mt-0.5">
-                      <User size={14} className="text-purple-400" />
+                  ) : msg.role === "system" ? (
+                    /* System message */
+                    <div className="flex gap-3">
+                      <div className="w-7 h-7 rounded-lg bg-yellow-500/8 border border-yellow-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <AlertCircle size={13} className="text-yellow-400/60" />
+                      </div>
+                      <div className="rounded-2xl px-4 py-3 text-sm leading-relaxed bg-yellow-500/[0.04] border border-yellow-500/[0.06] text-white/60 max-w-[85%]">
+                        <div className="prose prose-invert prose-sm max-w-none [&_p]:my-1">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Assistant message — with execution steps */
+                    <div className="flex gap-3">
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <Bot size={13} className="text-emerald-400" />
+                      </div>
+                      <div className="flex-1 min-w-0 max-w-[85%]">
+                        {/* Execution steps */}
+                        {msg.steps && msg.steps.length > 0 && (
+                          <div className="mb-3">
+                            {msg.steps.map((step) => {
+                              if (step.type === "command") {
+                                // Find the output step right after this command
+                                const outputStep = msg.steps?.find(s => s.type === "output" && s.timestamp >= step.timestamp);
+                                return (
+                                  <CommandStep key={step.id} step={{
+                                    ...step,
+                                    exitCode: step.exitCode ?? outputStep?.exitCode,
+                                  }} />
+                                );
+                              }
+                              if (step.type === "artifact") {
+                                const [filename, filepath] = step.content.split(":");
+                                return <DownloadCard key={step.id} filename={filename} filepath={filepath} vmid={session?.vmid || 0} idToken={idToken} />;
+                              }
+                              return null;
+                            })}
+                          </div>
+                        )}
+
+                        {/* Response text */}
+                        <div className="rounded-2xl px-4 py-3 text-sm leading-relaxed bg-[#111113] border border-white/[0.04] text-white/80">
+                          <div className="prose prose-invert prose-sm max-w-none break-words [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_hr]:my-3 [&_hr]:border-white/5">
+                            {renderMessageContent(msg.content)}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </motion.div>
               ))}
 
-              {/* Thinking indicator */}
-              {isLoading && (
+              {/* Live steps during streaming */}
+              {isLoading && liveSteps.length > 0 && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500/10 to-fuchsia-500/10 border border-purple-500/15 flex items-center justify-center">
-                    <Loader2 size={14} className="text-purple-400 animate-spin" />
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500/10 to-fuchsia-500/10 border border-purple-500/15 flex items-center justify-center shrink-0">
+                    <Loader2 size={13} className="text-purple-400 animate-spin" />
                   </div>
-                  <div className="bg-[#12121e] border border-white/[0.04] rounded-2xl px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    {liveSteps.map((step) => {
+                      if (step.type === "command") return <CommandStep key={step.id} step={step} />;
+                      return null;
+                    })}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Thinking indicator */}
+              {isLoading && liveSteps.length === 0 && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500/10 to-fuchsia-500/10 border border-purple-500/15 flex items-center justify-center">
+                    <Loader2 size={13} className="text-purple-400 animate-spin" />
+                  </div>
+                  <div className="bg-[#111113] border border-white/[0.04] rounded-2xl px-4 py-3">
                     <div className="flex items-center gap-2 text-sm text-white/25">
                       <span className="animate-pulse">{agentStatus || "Thinking..."}</span>
                     </div>
@@ -729,7 +865,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
           </div>
 
           {/* ── Input Omnibar ── */}
-          <div className="shrink-0 border-t border-white/[0.03] bg-gradient-to-t from-[#0a0a12] via-[#0a0a12] to-transparent p-4 pt-6">
+          <div className="shrink-0 border-t border-white/[0.04] bg-gradient-to-t from-[#09090b] via-[#09090b] to-transparent p-4 pt-6">
             <div className="max-w-3xl mx-auto">
               {/* Attachments preview */}
               <AnimatePresence>
@@ -753,10 +889,9 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
               </AnimatePresence>
 
               <div className="relative group">
-                {/* Glow border */}
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600/20 via-emerald-600/10 to-purple-600/20 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 blur-sm" />
                 
-                <div className="relative bg-[#12121e] rounded-2xl border border-white/[0.06] focus-within:border-purple-500/20 transition-all shadow-2xl shadow-black/30">
+                <div className="relative bg-[#111113] rounded-2xl border border-white/[0.06] focus-within:border-white/[0.10] transition-all shadow-2xl shadow-black/30">
                   <textarea
                     ref={inputRef}
                     value={input}
@@ -774,10 +909,8 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
                     }}
                   />
                   
-                  {/* Bottom toolbar */}
                   <div className="flex items-center justify-between px-3 pb-2.5">
                     <div className="flex items-center gap-1">
-                      {/* Attach button */}
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={!session || session.status !== "running"}
@@ -808,24 +941,17 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
               </div>
               
               <p className="text-center text-[10px] text-white/10 mt-2.5">
-                Draco Agent has a live Linux machine. It can run code, generate documents, and install anything.
+                Draco Agent runs on a persistent Linux shell. State is preserved across commands.
               </p>
             </div>
           </div>
         </div>
 
-        {/* ── Right Panel: Terminal (Toggle) ── */}
-        <AnimatePresence>
-          {showTerminal && session?.status === "running" && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: "45%", opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="flex flex-col bg-[#1a1b26] min-w-0 overflow-hidden border-l border-white/[0.04]"
-            >
-              {/* Terminal title bar */}
-              <div className="shrink-0 flex items-center justify-between px-3 py-2 bg-[#111118] border-b border-white/[0.04]">
+        {/* ── Terminal View ("Watch Computer") ── */}
+        <div className={`flex-1 flex flex-col min-w-0 ${activeView !== "terminal" ? "hidden" : ""}`}>
+          {session?.status === "running" ? (
+            <>
+              <div className="shrink-0 flex items-center justify-between px-4 py-2 bg-[#0d0d14] border-b border-white/[0.04]">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-[#f7768e]/50" />
@@ -841,18 +967,18 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/50 animate-pulse" />
                     live
                   </span>
-                  <button onClick={() => setShowTerminal(false)} className="p-1 rounded hover:bg-white/5 text-white/15 hover:text-white/30 transition-colors">
-                    <X size={12} />
-                  </button>
                 </div>
               </div>
-              {/* Terminal body */}
               <div className="flex-1 min-h-0 overflow-hidden">
-                <XTerminal ref={xtermRef} vmid={session.vmid} idToken={idToken} fontSize={13} autoFocus={false} />
+                <XTerminal ref={xtermRef} vmid={session.vmid} idToken={idToken} fontSize={13} autoFocus={activeView === "terminal"} />
               </div>
-            </motion.div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-white/15 text-sm">Start a machine to see the live terminal</p>
+            </div>
           )}
-        </AnimatePresence>
+        </div>
       </div>
     </div>
   );
