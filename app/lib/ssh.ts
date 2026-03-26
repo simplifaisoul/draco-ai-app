@@ -10,7 +10,7 @@ const SSH_PRIVATE_KEY = process.env.PROXMOX_SSH_PRIVATE_KEY
   : '';
 const PROXMOX_HOST = process.env.PROXMOX_SSH_HOST || 'ssh.simplifai-1.org';
 
-const MAX_OUTPUT_SIZE = 10 * 1024; // 10KB per command output
+const MAX_OUTPUT_SIZE = 5 * 1024 * 1024; // 5MB per command output (needed for file downloads)
 const COMMAND_TIMEOUT = 120000; // 120 seconds (apt operations need time)
 
 export interface ExecResult {
