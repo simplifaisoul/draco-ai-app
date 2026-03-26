@@ -25,7 +25,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ToolStatus } from "./ToolStatus";
 import AgentChat from "./AgentChat";
-import ContainerDashboard from "./ContainerDashboard";
+
 
 // Types
 // Message interface removed (imported from lib/history)
@@ -929,22 +929,11 @@ export default function DracoChat() {
           onJoinBeta={handleJoinBeta}
           userPlan={userPlan}
           onUpgrade={() => { setPricingTrigger(''); setPricingOpen(true); }}
-          onOpenAgent={() => setViewMode("machines")}
+          onOpenAgent={() => setViewMode("agent")}
         />
 
         {/* Main Content — Machines / Agent / Chat */}
-        {viewMode === "machines" ? (
-          <ContainerDashboard
-            userId={user?.uid || 'anonymous'}
-            userPlan={userPlan}
-            onOpenTerminal={(vmid, sessionId) => {
-              setAgentVmid(vmid);
-              setAgentSessionId(sessionId);
-              setViewMode("agent");
-            }}
-            onUpgrade={() => { setPricingTrigger(''); setPricingOpen(true); }}
-          />
-        ) : viewMode === "agent" ? (
+        {viewMode === "agent" ? (
           <AgentChat
             userId={user?.uid || 'anonymous'}
             userPlan={userPlan}

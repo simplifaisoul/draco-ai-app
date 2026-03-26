@@ -262,32 +262,22 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         } catch {}
         clearSessionLocal();
       }
+      
+      // If no session found/recovered, create one automatically
       setIsRecovering(false);
+      // We will rely on createSession() being called if session is null and user hasn't started yet.
+      window.setTimeout(() => {
+        if (!initialVmid && !loadSessionLocal()) {
+          createSession();
+        }
+      }, 500);
     };
+
     recover();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Pro-only gate
-  if (userPlan === "free") {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-[#09090b]">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-md mx-auto p-8">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 flex items-center justify-center">
-            <Cpu size={36} className="text-purple-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-3">Draco Agent</h2>
-          <p className="text-white/40 mb-6 text-sm leading-relaxed">
-            Give Draco its own Linux computer. It writes code, generates documents, installs tools, and builds apps — all autonomously.
-          </p>
-          <button onClick={onUpgrade} className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold shadow-lg shadow-purple-500/25 transition-all flex items-center gap-2 mx-auto">
-            <Zap size={18} /> Upgrade to Pro
-          </button>
-          <button onClick={onBack} className="mt-4 text-sm text-white/30 hover:text-white/60 transition-colors">← Back to Chat</button>
-        </motion.div>
-      </div>
-    );
-  }
+
 
   // ── Session Management ──
   const createSession = async () => {
@@ -299,10 +289,14 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         body: JSON.stringify({ userId, userPlan }),
       });
       const data = await res.json();
-      if (data.error) { setMessages(prev => [...prev, { role: "system", content: `⚠️ ${data.error}`, timestamp: new Date().toISOString() }]); return; }
-      setSession({ sessionId: data.sessionId, vmid: data.vmid, status: data.status, createdAt: Date.now() });
+      setSession({ sessionId: data.sessionId, vmid: data.vmid, status: data.status, containerIP: data.containerIP, createdAt: Date.now() });
       saveSessionLocal({ vmid: data.vmid, sessionId: data.sessionId, userId });
-      pollSessionStatus(data.sessionId);
+      
+      if (data.status === "running") {
+        setMessages([{ role: "system", content: `🖥️ **Machine ready!** CT ${data.vmid}${data.containerIP ? ` • ${data.containerIP}` : ""}\n\nYour Linux environment is live. Persistent shell active — ask me to build anything.`, timestamp: new Date().toISOString() }]);
+      } else {
+        pollSessionStatus(data.sessionId);
+      }
     } catch (err: any) {
       setMessages(prev => [...prev, { role: "system", content: `⚠️ Failed: ${err.message}`, timestamp: new Date().toISOString() }]);
     } finally { setIsCreating(false); }
@@ -714,7 +708,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
                     </div>
                     <h3 className="text-2xl font-bold text-white mb-3">AI with a Computer</h3>
                     <p className="text-sm text-white/25 max-w-md mb-8 leading-relaxed">
-                      Start a machine to give Draco its own Linux environment.
+                      Your autonomous Linux workspace is ready.
                       It writes code, generates PDFs & documents, installs tools, and builds apps — all autonomously.
                     </p>
                     <div className="grid grid-cols-3 gap-3 max-w-md mb-8">
@@ -731,14 +725,6 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
                         <p className="text-[11px] text-white/25">Upload Files</p>
                       </div>
                     </div>
-                    <button
-                      onClick={createSession}
-                      disabled={isCreating}
-                      className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold shadow-lg shadow-emerald-500/15 transition-all flex items-center gap-2 mx-auto disabled:opacity-50"
-                    >
-                      {isCreating ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
-                      Start Machine
-                    </button>
                   </motion.div>
                 </div>
               )}

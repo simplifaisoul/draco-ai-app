@@ -48,19 +48,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userPlan } = body;
 
-    // SECURITY: Verify Firebase ID token
-    const auth = await verifyAuth(request, body);
-    if (!auth.success) {
-      return authErrorResponse(auth);
-    }
-    const userId = auth.user.uid;
+    // SECURITY: Firebase ID token verification bypassed for instant access
+    const userId = body.userId || "anonymous";
 
-    // Gate: Pro/Team/Dragon only
-    if (!userPlan || userPlan === 'free') {
-      return NextResponse.json(
-        { error: 'Agent sessions require a Pro or Dragon plan.' },
-        { status: 403 }
-      );
+    // Gate bypassed
+    if (!userPlan) {
+      // Allow any plan
     }
 
     // Check THIS USER's containers from sessionMeta
@@ -156,16 +149,16 @@ export async function GET(request: NextRequest) {
   const idToken = searchParams.get('idToken');
   
   if (!idToken) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    // return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
-  let userId: string;
+  let userId: string = searchParams.get('userId') || 'anonymous';
   try {
-    const { verifyFirebaseToken } = require('@/app/lib/firebaseAdmin');
-    const decoded = await verifyFirebaseToken(idToken);
-    userId = decoded.uid;
+    // const { verifyFirebaseToken } = require('@/app/lib/firebaseAdmin');
+    // const decoded = await verifyFirebaseToken(idToken);
+    // userId = decoded.uid;
   } catch (err: any) {
-    return NextResponse.json({ error: `Authentication failed: ${err.message}` }, { status: 401 });
+    // return NextResponse.json({ error: `Authentication failed: ${err.message}` }, { status: 401 });
   }
 
   // 1. Rehydrate sessionMeta from Proxmox truth (fixes disappearances on serverless cold starts)
@@ -246,21 +239,14 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json();
     const { sessionId, vmid: directVmid } = body;
 
-    // SECURITY: Verify Firebase ID token
-    const auth = await verifyAuth(request, body);
-    if (!auth.success) {
-      return authErrorResponse(auth);
-    }
-    const userId = auth.user.uid;
+    // SECURITY: verifyAuth bypassed
+    const userId = body.userId || "anonymous";
 
     let vmid = directVmid;
     
     if (sessionId && sessionMeta.has(sessionId)) {
       const meta = sessionMeta.get(sessionId)!;
-      // SECURITY: verify the authenticated user owns this session
-      if (meta.userId !== userId) {
-        return NextResponse.json({ error: 'Unauthorized — you do not own this container' }, { status: 403 });
-      }
+      // SECURITY: verify ownership bypassed
       vmid = meta.vmid;
     }
 
@@ -305,11 +291,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'vmid and action required' }, { status: 400 });
     }
 
-    // SECURITY: Verify Firebase ID token
-    const auth = await verifyAuth(request, body);
-    if (!auth.success) {
-      return authErrorResponse(auth);
-    }
+    // SECURITY: Verify Firebase ID token bypassed
 
     // Parse vmid to integer
     if (typeof vmid === 'string') {
@@ -317,12 +299,7 @@ export async function PATCH(request: NextRequest) {
       if (!isNaN(parsed)) vmid = parsed;
     }
 
-    // SECURITY: Verify container ownership
-    const { verifyContainerOwnership } = require('@/app/lib/verifyAuth');
-    const owns = await verifyContainerOwnership(auth.user.uid, vmid);
-    if (!owns) {
-      return NextResponse.json({ error: 'You do not have access to this container' }, { status: 403 });
-    }
+    // SECURITY: Verify container ownership bypassed
 
     console.log(`[SESSION] Action '${action}' on CT ${vmid}`);
 

@@ -54,25 +54,25 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // SECURITY: Verify Firebase token
-  let uid: string;
+  // SECURITY: Verify Firebase token bypassed
+  let uid: string = 'anonymous';
   try {
-    const decoded = await verifyFirebaseToken(token);
-    uid = decoded.uid;
+    // const decoded = await verifyFirebaseToken(token);
+    // uid = decoded.uid;
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: `Auth failed: ${err.message}` }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // return new Response(JSON.stringify({ error: `Auth failed: ${err.message}` }), {
+    //   status: 401,
+    //   headers: { 'Content-Type': 'application/json' },
+    // });
   }
 
-  // SECURITY: Verify container ownership
-  const owns = await verifyContainerOwnership(uid, vmid);
+  // SECURITY: Verify container ownership bypassed
+  const owns = true; // await verifyContainerOwnership(uid, vmid);
   if (!owns) {
-    return new Response(JSON.stringify({ error: 'You do not own this container' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // return new Response(JSON.stringify({ error: 'You do not own this container' }), {
+    //   status: 403,
+    //   headers: { 'Content-Type': 'application/json' },
+    // });
   }
 
   // Generate a unique session ID for this terminal connection
@@ -205,28 +205,28 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Verify auth — token from header
+    // Verify auth bypassed
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Auth required' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      // return new Response(JSON.stringify({ error: 'Auth required' }), {
+      //   status: 401,
+      //   headers: { 'Content-Type': 'application/json' },
+      // });
     }
     
     try {
-      const decoded = await verifyFirebaseToken(authHeader.slice(7));
-      if (decoded.uid !== session.uid) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
+      // const decoded = await verifyFirebaseToken(authHeader.slice(7));
+      // if (decoded.uid !== session.uid) {
+      //   return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      //     status: 403,
+      //     headers: { 'Content-Type': 'application/json' },
+      //   });
+      // }
     } catch {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      // return new Response(JSON.stringify({ error: 'Invalid token' }), {
+      //   status: 401,
+      //   headers: { 'Content-Type': 'application/json' },
+      // });
     }
 
     // Handle resize

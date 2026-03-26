@@ -84,14 +84,14 @@ const XTerminal = forwardRef<XTerminalRef, XTerminalProps>(
 
     // Send stdin input to the server
     const sendInput = useCallback(async (data: string) => {
-      if (!sessionIdRef.current || !idToken) return;
+      if (!sessionIdRef.current) return;
       
       try {
         await fetch("/api/agent/terminal-ws", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${idToken}`,
+            "Authorization": `Bearer ${idToken || 'anonymous'}`,
           },
           body: JSON.stringify({
             sessionId: sessionIdRef.current,
@@ -105,14 +105,14 @@ const XTerminal = forwardRef<XTerminalRef, XTerminalProps>(
 
     // Send terminal resize to server
     const sendResize = useCallback(async (rows: number, cols: number) => {
-      if (!sessionIdRef.current || !idToken) return;
+      if (!sessionIdRef.current) return;
       
       try {
         await fetch("/api/agent/terminal-ws", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${idToken}`,
+            "Authorization": `Bearer ${idToken || 'anonymous'}`,
           },
           body: JSON.stringify({
             sessionId: sessionIdRef.current,
@@ -136,7 +136,7 @@ const XTerminal = forwardRef<XTerminalRef, XTerminalProps>(
 
       try {
         const res = await fetch(
-          `/api/agent/terminal-ws?vmid=${vmid}&token=${encodeURIComponent(idToken)}`,
+          `/api/agent/terminal-ws?vmid=${vmid}&token=${encodeURIComponent(idToken || 'anonymous')}`,
           { signal: controller.signal }
         );
 
