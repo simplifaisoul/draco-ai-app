@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, MessageSquare, Trash2, ChevronDown, X, Download, LogOut, User, Crown, Zap, Cpu } from "lucide-react";
+import { Plus, MessageSquare, Trash2, ChevronDown, X, Download, LogOut, User, Crown, Zap, Cpu, Settings } from "lucide-react";
 import { HistoryManager, ChatSession } from "../lib/history";
 import { useAuth } from "../lib/AuthContext";
 
@@ -92,6 +92,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     const groups = groupSessions(sessions);
 
+    const THEMES = [
+        { id: 'cosmic' as const, label: 'Dark', color: 'bg-purple-500' },
+        { id: 'corporate' as const, label: 'Light', color: 'bg-blue-500' },
+        { id: 'neural' as const, label: 'Matrix', color: 'bg-emerald-500' },
+    ];
+
     return (
         <>
             <AnimatePresence>
@@ -101,111 +107,89 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         animate={{ x: 0 }}
                         exit={{ x: -280 }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className={`fixed md:relative shrink-0 md:shrink-0 z-50 w-[280px] h-full bg-[var(--sidebar-bg)]/60 backdrop-blur-2xl border-r border-white/10 flex flex-col p-4 shadow-2xl md:shadow-none transition-colors duration-500 ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-                            }`}
+                        className={`fixed md:relative shrink-0 z-50 w-[272px] h-full bg-[var(--sidebar-bg)]/80 backdrop-blur-2xl border-r border-[var(--border-color)] flex flex-col shadow-2xl md:shadow-none ${
+                            isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+                        }`}
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent font-mono">
-                                    <img src="/dragon_final.png" alt="Draco" className="w-7 h-7 object-contain drop-shadow-[0_0_12px_rgba(var(--color-primary-rgb),0.5)]" /> Draco AI
-                                </div>
+                        <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-2">
+                            <div className="flex items-center gap-2.5">
+                                <img src="/dragon_final.png" alt="Draco" className="w-7 h-7 object-contain drop-shadow-[0_0_8px_rgba(var(--color-primary-rgb),0.4)]" />
+                                <span className="text-base font-bold bg-gradient-to-r from-[var(--foreground)] to-[var(--color-secondary)] bg-clip-text text-transparent tracking-tight">
+                                    Draco AI
+                                </span>
                             </div>
-                            <button onClick={onClose} className="md:hidden text-gray-400 p-2 hover:bg-white/5 rounded-full">
-                                <X />
+                            <button onClick={onClose} className="md:hidden p-1.5 rounded-lg text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-all">
+                                <X size={16} />
                             </button>
                         </div>
 
-                        {/* Actions */}
-                        <div className="space-y-2 mb-4">
+                        {/* Action Buttons */}
+                        <div className="shrink-0 px-3 pt-2 pb-1 space-y-1.5">
                             <button
                                 onClick={onNewChat}
-                                className="w-full flex items-center gap-2 bg-[var(--input-bg)] hover:bg-[var(--border-color)] border border-[var(--border-color)] p-3 rounded-xl text-sm font-medium transition-colors active:scale-95 duration-200 shadow-lg shadow-black/5 text-[var(--foreground)]"
+                                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border-color)] hover:border-[var(--color-primary)]/20 text-sm font-medium text-[var(--foreground)] transition-all active:scale-[0.98] group"
                             >
-                                <Plus size={18} className="text-[var(--color-primary)]" /> New Chat
+                                <Plus size={16} className="text-[var(--color-primary)] group-hover:rotate-90 transition-transform duration-200" /> New Chat
                             </button>
 
-                            {/* Agent Button */}
                             <button
                                 onClick={onOpenAgent}
-                                className="w-full flex items-center gap-2 bg-gradient-to-r from-emerald-600/10 to-cyan-600/10 hover:from-emerald-600/20 hover:to-cyan-600/20 border border-emerald-500/20 hover:border-emerald-500/40 p-3 rounded-xl text-sm font-medium transition-all active:scale-95 duration-200 text-[var(--foreground)]"
+                                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/[0.06] to-cyan-500/[0.06] hover:from-emerald-500/[0.12] hover:to-cyan-500/[0.12] border border-emerald-500/10 hover:border-emerald-500/25 text-sm font-medium text-[var(--foreground)] transition-all active:scale-[0.98]"
                             >
-                                <Cpu size={18} className="text-emerald-400" /> Draco Agent
+                                <Cpu size={16} className="text-emerald-400" />
+                                <span className="flex-1 text-left">Draco Agent</span>
                                 {userPlan === 'free' && (
-                                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-purple-600/30 text-purple-300 font-bold">PRO</span>
+                                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold uppercase tracking-wider">Pro</span>
                                 )}
                             </button>
-
                         </div>
 
-                        {/* History List */}
-                        <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-1">
-                            {groups.today.length > 0 && (
-                                <div>
-                                    <div className="text-xs font-semibold text-[var(--color-secondary)] uppercase tracking-wider mb-2 px-2 mt-4">Today</div>
-                                    {groups.today.map(s => (
-                                        <SessionItem
-                                            key={s.id}
-                                            session={s}
-                                            isActive={s.id === activeSessionId}
-                                            onClick={() => onSessionSelect(s.id)}
-                                            onDelete={(e) => handleDeleteSession(e, s.id)}
-                                        />
-                                    ))}
+                        {/* Chat History */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 min-h-0">
+                            {[
+                                { label: "Today", items: groups.today },
+                                { label: "Yesterday", items: groups.yesterday },
+                                { label: "Previous 7 Days", items: groups.older },
+                            ].map(group => group.items.length > 0 && (
+                                <div key={group.label} className="mb-3">
+                                    <div className="text-[10px] font-semibold text-[var(--color-secondary)] uppercase tracking-widest px-2 py-1.5">{group.label}</div>
+                                    <div className="space-y-0.5">
+                                        {group.items.map(s => (
+                                            <SessionItem
+                                                key={s.id}
+                                                session={s}
+                                                isActive={s.id === activeSessionId}
+                                                onClick={() => onSessionSelect(s.id)}
+                                                onDelete={(e) => handleDeleteSession(e, s.id)}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
-                            )}
-
-                            {groups.yesterday.length > 0 && (
-                                <div>
-                                    <div className="text-xs font-semibold text-[var(--color-secondary)] uppercase tracking-wider mb-2 px-2 mt-4">Yesterday</div>
-                                    {groups.yesterday.map(s => (
-                                        <SessionItem
-                                            key={s.id}
-                                            session={s}
-                                            isActive={s.id === activeSessionId}
-                                            onClick={() => onSessionSelect(s.id)}
-                                            onDelete={(e) => handleDeleteSession(e, s.id)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-
-                            {groups.older.length > 0 && (
-                                <div>
-                                    <div className="text-xs font-semibold text-[var(--color-secondary)] uppercase tracking-wider mb-2 px-2 mt-4">Previous 7 Days</div>
-                                    {groups.older.map(s => (
-                                        <SessionItem
-                                            key={s.id}
-                                            session={s}
-                                            isActive={s.id === activeSessionId}
-                                            onClick={() => onSessionSelect(s.id)}
-                                            onDelete={(e) => handleDeleteSession(e, s.id)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                            ))}
 
                             {sessions.length === 0 && (
-                                <div className="p-4 text-xs text-[var(--color-secondary)] text-center italic mt-10">
-                                    No conversation history.<br />Start a new chat!
+                                <div className="flex flex-col items-center justify-center py-16 text-center">
+                                    <MessageSquare size={24} className="text-[var(--color-secondary)] opacity-20 mb-2" />
+                                    <p className="text-xs text-[var(--color-secondary)] opacity-40">No conversations yet</p>
                                 </div>
                             )}
                         </div>
 
-                        {/* Footer / Utilities */}
-                        <div className="mt-4 border-t border-[var(--border-color)] pt-4 space-y-2">
-
-                            {/* The Vault */}
-                            <div className="border border-[var(--border-color)] rounded-xl bg-[var(--input-bg)]/30 overflow-hidden">
-                                <div
-                                    className="flex items-center justify-between p-3 cursor-pointer hover:bg-[var(--border-color)]/50 transition-colors"
+                        {/* Footer */}
+                        <div className="shrink-0 border-t border-[var(--border-color)] px-3 py-3 space-y-2">
+                            {/* Memory Vault */}
+                            <div className="rounded-xl border border-[var(--border-color)] bg-[var(--surface)] overflow-hidden">
+                                <button
+                                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-[var(--surface-hover)] transition-colors"
                                     onClick={onToggleMemory}
                                 >
-                                    <span className="text-xs font-bold text-[var(--color-secondary)] uppercase tracking-wider flex items-center gap-2">
-                                        🧠 The Vault <span className="bg-[var(--color-primary)]/20 text-[var(--color-primary)] px-1.5 py-0.5 rounded-full text-[10px]">{memoryCount}</span>
+                                    <span className="text-[10px] font-bold text-[var(--color-secondary)] uppercase tracking-wider flex items-center gap-1.5">
+                                        🧠 Memory
+                                        <span className="bg-[var(--color-primary)]/15 text-[var(--color-primary)] px-1.5 py-px rounded-full text-[9px] font-bold">{memoryCount}</span>
                                     </span>
-                                    <ChevronDown size={14} className={`text-[var(--color-secondary)] transition-transform duration-200 ${showMemory ? "" : "-rotate-90"}`} />
-                                </div>
+                                    <ChevronDown size={12} className={`text-[var(--color-secondary)] transition-transform duration-200 ${showMemory ? "" : "-rotate-90"}`} />
+                                </button>
 
                                 <AnimatePresence>
                                     {showMemory && (
@@ -213,25 +197,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                             initial={{ height: 0 }}
                                             animate={{ height: "auto" }}
                                             exit={{ height: 0 }}
-                                            className="bg-[var(--sidebar-bg)]"
+                                            className="overflow-hidden"
                                         >
-                                            <div className="p-2 space-y-1 max-h-[150px] overflow-y-auto custom-scrollbar">
+                                            <div className="px-2 pb-2 space-y-0.5 max-h-[120px] overflow-y-auto custom-scrollbar">
                                                 {memory.length > 0 ? (
                                                     memory.map((mem, i) => (
-                                                        <div key={i} className="group relative p-2 rounded-lg text-xs text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--input-bg)] transition-all break-words">
-                                                            <div className="pr-4">{mem}</div>
+                                                        <div key={i} className="group relative px-2 py-1.5 rounded-lg text-[11px] text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-all break-words pr-6">
+                                                            {mem}
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); onForgetMemory(i); }}
-                                                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-red-400 hover:bg-red-900/20 p-1 rounded transition-all"
-                                                                title="Forget"
+                                                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-red-400 hover:bg-red-500/10 p-0.5 rounded transition-all"
                                                             >
-                                                                <X size={10} />
+                                                                <X size={9} />
                                                             </button>
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <div className="text-xs text-[var(--color-secondary)] italic px-2 py-2">
-                                                        Type <code className="bg-[var(--foreground)]/5 px-1 rounded">/remember [text]</code> to add memories.
+                                                    <div className="text-[10px] text-[var(--color-secondary)] opacity-50 px-2 py-2">
+                                                        Type <code className="bg-[var(--foreground)]/5 px-1 rounded text-[9px]">/remember</code> to save
                                                     </div>
                                                 )}
                                             </div>
@@ -240,97 +223,87 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 </AnimatePresence>
                             </div>
 
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={onExport}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-[var(--input-bg)] hover:bg-[var(--border-color)] border border-[var(--border-color)] p-2 rounded-lg transition-colors text-xs text-[var(--foreground)] active:scale-95 duration-200"
+                            {/* Quick Actions */}
+                            <div className="flex gap-1.5">
+                                <button onClick={onExport}
+                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border-color)] text-[var(--color-secondary)] hover:text-[var(--foreground)] text-[10px] font-medium transition-all active:scale-[0.97]"
                                 >
-                                    <Download size={14} /> Export
+                                    <Download size={11} /> Export
                                 </button>
-                                <button
-                                    onClick={onClearAll}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 p-2 rounded-lg transition-colors text-xs active:scale-95 duration-200"
+                                <button onClick={onClearAll}
+                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-red-500/[0.04] hover:bg-red-500/10 border border-red-500/[0.08] hover:border-red-500/15 text-red-400/50 hover:text-red-400 text-[10px] font-medium transition-all active:scale-[0.97]"
                                 >
-                                    <Trash2 size={14} /> Clear All
+                                    <Trash2 size={11} /> Clear
                                 </button>
                             </div>
 
-                            {/* Mobile Theme Selector (Visible in Sidebar) */}
-                            <div className="pt-2">
-                                <div className="text-[10px] font-bold text-[var(--color-secondary)] uppercase tracking-wider mb-1.5 px-1">Theme</div>
-                                <div className="grid grid-cols-3 gap-1 bg-[var(--input-bg)]/50 p-1 rounded-xl border border-[var(--border-color)]">
-                                    {(['cosmic', 'corporate', 'neural'] as const).map((t) => (
-                                        <button
-                                            key={t}
-                                            onClick={() => onSetTheme(t)}
-                                            className={`px-1 py-1.5 rounded-lg text-[10px] uppercase font-bold transition-all ${currentTheme === t
-                                                ? 'bg-[var(--color-primary)] text-white shadow-md'
-                                                : 'text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--background)]/50'
-                                                }`}
-                                        >
-                                            {t}
-                                        </button>
-                                    ))}
-                                </div>
+                            {/* Theme Selector */}
+                            <div className="flex gap-1 p-1 rounded-xl bg-[var(--surface)] border border-[var(--border-color)]">
+                                {THEMES.map((t) => (
+                                    <button
+                                        key={t.id}
+                                        onClick={() => onSetTheme(t.id)}
+                                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                            currentTheme === t.id
+                                                ? 'bg-[var(--color-primary)]/15 text-[var(--color-primary)] shadow-sm'
+                                                : 'text-[var(--color-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hover)]'
+                                        }`}
+                                    >
+                                        <div className={`w-1.5 h-1.5 rounded-full ${t.color}`} />
+                                        {t.label}
+                                    </button>
+                                ))}
                             </div>
 
-                            {/* Upgrade Button (Free users) or Plan Badge (Paid users) */}
+                            {/* Upgrade / Plan */}
                             {userPlan === 'free' ? (
                                 <button
                                     onClick={onUpgrade}
-                                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-bold shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-bold shadow-lg shadow-purple-500/15 hover:shadow-purple-500/25 hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
                                 >
-                                    <Zap size={14} />
-                                    Upgrade to Pro
+                                    <Zap size={13} /> Upgrade to Pro
                                 </button>
                             ) : (
                                 <button
                                     onClick={onUpgrade}
-                                    className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 text-xs transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-2 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border-color)] text-[var(--color-secondary)] text-[11px] transition-all flex items-center justify-center gap-1.5"
                                 >
-                                    <Crown size={12} className="text-yellow-400" />
-                                    Manage Billing
+                                    <Crown size={11} className="text-yellow-400" /> Manage Plan
                                 </button>
                             )}
 
-                            <div className="mt-2 pt-3 border-t border-[var(--border-color)] space-y-2">
-                                {/* User Info + Sign Out */}
-                                {user && (
-                                    <div className="flex items-center gap-2 px-1">
-                                        <div className="w-7 h-7 rounded-full bg-[var(--color-primary)]/20 border border-[var(--color-primary)]/30 flex items-center justify-center shrink-0">
-                                            {user.photoURL ? (
-                                                <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full" />
-                                            ) : (
-                                                <User size={14} className="text-[var(--color-primary)]" />
+                            {/* User Profile */}
+                            {user && (
+                                <div className="flex items-center gap-2 px-1 pt-1">
+                                    <div className="w-7 h-7 rounded-full bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/15 flex items-center justify-center shrink-0 overflow-hidden">
+                                        {user.photoURL ? (
+                                            <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full" />
+                                        ) : (
+                                            <User size={13} className="text-[var(--color-primary)]" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-[11px] font-medium text-[var(--foreground)] truncate flex items-center gap-1.5">
+                                            {user.displayName || 'User'}
+                                            {userPlan !== 'free' && (
+                                                <span className="px-1 py-px rounded-sm bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 text-[7px] font-bold uppercase tracking-wider">
+                                                    {userPlan}
+                                                </span>
                                             )}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-[11px] font-medium text-[var(--foreground)] truncate flex items-center gap-1">
-                                                {user.displayName || 'User'}
-                                                {userPlan !== 'free' && (
-                                                    <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-purple-600 to-pink-600 text-[8px] font-bold uppercase tracking-wider">
-                                                        {userPlan}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="text-[9px] text-[var(--color-secondary)] truncate">
-                                                {user.email}
-                                            </div>
+                                        <div className="text-[9px] text-[var(--color-secondary)] truncate opacity-60">
+                                            {user.email}
                                         </div>
-                                        <button
-                                            onClick={signOut}
-                                            className="p-1.5 rounded-lg text-[var(--color-secondary)] hover:text-red-400 hover:bg-red-500/10 transition-all"
-                                            title="Sign Out"
-                                        >
-                                            <LogOut size={14} />
-                                        </button>
                                     </div>
-                                )}
-                                <div className="text-[9px] text-center text-[var(--color-secondary)] opacity-40">
-                                    Powered by SimplifAI-1
+                                    <button
+                                        onClick={signOut}
+                                        className="p-1.5 rounded-lg text-[var(--color-secondary)] hover:text-red-400 hover:bg-red-500/8 transition-all"
+                                        title="Sign Out"
+                                    >
+                                        <LogOut size={13} />
+                                    </button>
                                 </div>
-                            </div>
-
+                            )}
                         </div>
                     </motion.aside>
                 )}
@@ -353,21 +326,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
 const SessionItem = ({ session, isActive, onClick, onDelete }: { session: ChatSession, isActive: boolean, onClick: () => void, onDelete: (e: React.MouseEvent) => void }) => (
     <div
         onClick={onClick}
-        className={`group relative p-3 rounded-xl text-sm transition-all cursor-pointer border ${isActive
-            ? "bg-[var(--color-primary)]/20 border-[var(--color-primary)]/50 text-[var(--foreground)] shadow-lg shadow-[var(--color-primary)]/10"
-            : "bg-[var(--input-bg)]/30 border-transparent hover:bg-[var(--input-bg)] hover:border-[var(--border-color)] text-[var(--color-secondary)] hover:text-[var(--foreground)]"
-            }`}
+        className={`group relative px-2.5 py-2 rounded-lg text-[13px] transition-all cursor-pointer ${
+            isActive
+                ? "bg-[var(--color-primary)]/10 text-[var(--foreground)]"
+                : "text-[var(--color-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
+        }`}
     >
-        <div className="flex items-center gap-2 truncate pr-4">
-            <MessageSquare size={14} className={isActive ? "text-[var(--color-primary)]" : "text-[var(--color-secondary)]"} />
+        <div className="flex items-center gap-2 truncate pr-5">
+            <MessageSquare size={13} className={isActive ? "text-[var(--color-primary)] shrink-0" : "text-[var(--color-secondary)] shrink-0 opacity-40"} />
             <span className="truncate">{session.title || "New Chat"}</span>
         </div>
         <button
             onClick={onDelete}
-            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/20 hover:text-red-400 rounded-md transition-all text-gray-500"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/10 hover:text-red-400 rounded-md transition-all text-[var(--color-secondary)]"
             title="Delete"
         >
-            <Trash2 size={12} />
+            <Trash2 size={11} />
         </button>
     </div>
 );
