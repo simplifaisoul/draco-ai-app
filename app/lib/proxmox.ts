@@ -281,19 +281,95 @@ export async function waitForContainer(vmid: number, timeoutMs: number = 30000):
   throw new Error(`Container ${vmid} not ready within ${timeoutMs / 1000}s`);
 }
 
-// Execute a command inside a container via Proxmox exec API (no SSH needed)
-export async function execInContainer(vmid: number, command: string): Promise<string> {
-  // Use `pct exec` via the Proxmox API
-  // This runs the command directly without SSH
+// ── WARM POOL: Pre-booted container management ──
+
+/**
+ * List all idle (pre-booted, ready to claim) containers.
+ * These are tagged with 'draco-idle' by the warm pool daemon.
+ */
+export async function listIdleContainers(): Promise<any[]> {
   const data = await proxmoxFetch(
-    `/api2/json/nodes/${PROXMOX_NODE}/lxc/${vmid}/status/current`
+    `/api2/json/nodes/${PROXMOX_NODE}/lxc`
   );
   
-  if (data.status !== 'running') {
-    throw new Error(`Container ${vmid} is not running (status: ${data.status})`);
-  }
+  return (data || []).filter((c: any) => {
+    const tags = (c.tags || '').toLowerCase();
+    return tags.includes('draco-idle');
+  });
+}
+
+/**
+ * Update a container's tags and description via Proxmox API.
+ * Used to claim an idle container for a specific user.
+ */
+export async function updateContainerConfig(
+  vmid: number, 
+  config: { tags?: string; description?: string; hostname?: string }
+): Promise<void> {
+  const params = new URLSearchParams();
+  if (config.tags) params.set('tags', config.tags);
+  if (config.description) params.set('description', config.description);
+  if (config.hostname) params.set('hostname', config.hostname);
+
+  await proxmoxFetch(
+    `/api2/json/nodes/${PROXMOX_NODE}/lxc/${vmid}/config`,
+    {
+      method: 'PUT',
+      body: params.toString(),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    }
+  );
+}
+
+/**
+ * Claim an idle container from the warm pool.
+ * Re-tags it from 'draco-idle' to 'draco-agent;uid-{userId}' and updates description.
+ * Returns the claimed container info, or null if no idle containers available.
+ */
+export async function claimIdleContainer(
+  userId: string, 
+  sessionId: string
+): Promise<{ vmid: number; containerIP: string | null } | null> {
+  const idleContainers = await listIdleContainers();
   
-  // Proxmox doesn't have a direct exec REST endpoint, but we can use 
-  // the vncproxy or termproxy. For Phase 1, we'll use SSH.
-  throw new Error('Use SSH execution instead');
+  // Only claim containers that are actually running
+  const runningIdle = [];
+  for (const c of idleContainers) {
+    try {
+      const status = await getContainerStatus(c.vmid);
+      if (status.status === 'running') {
+        runningIdle.push(c);
+      }
+    } catch {}
+  }
+
+  if (runningIdle.length === 0) {
+    console.log('[WARM_POOL] No idle containers available');
+    return null;
+  }
+
+  // Claim the first available idle container
+  const container = runningIdle[0];
+  const vmid = typeof container.vmid === 'string' ? parseInt(container.vmid) : container.vmid;
+  
+  const sanitizedId = userId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
+  
+  try {
+    await updateContainerConfig(vmid, {
+      tags: `draco-agent;uid-${sanitizedId}`,
+      description: `draco-agent|${userId}|${sessionId}`,
+      hostname: `draco-${sessionId.slice(0, 8)}`,
+    });
+
+    let containerIP: string | null = null;
+    try {
+      containerIP = await getContainerIP(vmid);
+    } catch {}
+
+    console.log(`[WARM_POOL] Claimed CT ${vmid} for user ${userId.slice(0, 8)}... (IP: ${containerIP})`);
+    return { vmid, containerIP };
+  } catch (err: any) {
+    console.error(`[WARM_POOL] Failed to claim CT ${vmid}:`, err.message);
+    return null;
+  }
 }

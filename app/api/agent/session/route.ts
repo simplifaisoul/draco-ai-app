@@ -13,7 +13,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   createContainer, getNextVmid, destroyContainer,
   waitForContainer, getContainerStatus,
-  startContainer, stopContainer, rebootContainer, getContainerIP
+  startContainer, stopContainer, rebootContainer, getContainerIP,
+  claimIdleContainer
 } from '@/app/lib/proxmox';
 import { setupContainer } from '@/app/lib/ssh';
 import { verifyAuth, authErrorResponse } from '@/app/lib/verifyAuth';
@@ -72,8 +73,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate session ID and get next VMID
     const sessionId = crypto.randomUUID();
+
+    // ── WARM POOL: Try to claim a pre-booted idle container first ──
+    try {
+      const claimed = await claimIdleContainer(userId, sessionId);
+      if (claimed) {
+        // INSTANT handoff — container is already running + pre-tooled
+        sessionMeta.set(sessionId, {
+          vmid: claimed.vmid,
+          userId,
+          createdAt: Date.now(),
+        });
+
+        console.log(`[SESSION] ⚡ INSTANT handoff: CT ${claimed.vmid} → user ${userId.slice(0, 8)}... (from warm pool)`);
+
+        return NextResponse.json({
+          sessionId,
+          vmid: claimed.vmid,
+          status: 'running', // Already running! No waiting!
+          containerIP: claimed.containerIP,
+        });
+      }
+    } catch (err) {
+      console.warn('[SESSION] Warm pool claim failed, falling back to fresh creation:', err);
+    }
+
+    // ── FALLBACK: No idle containers available, create fresh ──
+    console.log('[SESSION] No warm pool containers available, creating fresh...');
     const vmid = await getNextVmid();
 
     // Record session metadata IMMEDIATELY (before async creation)
@@ -100,7 +127,7 @@ export async function POST(request: NextRequest) {
         const ip = await waitForContainer(vmid, 60000);
         console.log(`[SESSION] CT ${vmid} ready at ${ip}`);
         
-        // Lightweight setup (no apt — clean boot)
+        // Lightweight setup
         try {
           await setupContainer(vmid);
           console.log(`[SESSION] CT ${vmid} setup complete`);
@@ -109,7 +136,6 @@ export async function POST(request: NextRequest) {
         }
       } catch (err: any) {
         console.error(`[SESSION] CT creation failed:`, err.message);
-        // Remove from sessionMeta if creation failed
         sessionMeta.delete(sessionId);
       }
     })();
