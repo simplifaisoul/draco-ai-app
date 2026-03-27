@@ -116,6 +116,13 @@ export async function GET(request: NextRequest) {
             createdAt: Date.now(),
           });
 
+          // Auto-launch OpenCode CLI after a short delay for shell init
+          setTimeout(() => {
+            try {
+              sshStream.write('cd /workspace && opencode\n');
+            } catch {}
+          }, 500);
+
           // Stream stdout to client
           sshStream.on('data', (data: Buffer) => {
             push('output', data.toString('base64'));

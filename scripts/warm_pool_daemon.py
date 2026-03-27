@@ -169,6 +169,8 @@ def create_idle_container(vmid: int) -> bool:
             'echo "cd /workspace" >> /root/.bashrc',
             # Pre-install common Python packages for document generation
             "pip3 install -q reportlab python-docx openpyxl requests 2>/dev/null || true",
+            # Install OpenCode AI coding agent
+            "curl -fsSL https://opencode.ai/install | bash 2>/dev/null || true",
         ]
 
         for cmd in setup_commands:
