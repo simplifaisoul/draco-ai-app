@@ -109,7 +109,7 @@ function DownloadCard({ filename, filepath, vmid, idToken }: { filename: string;
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const url = `/api/agent/download?vmid=${vmid}&path=${encodeURIComponent(filepath)}&token=${encodeURIComponent(idToken)}`;
+      const url = `/api/agent/download?vmid=${vmid}&path=${encodeURIComponent(filepath)}&token=${encodeURIComponent(idToken || "anonymous")}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();

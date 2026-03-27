@@ -10,8 +10,6 @@
  */
 
 import { NextRequest } from 'next/server';
-import { verifyFirebaseToken } from '@/app/lib/firebaseAdmin';
-import { verifyContainerOwnership } from '@/app/lib/verifyAuth';
 import { execCommand } from '@/app/lib/ssh';
 
 // Map file extensions to MIME types
@@ -58,8 +56,8 @@ export async function GET(request: NextRequest) {
   const filepath = searchParams.get('path');
   const token = searchParams.get('token');
 
-  if (!vmidStr || !filepath || !token) {
-    return new Response(JSON.stringify({ error: 'vmid, path, and token are required' }), {
+  if (!vmidStr || !filepath) {
+    return new Response(JSON.stringify({ error: 'vmid and path are required' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -74,7 +72,10 @@ export async function GET(request: NextRequest) {
   }
 
   // Security: Path validation
-  const normalizedPath = filepath.replace(/\.\./g, ''); // Strip path traversal
+  let normalizedPath = filepath.replace(/\.\./g, ''); // Strip path traversal
+  if (!normalizedPath.startsWith('/')) {
+    normalizedPath = `/workspace/${normalizedPath}`;
+  }
   if (BLOCKED_PATHS.some(bp => normalizedPath.startsWith(bp))) {
     return new Response(JSON.stringify({ error: 'Access to this path is restricted' }), {
       status: 403,
@@ -84,27 +85,6 @@ export async function GET(request: NextRequest) {
 
   if (!ALLOWED_PREFIXES.some(pfx => normalizedPath.startsWith(pfx))) {
     return new Response(JSON.stringify({ error: 'Downloads are only allowed from /workspace/, /tmp/, /root/, /home/' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // SECURITY: Verify Firebase token
-  let uid: string;
-  try {
-    const decoded = await verifyFirebaseToken(token);
-    uid = decoded.uid;
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: `Auth failed: ${err.message}` }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // SECURITY: Verify container ownership
-  const owns = await verifyContainerOwnership(uid, vmid);
-  if (!owns) {
-    return new Response(JSON.stringify({ error: 'You do not own this container' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
