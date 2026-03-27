@@ -194,7 +194,7 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
 
   // ── Render ──
   return (
-    <div className="flex flex-col h-full bg-[#09090b] text-white overflow-hidden">
+    <div className="flex-1 w-full flex flex-col h-full bg-[#09090b] text-white overflow-hidden">
       {/* ── Top Bar ── */}
       <div className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-[#0d0d14]/80 backdrop-blur-xl border-b border-white/[0.04]">
         {/* Left — Back + Status */}
