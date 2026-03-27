@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
           // Auto-launch OpenCode CLI after a short delay for shell init
           setTimeout(() => {
             try {
-              sshStream.write('cd /workspace && curl -fsSL https://opencode.ai/install | bash && opencode\n');
+              sshStream.write('cd /workspace && curl -fsSL https://opencode.ai/install | bash && opencode\r');
             } catch {}
           }, 500);
 
