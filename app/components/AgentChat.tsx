@@ -8,6 +8,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/app/lib/AuthContext";
+import WorkspaceFiles from "./WorkspaceFiles";
 
 // Dynamic import XTerminal to avoid SSR issues
 const XTerminal = dynamic(() => import("./XTerminal"), {
@@ -285,15 +286,20 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
               </div>
             </div>
 
-            {/* XTerminal — takes up all remaining space */}
-            <div className="flex-1 w-full min-h-0 min-w-0 overflow-hidden">
-              <XTerminal
-                ref={xtermRef}
-                vmid={session.vmid}
-                idToken={idToken}
-                fontSize={14}
-                autoFocus={true}
-              />
+            {/* Split View: Terminal (Top 60%) + Workspace Files (Bottom 40%) */}
+            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+              <div className="h-[60%] shrink-0 w-full min-h-0 min-w-0 flex flex-col overflow-hidden border-b border-white/[0.04] bg-black">
+                <XTerminal
+                  ref={xtermRef}
+                  vmid={session.vmid}
+                  idToken={idToken}
+                  fontSize={14}
+                  autoFocus={true}
+                />
+              </div>
+              <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
+                <WorkspaceFiles vmid={session.vmid} idToken={idToken || ''} />
+              </div>
             </div>
           </>
         ) : (
