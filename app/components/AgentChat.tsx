@@ -3,28 +3,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Loader2, ArrowLeft, Square, Cpu, Wifi, Clock, Play,
-  Terminal as TerminalIcon, FolderOpen, Monitor, MessageSquare,
-  Maximize2, Minimize2
+  Zap, Circle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import dynamic from "next/dynamic";
 import { useAuth } from "@/app/lib/AuthContext";
-import WorkspaceFiles from "./WorkspaceFiles";
 import AgentMessages, { AgentEvent } from "./AgentMessages";
 import AgentInput from "./AgentInput";
-
-// Dynamic import XTerminal to avoid SSR issues
-const XTerminal = dynamic(() => import("./XTerminal"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex-1 flex items-center justify-center bg-[#0a0a12]">
-      <div className="flex items-center gap-3 text-sm text-white/30">
-        <div className="w-5 h-5 border-2 border-purple-500/40 border-t-purple-500 rounded-full animate-spin" />
-        Initializing terminal…
-      </div>
-    </div>
-  ),
-});
 
 // ── Types ──
 interface AgentSession {
@@ -47,7 +31,6 @@ interface AgentChatProps {
 
 // ── Local Storage Helpers ──
 const LOCAL_STORAGE_KEY = "draco_agent_session";
-
 function saveSessionLocal(data: { vmid: number; sessionId: string; userId: string }) {
   try { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data)); } catch {}
 }
@@ -70,19 +53,11 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
   const [isRecovering, setIsRecovering] = useState(true);
   const [idToken, setIdToken] = useState<string>("");
   const [statusText, setStatusText] = useState("Checking for machines…");
-  const xtermRef = useRef<any>(null);
 
   // ── Chat State ──
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [conversationMessages, setConversationMessages] = useState<{ role: string; content: string }[]>([]);
-
-  // ── Right Panel State ──
-  const [rightTab, setRightTab] = useState<"terminal" | "files">("terminal");
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  // ── Mobile State ──
-  const [mobileView, setMobileView] = useState<"chat" | "computer">("chat");
 
   // Get Firebase ID token
   useEffect(() => {
@@ -206,11 +181,10 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
     return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   };
 
-  // ── Chat: Send Message to AI Agent ──
+  // ── Chat: Send to AI Agent ──
   const sendMessage = useCallback(async (message: string) => {
     if (!session || session.status !== "running" || isProcessing) return;
 
-    // Add user message to events
     const userEvent: AgentEvent = {
       id: `user-${Date.now()}`,
       type: "user",
@@ -219,13 +193,8 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
     };
     setEvents(prev => [...prev, userEvent]);
 
-    // Add to conversation history
-    const newMessages = [
-      ...conversationMessages,
-      { role: "user", content: message },
-    ];
+    const newMessages = [...conversationMessages, { role: "user", content: message }];
     setConversationMessages(newMessages);
-
     setIsProcessing(true);
 
     try {
@@ -251,7 +220,6 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         return;
       }
 
-      // Stream SSE events
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -276,7 +244,6 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
             const eventId = `${event.type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
             if (event.type === "response") {
-              // Accumulate response text into a single message
               accumulatedResponse += event.content;
               if (!lastResponseId) {
                 lastResponseId = eventId;
@@ -295,7 +262,6 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
                 ));
               }
             } else {
-              // Non-response events reset the response accumulator
               if (lastResponseId) {
                 setEvents(prev => prev.map(e =>
                   e.id === lastResponseId ? { ...e, isStreaming: false } : e
@@ -303,7 +269,6 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
                 lastResponseId = "";
                 accumulatedResponse = "";
               }
-
               setEvents(prev => [...prev, {
                 id: eventId,
                 type: event.type,
@@ -317,12 +282,10 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         }
       }
 
-      // Finalize streaming
       if (lastResponseId) {
         setEvents(prev => prev.map(e =>
           e.id === lastResponseId ? { ...e, isStreaming: false } : e
         ));
-        // Add to conversation history
         setConversationMessages(prev => [
           ...prev,
           { role: "assistant", content: accumulatedResponse },
@@ -340,228 +303,157 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
     }
   }, [session, isProcessing, conversationMessages]);
 
-  // ── Render ──
+  // ── RENDER ──
   return (
     <div className="flex-1 w-full flex flex-col h-full bg-[#09090b] text-white overflow-hidden">
-      {/* ── Top Bar ── */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-2 bg-[#0d0d14]/80 backdrop-blur-xl border-b border-white/[0.04] z-20">
-        {/* Left — Back + Status */}
+
+      {/* ═══ MINIMAL TOP BAR ═══ */}
+      <div className="shrink-0 flex items-center justify-between px-5 py-2.5 border-b border-white/[0.04] bg-[#09090b]/95 backdrop-blur-xl z-20">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-white/30 hover:text-white/60 transition-all">
+          <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-white/25 hover:text-white/60 transition-all">
             <ArrowLeft size={16} />
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-white/90">
-                🐉 Draco Agent
-              </span>
-              {session && (
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                  session.status === "running"
-                    ? "bg-emerald-500/10 text-emerald-400/80 border border-emerald-500/15"
-                    : session.status === "creating"
-                    ? "bg-yellow-500/10 text-yellow-400/80 border border-yellow-500/15"
-                    : "bg-red-500/10 text-red-400/80 border border-red-500/15"
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    session.status === "running" ? "bg-emerald-400 animate-pulse" :
-                    session.status === "creating" ? "bg-yellow-400 animate-pulse" : "bg-red-400"
-                  }`} />
-                  {session.status}
-                </span>
-              )}
-            </div>
+          <div className="flex items-center gap-2.5">
+            <span className="text-[14px] font-semibold text-white/85 tracking-tight">Draco Agent</span>
             {session?.status === "running" && (
-              <div className="flex items-center gap-3 text-[10px] text-white/20 mt-0.5">
-                {session.containerIP && <span className="flex items-center gap-1"><Wifi size={9} />{session.containerIP}</span>}
-                <span className="flex items-center gap-1"><Clock size={9} />{getUptime()}</span>
-                <span className="flex items-center gap-1"><Cpu size={9} />CT {session.vmid}</span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/8 border border-emerald-500/10">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] font-medium text-emerald-400/70">Live</span>
+              </div>
+            )}
+            {session?.status === "creating" && (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/8 border border-amber-500/10">
+                <Loader2 size={10} className="animate-spin text-amber-400/70" />
+                <span className="text-[10px] font-medium text-amber-400/70">Booting</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Center — Mobile View Switcher */}
-        {session?.status === "running" && (
-          <div className="flex md:hidden items-center gap-1 bg-white/[0.04] rounded-lg p-0.5">
-            <button
-              onClick={() => setMobileView("chat")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                mobileView === "chat" ? "bg-purple-600/30 text-purple-300" : "text-white/30"
-              }`}
-            >
-              <MessageSquare size={14} />
-            </button>
-            <button
-              onClick={() => setMobileView("computer")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                mobileView === "computer" ? "bg-purple-600/30 text-purple-300" : "text-white/30"
-              }`}
-            >
-              <Monitor size={14} />
-            </button>
-          </div>
-        )}
+        {/* Right side — minimal session info + controls */}
+        <div className="flex items-center gap-3">
+          {session?.status === "running" && (
+            <div className="hidden sm:flex items-center gap-3 text-[10px] text-white/15 font-mono">
+              <span className="flex items-center gap-1"><Cpu size={9} />CT {session.vmid}</span>
+              <span className="flex items-center gap-1"><Clock size={9} />{getUptime()}</span>
+            </div>
+          )}
 
-        {/* Right — End Session / Start */}
-        <div className="flex items-center gap-2">
           {!session ? (
             <button
               onClick={createSession}
               disabled={isCreating || isRecovering}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-xs font-bold shadow-lg transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-[#6c3bff] hover:bg-[#7c4dff] text-white text-xs font-semibold shadow-lg shadow-[#6c3bff]/20 transition-all flex items-center gap-2 disabled:opacity-50"
             >
-              {isCreating || isRecovering ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-              {isRecovering ? "Checking…" : "Start Machine"}
+              {isCreating || isRecovering ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
+              {isRecovering ? "Checking…" : "Start Session"}
             </button>
           ) : (
             <button
               onClick={endSession}
-              className="px-3 py-2 rounded-lg bg-red-500/8 hover:bg-red-500/15 border border-red-500/8 text-red-400/50 hover:text-red-400 text-xs font-semibold transition-all flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-red-500/10 border border-white/[0.06] hover:border-red-500/15 text-white/25 hover:text-red-400 text-[11px] font-medium transition-all flex items-center gap-1.5"
             >
-              <Square size={12} /> End
+              <Square size={10} /> End
             </button>
           )}
         </div>
       </div>
 
-      {/* ── Main Content ── */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        {session?.status === "running" ? (
-          <>
-            {/* ═══ LEFT PANEL: Chat ═══ */}
-            <div className={`flex flex-col border-r border-white/[0.04] bg-[#09090b] ${
-              isFullscreen ? "hidden" : ""
-            } ${mobileView === "computer" ? "hidden md:flex" : "flex"} ${
-              isFullscreen ? "" : "w-full md:w-[45%] lg:w-[42%]"
-            }`}>
-              {/* Chat Messages */}
-              <AgentMessages
-                events={events}
-                vmid={session.vmid}
-                idToken={idToken}
-              />
-
-              {/* Chat Input */}
-              <AgentInput
-                onSend={sendMessage}
-                disabled={session.status !== "running"}
-                isProcessing={isProcessing}
-              />
-            </div>
-
-            {/* ═══ RIGHT PANEL: Computer ═══ */}
-            <div className={`flex flex-col bg-[#0a0a12] ${
-              isFullscreen ? "w-full" : ""
-            } ${mobileView === "chat" ? "hidden md:flex" : "flex"} ${
-              isFullscreen ? "" : "w-full md:flex-1"
-            }`}>
-              {/* Tab Bar */}
-              <div className="shrink-0 flex items-center justify-between px-3 py-1.5 bg-[#0d0d14] border-b border-white/[0.04]">
-                <div className="flex items-center gap-1">
-                  {/* macOS dots */}
-                  <div className="flex gap-1.5 mr-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#f7768e]/40" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#e0af68]/40" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#9ece6a]/40" />
+      {/* ═══ MAIN CONTENT ═══ */}
+      {session?.status === "running" ? (
+        /* ── Active Session: Full-Page Chat ── */
+        <>
+          <AgentMessages
+            events={events}
+            vmid={session.vmid}
+            idToken={idToken}
+          />
+          <AgentInput
+            onSend={sendMessage}
+            disabled={session.status !== "running"}
+            isProcessing={isProcessing}
+          />
+        </>
+      ) : (
+        /* ── Boot / Loading State ── */
+        <div className="flex-1 flex items-center justify-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center px-6"
+          >
+            {isRecovering || isCreating || session?.status === "creating" ? (
+              <>
+                {/* Boot animation */}
+                <div className="relative w-20 h-20 mx-auto mb-6">
+                  <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#6c3bff]/15 to-[#4f46e5]/10 border border-[#6c3bff]/10 animate-pulse" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 size={28} className="text-[#6c3bff]/60 animate-spin" />
                   </div>
-
-                  {/* Tabs */}
-                  <button
-                    onClick={() => setRightTab("terminal")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      rightTab === "terminal"
-                        ? "bg-white/[0.06] text-white/80"
-                        : "text-white/25 hover:text-white/50"
-                    }`}
-                  >
-                    <TerminalIcon size={12} />
-                    Terminal
-                  </button>
-                  <button
-                    onClick={() => setRightTab("files")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      rightTab === "files"
-                        ? "bg-white/[0.06] text-white/80"
-                        : "text-white/25 hover:text-white/50"
-                    }`}
-                  >
-                    <FolderOpen size={12} />
-                    Files
-                  </button>
                 </div>
 
-                {/* Fullscreen toggle */}
-                <button
-                  onClick={() => setIsFullscreen(!isFullscreen)}
-                  className="p-1.5 rounded-md hover:bg-white/[0.06] text-white/20 hover:text-white/50 transition-all hidden md:block"
-                >
-                  {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-                </button>
-              </div>
+                <h3 className="text-lg font-bold text-white/80 mb-2 tracking-tight">
+                  {isRecovering ? "Reconnecting…" : "Booting your machine"}
+                </h3>
+                <p className="text-sm text-white/20 max-w-sm mx-auto leading-relaxed">
+                  {session?.status === "creating"
+                    ? "Spinning up a Linux container. This takes a moment."
+                    : statusText}
+                </p>
 
-              {/* Tab Content */}
-              <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
-                {rightTab === "terminal" ? (
-                  <XTerminal
-                    ref={xtermRef}
-                    vmid={session.vmid}
-                    idToken={idToken}
-                    fontSize={13}
-                    autoFocus={false}
-                  />
-                ) : (
-                  <WorkspaceFiles vmid={session.vmid} idToken={idToken || ''} />
-                )}
-              </div>
-            </div>
-          </>
-        ) : (
-          /* ═══ BOOT / LOADING STATE ═══ */
-          <div className="flex-1 flex items-center justify-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center"
-            >
-              {isRecovering || isCreating || session?.status === "creating" ? (
-                <>
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/10 to-emerald-500/10 border border-purple-500/10 flex items-center justify-center mb-4 mx-auto">
-                    <Loader2 size={28} className="text-purple-400 animate-spin" />
+                {/* Boot steps animation */}
+                <div className="mt-6 space-y-2 text-left max-w-[280px] mx-auto">
+                  {["Allocating compute", "Networking", "Installing tools"].map((step, i) => (
+                    <motion.div
+                      key={step}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.8 + 0.3 }}
+                      className="flex items-center gap-2.5 text-xs text-white/20"
+                    >
+                      <div className="w-4 h-4 rounded-full bg-[#6c3bff]/10 border border-[#6c3bff]/15 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#6c3bff]/40 animate-pulse" />
+                      </div>
+                      {step}
+                    </motion.div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Welcome state */}
+                <div className="relative w-24 h-24 mx-auto mb-8">
+                  <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#6c3bff]/12 to-[#4f46e5]/8 border border-[#6c3bff]/10 shadow-2xl shadow-[#6c3bff]/10" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-5xl drop-shadow-xl">🐉</span>
                   </div>
-                  <h3 className="text-lg font-bold text-white/80 mb-2">
-                    {isRecovering ? "Reconnecting…" : "Booting Machine"}
-                  </h3>
-                  <p className="text-sm text-white/25 max-w-sm">
-                    {session?.status === "creating"
-                      ? "Your Linux container is starting up. This usually takes a moment."
-                      : statusText}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/10 flex items-center justify-center mb-6 mx-auto">
-                    <span className="text-4xl">🐉</span>
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#0d0d14] border-2 border-[#09090b] flex items-center justify-center">
+                    <div className="w-3 h-3 rounded-full bg-white/10 flex items-center justify-center">
+                      <Circle size={6} className="text-white/20" />
+                    </div>
                   </div>
-                  <h3 className="text-2xl font-bold text-white mb-3">Draco Agent</h3>
-                  <p className="text-sm text-white/25 max-w-md mb-8 leading-relaxed">
-                    Your autonomous AI engineer with a live Linux workspace.<br />
-                    Tell it what to build — it plans, codes, and delivers.
-                  </p>
-                  <button
-                    onClick={createSession}
-                    disabled={isCreating}
-                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-sm font-bold shadow-xl shadow-purple-500/15 transition-all flex items-center gap-2 mx-auto disabled:opacity-50"
-                  >
-                    {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                    Start Session
-                  </button>
-                </>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </div>
+                </div>
+
+                <h2 className="text-2xl font-bold text-white/90 tracking-tight mb-3">Draco Agent</h2>
+                <p className="text-sm text-white/20 max-w-md mx-auto mb-8 leading-relaxed">
+                  An autonomous AI engineer with a live Linux machine.<br />
+                  Give it a task — it plans, builds, and delivers.
+                </p>
+
+                <button
+                  onClick={createSession}
+                  disabled={isCreating}
+                  className="px-8 py-3.5 rounded-2xl bg-[#6c3bff] hover:bg-[#7c4dff] text-white text-sm font-semibold shadow-2xl shadow-[#6c3bff]/25 transition-all flex items-center gap-2.5 mx-auto disabled:opacity-50 hover:shadow-[#6c3bff]/35"
+                >
+                  {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                  Start Session
+                </button>
+              </>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
