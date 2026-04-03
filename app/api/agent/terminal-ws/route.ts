@@ -114,14 +114,8 @@ export async function GET(request: NextRequest) {
             vmid,
             uid,
             createdAt: Date.now(),
+            lastActivity: Date.now(),
           });
-
-          // Auto-launch OpenCode CLI after a short delay for shell init
-          setTimeout(() => {
-            try {
-              sshStream.write('cd /workspace && opencode\r');
-            } catch {}
-          }, 500);
 
           // Stream stdout to client
           sshStream.on('data', (data: Buffer) => {
@@ -250,6 +244,7 @@ export async function POST(request: NextRequest) {
     if (input) {
       const decoded = Buffer.from(input, 'base64');
       session.stream.write(decoded);
+      session.lastActivity = Date.now(); // Reset idle timer
     }
 
     return new Response(JSON.stringify({ ok: true }), {
@@ -271,22 +266,31 @@ interface TerminalSession {
   vmid: number;
   uid: string;
   createdAt: number;
+  lastActivity: number;
 }
 
 const terminalSessions = new Map<string, TerminalSession>();
 
-// Cleanup stale sessions every 5 minutes
+// Idle timeout: 10 minutes
+const IDLE_TIMEOUT = 10 * 60 * 1000;
+
+// Cleanup stale + idle sessions every 60 seconds
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
     const now = Date.now();
-    const MAX_AGE = 30 * 60 * 1000; // 30 minutes
+    const MAX_AGE = 30 * 60 * 1000; // 30 minutes absolute max
     for (const [id, session] of terminalSessions.entries()) {
-      if (now - session.createdAt > MAX_AGE) {
-        console.log(`[TERMINAL] Cleaning up stale session ${id}`);
-        try { session.stream.close(); } catch {}
-        try { session.conn.end(); } catch {}
-        terminalSessions.delete(id);
+      const isStale = now - session.createdAt > MAX_AGE;
+      const isIdle = now - session.lastActivity > IDLE_TIMEOUT;
+      if (isStale || isIdle) {
+        console.log(`[TERMINAL] Auto-terminating session ${id} (${isIdle ? 'idle 10min' : 'stale 30min'})`);
+        try { session.stream.write('\r\n*** Session terminated due to inactivity ***\r\n'); } catch {}
+        setTimeout(() => {
+          try { session.stream.close(); } catch {}
+          try { session.conn.end(); } catch {}
+          terminalSessions.delete(id);
+        }, 500);
       }
     }
-  }, 5 * 60 * 1000);
+  }, 60 * 1000);
 }

@@ -3,12 +3,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Loader2, ArrowLeft, Square, Cpu, Wifi, Clock, Play,
-  Terminal as TerminalIcon
+  Terminal as TerminalIcon, FolderOpen, Monitor, MessageSquare,
+  Maximize2, Minimize2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/app/lib/AuthContext";
 import WorkspaceFiles from "./WorkspaceFiles";
+import AgentMessages, { AgentEvent } from "./AgentMessages";
+import AgentInput from "./AgentInput";
 
 // Dynamic import XTerminal to avoid SSR issues
 const XTerminal = dynamic(() => import("./XTerminal"), {
@@ -17,7 +20,7 @@ const XTerminal = dynamic(() => import("./XTerminal"), {
     <div className="flex-1 flex items-center justify-center bg-[#0a0a12]">
       <div className="flex items-center gap-3 text-sm text-white/30">
         <div className="w-5 h-5 border-2 border-purple-500/40 border-t-purple-500 rounded-full animate-spin" />
-        Initializing terminal environment…
+        Initializing terminal…
       </div>
     </div>
   ),
@@ -69,6 +72,18 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
   const [statusText, setStatusText] = useState("Checking for machines…");
   const xtermRef = useRef<any>(null);
 
+  // ── Chat State ──
+  const [events, setEvents] = useState<AgentEvent[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [conversationMessages, setConversationMessages] = useState<{ role: string; content: string }[]>([]);
+
+  // ── Right Panel State ──
+  const [rightTab, setRightTab] = useState<"terminal" | "files">("terminal");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // ── Mobile State ──
+  const [mobileView, setMobileView] = useState<"chat" | "computer">("chat");
+
   // Get Firebase ID token
   useEffect(() => {
     if (user) {
@@ -112,8 +127,6 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         } catch {}
         clearSessionLocal();
       }
-
-      // Auto-create session
       setIsRecovering(false);
       window.setTimeout(() => {
         if (!initialVmid && !loadSessionLocal()) {
@@ -121,7 +134,6 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         }
       }, 500);
     };
-
     recover();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -145,7 +157,6 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         createdAt: Date.now(),
       });
       saveSessionLocal({ vmid: data.vmid, sessionId: data.sessionId, userId });
-
       if (data.status !== "running") {
         pollSessionStatus(data.sessionId);
       }
@@ -182,6 +193,8 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
       });
     } catch {}
     setSession(null);
+    setEvents([]);
+    setConversationMessages([]);
     clearSessionLocal();
   };
 
@@ -193,11 +206,145 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
     return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   };
 
+  // ── Chat: Send Message to AI Agent ──
+  const sendMessage = useCallback(async (message: string) => {
+    if (!session || session.status !== "running" || isProcessing) return;
+
+    // Add user message to events
+    const userEvent: AgentEvent = {
+      id: `user-${Date.now()}`,
+      type: "user",
+      content: message,
+      timestamp: Date.now(),
+    };
+    setEvents(prev => [...prev, userEvent]);
+
+    // Add to conversation history
+    const newMessages = [
+      ...conversationMessages,
+      { role: "user", content: message },
+    ];
+    setConversationMessages(newMessages);
+
+    setIsProcessing(true);
+
+    try {
+      const res = await fetch("/api/agent/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vmid: session.vmid,
+          sessionId: session.sessionId,
+          messages: newMessages,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Connection failed" }));
+        setEvents(prev => [...prev, {
+          id: `error-${Date.now()}`,
+          type: "response",
+          content: `⚠️ ${err.error || "Failed to connect to agent."}`,
+          timestamp: Date.now(),
+        }]);
+        setIsProcessing(false);
+        return;
+      }
+
+      // Stream SSE events
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let lastResponseId = "";
+      let accumulatedResponse = "";
+
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") continue;
+
+          try {
+            const event = JSON.parse(data);
+            const eventId = `${event.type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+            if (event.type === "response") {
+              // Accumulate response text into a single message
+              accumulatedResponse += event.content;
+              if (!lastResponseId) {
+                lastResponseId = eventId;
+                setEvents(prev => [...prev, {
+                  id: lastResponseId,
+                  type: "response",
+                  content: accumulatedResponse,
+                  timestamp: Date.now(),
+                  isStreaming: true,
+                }]);
+              } else {
+                setEvents(prev => prev.map(e =>
+                  e.id === lastResponseId
+                    ? { ...e, content: accumulatedResponse, isStreaming: true }
+                    : e
+                ));
+              }
+            } else {
+              // Non-response events reset the response accumulator
+              if (lastResponseId) {
+                setEvents(prev => prev.map(e =>
+                  e.id === lastResponseId ? { ...e, isStreaming: false } : e
+                ));
+                lastResponseId = "";
+                accumulatedResponse = "";
+              }
+
+              setEvents(prev => [...prev, {
+                id: eventId,
+                type: event.type,
+                content: event.content,
+                exitCode: event.exitCode,
+                timestamp: Date.now(),
+                isStreaming: event.type === "status",
+              }]);
+            }
+          } catch {}
+        }
+      }
+
+      // Finalize streaming
+      if (lastResponseId) {
+        setEvents(prev => prev.map(e =>
+          e.id === lastResponseId ? { ...e, isStreaming: false } : e
+        ));
+        // Add to conversation history
+        setConversationMessages(prev => [
+          ...prev,
+          { role: "assistant", content: accumulatedResponse },
+        ]);
+      }
+    } catch (err: any) {
+      setEvents(prev => [...prev, {
+        id: `error-${Date.now()}`,
+        type: "response",
+        content: `⚠️ Network error: ${err.message}`,
+        timestamp: Date.now(),
+      }]);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [session, isProcessing, conversationMessages]);
+
   // ── Render ──
   return (
     <div className="flex-1 w-full flex flex-col h-full bg-[#09090b] text-white overflow-hidden">
       {/* ── Top Bar ── */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-[#0d0d14]/80 backdrop-blur-xl border-b border-white/[0.04]">
+      <div className="shrink-0 flex items-center justify-between px-4 py-2 bg-[#0d0d14]/80 backdrop-blur-xl border-b border-white/[0.04] z-20">
         {/* Left — Back + Status */}
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-white/30 hover:text-white/60 transition-all">
@@ -234,14 +381,30 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
           </div>
         </div>
 
+        {/* Center — Mobile View Switcher */}
+        {session?.status === "running" && (
+          <div className="flex md:hidden items-center gap-1 bg-white/[0.04] rounded-lg p-0.5">
+            <button
+              onClick={() => setMobileView("chat")}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                mobileView === "chat" ? "bg-purple-600/30 text-purple-300" : "text-white/30"
+              }`}
+            >
+              <MessageSquare size={14} />
+            </button>
+            <button
+              onClick={() => setMobileView("computer")}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                mobileView === "computer" ? "bg-purple-600/30 text-purple-300" : "text-white/30"
+              }`}
+            >
+              <Monitor size={14} />
+            </button>
+          </div>
+        )}
+
         {/* Right — End Session / Start */}
         <div className="flex items-center gap-2">
-          {session?.status === "running" && (
-            <div className="flex items-center gap-1.5 text-[10px] text-white/15 mr-2">
-              <TerminalIcon size={11} />
-              <span>OpenCode Terminal</span>
-            </div>
-          )}
           {!session ? (
             <button
               onClick={createSession}
@@ -262,48 +425,99 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
         </div>
       </div>
 
-      {/* ── Main Content: Full-Page Terminal ── */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* ── Main Content ── */}
+      <div className="flex-1 flex min-h-0 overflow-hidden">
         {session?.status === "running" ? (
           <>
-            {/* macOS-style terminal chrome */}
-            <div className="shrink-0 flex items-center justify-between px-4 py-1.5 bg-[#0d0d14] border-b border-white/[0.04]">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#f7768e]/50" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#e0af68]/50" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#9ece6a]/50" />
-                </div>
-                <span className="text-[11px] font-mono text-white/15 ml-1">
-                  root@draco-ct{session.vmid} — /workspace
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] font-mono text-emerald-400/30 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/50 animate-pulse" />
-                  opencode
-                </span>
-              </div>
+            {/* ═══ LEFT PANEL: Chat ═══ */}
+            <div className={`flex flex-col border-r border-white/[0.04] bg-[#09090b] ${
+              isFullscreen ? "hidden" : ""
+            } ${mobileView === "computer" ? "hidden md:flex" : "flex"} ${
+              isFullscreen ? "" : "w-full md:w-[45%] lg:w-[42%]"
+            }`}>
+              {/* Chat Messages */}
+              <AgentMessages
+                events={events}
+                vmid={session.vmid}
+                idToken={idToken}
+              />
+
+              {/* Chat Input */}
+              <AgentInput
+                onSend={sendMessage}
+                disabled={session.status !== "running"}
+                isProcessing={isProcessing}
+              />
             </div>
 
-            {/* Split View: Terminal (Top 60%) + Workspace Files (Bottom 40%) */}
-            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-              <div className="h-[60%] shrink-0 w-full min-h-0 min-w-0 flex flex-col overflow-hidden border-b border-white/[0.04] bg-black">
-                <XTerminal
-                  ref={xtermRef}
-                  vmid={session.vmid}
-                  idToken={idToken}
-                  fontSize={14}
-                  autoFocus={true}
-                />
+            {/* ═══ RIGHT PANEL: Computer ═══ */}
+            <div className={`flex flex-col bg-[#0a0a12] ${
+              isFullscreen ? "w-full" : ""
+            } ${mobileView === "chat" ? "hidden md:flex" : "flex"} ${
+              isFullscreen ? "" : "w-full md:flex-1"
+            }`}>
+              {/* Tab Bar */}
+              <div className="shrink-0 flex items-center justify-between px-3 py-1.5 bg-[#0d0d14] border-b border-white/[0.04]">
+                <div className="flex items-center gap-1">
+                  {/* macOS dots */}
+                  <div className="flex gap-1.5 mr-3">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#f7768e]/40" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#e0af68]/40" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#9ece6a]/40" />
+                  </div>
+
+                  {/* Tabs */}
+                  <button
+                    onClick={() => setRightTab("terminal")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      rightTab === "terminal"
+                        ? "bg-white/[0.06] text-white/80"
+                        : "text-white/25 hover:text-white/50"
+                    }`}
+                  >
+                    <TerminalIcon size={12} />
+                    Terminal
+                  </button>
+                  <button
+                    onClick={() => setRightTab("files")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      rightTab === "files"
+                        ? "bg-white/[0.06] text-white/80"
+                        : "text-white/25 hover:text-white/50"
+                    }`}
+                  >
+                    <FolderOpen size={12} />
+                    Files
+                  </button>
+                </div>
+
+                {/* Fullscreen toggle */}
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="p-1.5 rounded-md hover:bg-white/[0.06] text-white/20 hover:text-white/50 transition-all hidden md:block"
+                >
+                  {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                </button>
               </div>
+
+              {/* Tab Content */}
               <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
-                <WorkspaceFiles vmid={session.vmid} idToken={idToken || ''} />
+                {rightTab === "terminal" ? (
+                  <XTerminal
+                    ref={xtermRef}
+                    vmid={session.vmid}
+                    idToken={idToken}
+                    fontSize={13}
+                    autoFocus={false}
+                  />
+                ) : (
+                  <WorkspaceFiles vmid={session.vmid} idToken={idToken || ''} />
+                )}
               </div>
             </div>
           </>
         ) : (
-          /* Loading / Boot State */
+          /* ═══ BOOT / LOADING STATE ═══ */
           <div className="flex-1 flex items-center justify-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -320,27 +534,27 @@ export default function AgentChat({ userId, userPlan, onBack, onUpgrade, initial
                   </h3>
                   <p className="text-sm text-white/25 max-w-sm">
                     {session?.status === "creating"
-                      ? "Your Linux container is starting up. OpenCode will launch automatically."
+                      ? "Your Linux container is starting up. This usually takes a moment."
                       : statusText}
                   </p>
                 </>
               ) : (
                 <>
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/10 flex items-center justify-center mb-6 mx-auto">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/10 flex items-center justify-center mb-6 mx-auto">
                     <span className="text-4xl">🐉</span>
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-3">Draco Agent</h3>
                   <p className="text-sm text-white/25 max-w-md mb-8 leading-relaxed">
-                    Your own AI-powered Linux workspace.<br />
-                    Powered by <span className="text-emerald-400/60 font-semibold">OpenCode</span> — write code, generate files, install tools, and build apps autonomously.
+                    Your autonomous AI engineer with a live Linux workspace.<br />
+                    Tell it what to build — it plans, codes, and delivers.
                   </p>
                   <button
                     onClick={createSession}
                     disabled={isCreating}
-                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-sm font-bold shadow-xl shadow-emerald-500/15 transition-all flex items-center gap-2 mx-auto disabled:opacity-50"
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-sm font-bold shadow-xl shadow-purple-500/15 transition-all flex items-center gap-2 mx-auto disabled:opacity-50"
                   >
                     {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-                    Launch OpenCode Terminal
+                    Start Session
                   </button>
                 </>
               )}
